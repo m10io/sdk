@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+  "sdk",
+  "sdk-protos",
+  "signing"
+]

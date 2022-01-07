@@ -1,0 +1,44 @@
+[package]
+name = "m10-sdk"
+version = "0.4.0"
+authors = ["Michael Wittner <michael.wittner@m10.io>"]
+edition = "2021"
+description = "M10 SDK API"
+license = "MIT"
+homepage = "https://m10.net/docs"
+repository = "https://github.com/m10io/sdk"
+readme = "README.md"
+
+
+[features]
+default = ["collections", "service", "image", "contract", "account"]
+collections = []
+service = ["tonic", "m10-signing", "futures-core", "futures-util", "m10-sdk-protos/client"]
+image = ["reqwest"]
+account = []
+contract = ["ring", "hex", "thiserror"]
+
+[dependencies]
+bytes = "1"
+fastrand = "1"
+m10-sdk-protos = { version = "0.4.0", path = "../sdk-protos" }
+uuid = { version = "0.8", features = ["serde", "v4"] }
+serde = { version = "1", features = ["derive"] }
+
+# image
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"], optional = true }
+
+# contract
+thiserror = { version = "1", optional = true }
+ring = { version = "0.16", features = ["std"], optional = true }
+hex = { version = "0.4", optional = true }
+
+# service
+futures-core = { version = "0.3", optional = true }
+futures-util = { version = "0.3", optional = true }
+m10-signing = { version = "0.4.0", path = "../signing", optional = true }
+tonic = { version = "0.5", features = ["tls", "tls-roots"], optional = true }
+
+[dev-dependencies]
+clap = "3.0.0-beta.1"
+tokio = { version = "1", features = ["rt", "macros"] }

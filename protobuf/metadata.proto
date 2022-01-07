@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+import "sdk/api.proto";
+import "sdk/transaction/transaction.proto";
+
+package m10.sdk.metadata;
+
+message Attachment {
+  string object_id = 1;
+  AttachmentType type = 2;
+  enum AttachmentType {
+    OBJECT = 0;
+    IMAGE = 1;
+  }
+}
+
+message Memo {
+  string plaintext = 1;
+}
+
+message Fee {}
+
+message Withdraw {
+  string bank_account_id = 1;
+}
+
+message Deposit {
+  string bank_account_id = 1;
+}
+
+message Contract {
+  // A set of Ledger transactions to be processed. Should be deserialized as `CreateLedgerTransfers`.
+  bytes transactions = 1;
+
+  // Endorsement of the remote request by an authorized party, e.g. ledger/fx-service/...
+  // Note: This can be signed by multiple parties to agree on a contract
+  repeated Endorsement endorsements = 2;
+}
+
+message Endorsement {
+  string ledger_id = 1;
+  m10.sdk.Signature signature = 2;
+}
+
+message PaymentRequest {
+  m10.sdk.transaction.CreateTransfer transfer = 1;
+  enum PaymentRequestStatus {
+    PENDING = 0;
+    DECLINED = 1;
+    CANCELED = 2;
+  }
+  PaymentRequestStatus status = 2;
+}

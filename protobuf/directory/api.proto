@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package m10.directory;
+
+// Follows the Google Standard Methods API Guide: https://cloud.google.com/apis/design/standard_methods
+// Method / Request  / Response
+// List   / N/A      / Resource* list
+// Get    / N/A      / Resource*
+// Create / Resource / Resource*
+// Update / Resource / Resource*
+// Delete / N/A      / google.protobuf.Empty**
+// *can be partial resource objects if using field masks in request
+// **empty if removed immeadiately, otherwise return long-running job id or the remaining resource
+
+service DirectoryService {
+  // Ledgers
+  rpc CreateLedger(Ledger) returns (google.protobuf.Empty) {};
+  rpc ListLedgers(google.protobuf.Empty) returns (ListLedgersResponse) {};
+
+  // Aliases
+  rpc CheckAlias(CheckAliasRequest) returns (google.protobuf.Empty) {};
+  rpc CreateAlias(Alias) returns (google.protobuf.Empty) {};
+  rpc SearchAliases(SearchAliasesRequest) returns (SearchAliasesResponse) {};
+
+  //  Transaction Support Documents
+  rpc CreateObjectUrl(google.protobuf.Empty) returns (ObjectUrlResponse) {};
+  rpc GetObjectUrl(GetObjectUrlRequest) returns (ObjectUrlResponse) {};
+
+  rpc CreateImageUrl(CreateImageUrlRequest) returns (ObjectUrlResponse) {};
+}
+
+// Ledger messages
+message Ledger {
+  string operator = 1;         // "m10"
+  string url = 2;              // "https://usd.m10.net"
+  // TODO: remove `code` from directory
+  string code = 4;             // "USD", "TSLA", "DASH", etc supports official and unofficial ISO 4217 Codes https://en.wikipedia.org/wiki/ISO_4217#Active_codes
+  int32  decimals = 5;         // 2
+}
+
+message ListLedgersResponse {
+  repeated Ledger ledgers = 1;
+}
+
+// Alias messages
+message Alias {
+  string handle = 1;           // "testy@test.com"
+  string display_name = 2;     // "Jon Jones"
+  bytes account_set_id = 5;
+  string operator = 8;
+  // TODO: remove `code` from directory
+  string code = 9;
+  Type alias_type = 10;
+  enum Type {
+    HANDLE = 0;
+    EMAIL = 1;
+    PHONE = 2;
+  }
+}
+
+message CheckAliasRequest {
+  string handle = 1;
+}
+
+message SearchAliasesRequest {
+  string handle_prefix = 1;
+  int32  page_size = 2;
+  string page_token = 3;
+  string subject = 5;
+}
+
+message SearchAliasesResponse {
+  repeated Alias aliases = 1;
+  string next_page_token = 2;
+}
+
+// Document messages
+message GetObjectUrlRequest {
+  string object_id = 1;
+}
+
+message ObjectUrlResponse {
+  string presigned_url = 1;
+  string object_id = 2;
+  string url = 3;
+}
+
+message CreateImageUrlRequest {
+  optional string mime_type = 1;
+}

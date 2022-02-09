@@ -1,6 +1,6 @@
 #! /bin/sh
 pushd rust
-pushd sdk-protos
+pushd protos
 ln -s ../../protobuf/ protobuf
 sed -i '.bak' 's/..\/..\/protobuf/.\/protobuf/g' build.rs
 popd

@@ -1,18 +1,18 @@
-use crate::account::AccountId;
-use m10_sdk_protos::prost::Message;
-use m10_sdk_protos::sdk::{Contract, CreateLedgerTransfer, CreateLedgerTransfers};
+use m10_protos::prost::{DecodeError, Message};
+use m10_protos::sdk::{Contract, CreateLedgerTransfer, CreateLedgerTransfers};
 use serde::Serialize;
-use thiserror::Error;
+use serde_with::{hex::Hex, serde_as};
 
 pub type ContractId = Vec<u8>;
 
+#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct TransferInfo {
     pub ledger_id: String,
-    #[serde(serialize_with = "account_id_as_hex")]
-    pub from_account_id: AccountId,
-    #[serde(serialize_with = "account_id_as_hex")]
-    pub to_account_id: AccountId,
+    #[serde_as(as = "Hex")]
+    pub from_account_id: Vec<u8>,
+    #[serde_as(as = "Hex")]
+    pub to_account_id: Vec<u8>,
     pub amount: u64,
     pub nonce: u64,
 }
@@ -22,7 +22,7 @@ pub trait FinalizedContractExt {
     fn id(&self) -> ContractId;
 
     /// Extracts a list of the proposed transfers
-    fn transfer_info(&self) -> Result<Vec<TransferInfo>, ContractError>;
+    fn transfer_info(&self) -> Result<Vec<TransferInfo>, DecodeError>;
 }
 
 impl FinalizedContractExt for Contract {
@@ -32,7 +32,7 @@ impl FinalizedContractExt for Contract {
             .to_vec()
     }
 
-    fn transfer_info(&self) -> Result<Vec<TransferInfo>, ContractError> {
+    fn transfer_info(&self) -> Result<Vec<TransferInfo>, DecodeError> {
         let CreateLedgerTransfers { transfers, .. } =
             CreateLedgerTransfers::decode(self.transactions.as_ref())?;
         transfers
@@ -50,10 +50,8 @@ impl FinalizedContractExt for Contract {
                         .map(move |step| {
                             Ok(TransferInfo {
                                 ledger_id: ledger_id.clone(),
-                                from_account_id: AccountId::try_from_be_slice(
-                                    &step.from_account_id,
-                                )?,
-                                to_account_id: AccountId::try_from_be_slice(&step.to_account_id)?,
+                                from_account_id: step.from_account_id,
+                                to_account_id: step.to_account_id,
                                 amount: step.amount,
                                 nonce,
                             })
@@ -63,19 +61,4 @@ impl FinalizedContractExt for Contract {
             )
             .collect::<Result<Vec<_>, _>>()
     }
-}
-
-fn account_id_as_hex<S: serde::Serializer>(
-    account_id: &AccountId,
-    s: S,
-) -> Result<S::Ok, S::Error> {
-    s.serialize_str(&hex::encode(&account_id.to_be_bytes()))
-}
-
-#[derive(Error, Debug)]
-pub enum ContractError {
-    #[error("account id {0}")]
-    AccountId(#[from] crate::account::AccountIdError),
-    #[error("prost decode {0}")]
-    ProstDecode(#[from] m10_sdk_protos::prost::DecodeError),
 }

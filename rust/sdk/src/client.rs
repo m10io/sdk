@@ -1,75 +1,76 @@
 use futures_core::Stream;
-use m10_sdk_protos::arcadius2;
-use m10_sdk_protos::sdk::{
+use m10_protos::sdk::{
     self, m10_query_service_client::M10QueryServiceClient,
-    m10_tx_service_client::M10TxServiceClient, transaction_request_payload::Data,
+    m10_tx_service_client::M10TxServiceClient, transaction_data::Data, TransactionData,
 };
 use m10_signing::SignedRequest;
-use std::ops::Range;
-use std::time::{Duration, Instant};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Response, Status};
 
-use crate::account::AccountId;
-use crate::document_id::DocumentId;
 use crate::transfer_ext::EnhancedTransfer;
 use crate::{EnhancedTransferStep, Signer};
-pub use tonic::transport::{Channel, ClientTlsConfig, Uri};
-
-const DEFAULT_UPDATE_INTERVAL: Duration = Duration::from_secs(1);
-const DEFAULT_BLOCK_WINDOW_SIZE: u64 = 2000;
-
-pub fn page_from(last_id: impl DocumentId, limit: u32) -> sdk::Page {
-    sdk::Page {
-        last_id: last_id.into_vec(),
-        limit,
-    }
-}
+pub use tonic::transport::{Channel, ClientTlsConfig, Endpoint, Uri};
 
 #[derive(Clone)]
-pub struct Client {
+/// A client for the M10 Ledger.
+///
+/// This client allows you to query and transact on the M10 ledger.
+///
+/// # Example
+/// ```no_run
+/// #[tokio::main(flavor = "current_thread")]
+/// async fn main() {
+///   let ledger_url = "https://test.m10.net".to_string();
+///   let mut client = m10_sdk::LedgerClient::new(
+///     tonic::transport::Endpoint::from_shared(ledger_url)
+///       .unwrap()
+///       .connect_lazy()
+///       .unwrap()
+///    );
+///
+///   let block_height = client.block_height().await;
+/// }
+/// ```
+pub struct LedgerClient {
     tx_client: M10TxServiceClient<Channel>,
     query_client: M10QueryServiceClient<Channel>,
-    // chain metadata used for replay protection
-    block_height: u64,
-    update_interval: Duration,
-    last_updated: Instant,
 }
 
-impl Client {
+impl LedgerClient {
     pub fn new(grpc_channel: Channel) -> Self {
         let tx_client = M10TxServiceClient::new(grpc_channel.clone());
         let query_client = M10QueryServiceClient::new(grpc_channel);
-        let block_height = 0;
-        let update_interval = DEFAULT_UPDATE_INTERVAL;
-        let last_updated = Instant::now() - update_interval;
         Self {
             tx_client,
             query_client,
-            block_height,
-            update_interval,
-            last_updated,
         }
     }
 
-    // TODO: this is not necessary once block window is replaced by timestamps
-    pub async fn transaction_request(
-        &mut self,
+    pub fn transaction_request(
         data: impl Into<Data>,
         context_id: Vec<u8>,
     ) -> sdk::TransactionRequestPayload {
-        let block_window = self.block_window().await.unwrap();
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_micros() as u64;
         sdk::TransactionRequestPayload {
             nonce: fastrand::u64(..),
-            after_height: block_window.start,
-            before_height: block_window.end,
+            timestamp,
             context_id,
-            data: Some(data.into()),
+            data: Some(TransactionData {
+                data: Some(data.into()),
+            }),
         }
     }
 
     pub async fn block_height(&mut self) -> Result<u64, tonic::Status> {
-        self.update_block_height().await?;
-        Ok(self.block_height)
+        let chain_info = self
+            .query_client
+            .get_chain_info(Request::new(()))
+            .await?
+            .into_inner();
+        Ok(chain_info.block_height)
     }
 
     pub async fn create_transaction(
@@ -221,7 +222,7 @@ impl Client {
     pub async fn get_role_binding(
         &mut self,
         request: SignedRequest<sdk::GetRoleBindingRequest>,
-    ) -> Result<arcadius2::RoleBinding, Status> {
+    ) -> Result<sdk::RoleBinding, Status> {
         self.query_client
             .get_role_binding(Request::new(request.into()))
             .await
@@ -242,7 +243,7 @@ impl Client {
     pub async fn get_role(
         &mut self,
         request: SignedRequest<sdk::GetRoleRequest>,
-    ) -> Result<arcadius2::Role, Status> {
+    ) -> Result<sdk::Role, Status> {
         self.query_client
             .get_role(Request::new(request.into()))
             .await
@@ -367,18 +368,18 @@ impl Client {
                 .await
                 .map(|res| res.into_inner())
         };
-        let from_parent_id = AccountId::try_from_be_slice(&transfer_step.from_account_id)
-            .ok()
-            .and_then(AccountId::parent_id);
+        let (from, to) = futures_util::future::try_join(from, to).await?;
         let from_bank = async {
-            if let Some(id) = from_parent_id {
+            if from.parent_account_id.is_empty() {
+                Ok(None)
+            } else {
                 Result::<_, Status>::Ok(
                     self.query_client
                         .clone()
                         .get_account_info(Request::new(
                             signer
                                 .sign_request(sdk::GetAccountRequest {
-                                    id: id.to_be_bytes().to_vec(),
+                                    id: from.parent_account_id.clone(),
                                 })
                                 .await
                                 .map_err(|err| Status::internal(err.to_string()))?
@@ -388,22 +389,19 @@ impl Client {
                         .map(|res| res.into_inner())
                         .ok(),
                 )
-            } else {
-                Ok(None)
             }
         };
-        let to_parent_id = AccountId::try_from_be_slice(&transfer_step.to_account_id)
-            .ok()
-            .and_then(AccountId::parent_id);
         let to_bank = async {
-            if let Some(id) = to_parent_id {
+            if to.parent_account_id.is_empty() {
+                Ok(None)
+            } else {
                 Result::<_, Status>::Ok(
                     self.query_client
                         .clone()
                         .get_account_info(Request::new(
                             signer
                                 .sign_request(sdk::GetAccountRequest {
-                                    id: id.to_be_bytes().to_vec(),
+                                    id: to.parent_account_id.clone(),
                                 })
                                 .await
                                 .map_err(|err| Status::internal(err.to_string()))?
@@ -413,37 +411,15 @@ impl Client {
                         .map(|res| res.into_inner())
                         .ok(),
                 )
-            } else {
-                Ok(None)
             }
         };
-        let (from, to, from_bank, to_bank) =
-            futures_util::future::join4(from, to, from_bank, to_bank).await;
+        let (from_bank, to_bank) = futures_util::future::try_join(from_bank, to_bank).await?;
 
         Ok(EnhancedTransferStep {
-            from: from?,
-            to: to?,
-            from_bank: from_bank?,
-            to_bank: to_bank?,
+            from,
+            to,
+            from_bank,
+            to_bank,
         })
-    }
-
-    async fn block_window(&mut self) -> Result<Range<u64>, tonic::Status> {
-        self.update_block_height().await?;
-        Ok(self.block_height..self.block_height + DEFAULT_BLOCK_WINDOW_SIZE)
-    }
-
-    async fn update_block_height(&mut self) -> Result<(), tonic::Status> {
-        let now = Instant::now();
-        if (now - self.last_updated) > self.update_interval {
-            let chain_info = self
-                .query_client
-                .get_chain_info(Request::new(()))
-                .await?
-                .into_inner();
-            self.block_height = chain_info.block_height;
-            self.last_updated = now;
-        }
-        Ok(())
     }
 }

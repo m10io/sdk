@@ -1,9 +1,9 @@
 use crate::document_id::DocumentId;
 use bytes::Bytes;
-use m10_sdk_protos::{
-    arcadius2::operation::{Operation as Op, UpdateDocument},
-    arcadius2::Operation,
+use m10_protos::{
     prost::FieldMask,
+    sdk::operation::{Operation as Op, UpdateDocument},
+    sdk::Operation,
     Pack,
 };
 
@@ -12,6 +12,18 @@ pub mod accounts;
 pub mod role_bindings;
 pub mod roles;
 
+/// A struct for building a document update operation
+///
+/// # Example
+///
+/// ```rust
+/// use m10_sdk::DocumentUpdate;
+/// use m10_sdk::sdk::Account;
+///
+/// let mut update: DocumentUpdate<Account> = DocumentUpdate::new(uuid::Uuid::new_v4());
+/// update.name("Test".to_string());
+/// let operation = update.operation();
+/// ```
 pub struct DocumentUpdate<D> {
     pub(crate) document: D,
     pub(crate) mask: FieldMask,
@@ -19,6 +31,7 @@ pub struct DocumentUpdate<D> {
 }
 
 impl<D: Pack> DocumentUpdate<D> {
+    /// Creates a new document update operation with the passed id
     pub fn new(id: impl DocumentId) -> Self {
         let mut document = D::default();
         document.set_id(id.into_vec());
@@ -29,10 +42,12 @@ impl<D: Pack> DocumentUpdate<D> {
         }
     }
 
+    /// Returns the ID of the document being updated
     pub fn id(&self) -> &[u8] {
         self.document.id()
     }
 
+    /// Builds the document update, and returns the associated [`Operation`]
     pub fn operation(&self) -> Operation {
         Operation {
             operation: Some(Op::UpdateDocument(UpdateDocument {

@@ -1,6 +1,6 @@
 [package]
 name = "m10-signing"
-version = "0.4.0"
+version = "0.10.0"
 authors = ["Michael Wittner <michael.wittner@m10.io>"]
 edition = "2021"
 description = "M10 utility library for request signing"
@@ -10,9 +10,8 @@ repository = "https://github.com/m10io/sdk"
 
 [dependencies]
 async-trait = "0.1"
-anyhow = "1"
 base64 = "0.13"
-m10-sdk-protos = { version = "0.4.0", path = "../sdk-protos" }
+m10-protos = { version = "0.10.0", path = "../protos" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive", "rc"] }
 ring = { version = "0.16", features = ["std"] }
 thiserror = "1"

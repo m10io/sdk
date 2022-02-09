@@ -5,96 +5,6 @@ macro_rules! include_proto {
     };
 }
 
-pub mod arcadius2 {
-    include_proto!("m10.arcadius2");
-
-    use crate::{Collection, Pack};
-
-    impl From<prost::bytes::Bytes> for Value {
-        fn from(bytes: prost::bytes::Bytes) -> Value {
-            Value {
-                value: Some(value::Value::BytesValue(bytes)),
-            }
-        }
-    }
-
-    pub const FILE_DESCRIPTOR_SET_BYTES: &[u8] =
-        include_bytes!(concat!(env!("OUT_DIR"), "/m10.arcadius2.bin"));
-    pub static FILE_DESCRIPTOR_SET: once_cell::sync::Lazy<prost_types::FileDescriptorSet> =
-        once_cell::sync::Lazy::new(|| {
-            prost::Message::decode(FILE_DESCRIPTOR_SET_BYTES).expect("file descriptor parse failed")
-        });
-
-    impl Operation {
-        pub fn insert<D: Pack>(document: D) -> Self {
-            Self {
-                operation: Some(operation::Operation::InsertDocument(
-                    operation::InsertDocument {
-                        collection: D::COLLECTION.to_string(),
-                        document: document.pack(),
-                    },
-                )),
-            }
-        }
-
-        pub fn delete<D: Pack>(id: Vec<u8>) -> Self {
-            Self {
-                operation: Some(operation::Operation::DeleteDocument(
-                    operation::DeleteDocument {
-                        collection: D::COLLECTION.to_string(),
-                        primary_key: Some(bytes::Bytes::from(id).into()),
-                    },
-                )),
-            }
-        }
-
-        pub fn new_index<D: Pack>(path: Vec<String>) -> Self {
-            Self {
-                operation: Some(operation::Operation::InsertIndex(operation::InsertIndex {
-                    collection: D::COLLECTION.to_string(),
-                    path: path.join("."),
-                })),
-            }
-        }
-
-        pub fn new_collection(
-            name: String,
-            descriptor_name: String,
-            index_metadata: Vec<IndexMetadata>,
-        ) -> Self {
-            Self {
-                operation: Some(operation::Operation::InsertCollection(CollectionMetadata {
-                    name,
-                    descriptor_name,
-                    file_descriptor_set: Some(crate::sdk::FILE_DESCRIPTOR_SET.clone()),
-                    primary_key_path: "id".to_string(),
-                    index_metadata,
-                })),
-            }
-        }
-    }
-
-    impl Pack for RoleBinding {
-        const COLLECTION: Collection = Collection::RoleBindings;
-        fn set_id(&mut self, id: Vec<u8>) {
-            self.id = bytes::Bytes::from(id);
-        }
-        fn id(&self) -> &[u8] {
-            &self.id
-        }
-    }
-
-    impl Pack for Role {
-        const COLLECTION: Collection = Collection::Roles;
-        fn set_id(&mut self, id: Vec<u8>) {
-            self.id = bytes::Bytes::from(id);
-        }
-        fn id(&self) -> &[u8] {
-            &self.id
-        }
-    }
-}
-
 pub mod directory {
     include_proto!("m10.directory");
     use core::fmt;
@@ -143,6 +53,13 @@ pub mod directory {
 pub mod sdk {
     include_proto!("m10.sdk");
 
+    pub const FILE_DESCRIPTOR_SET_BYTES: &[u8] =
+        include_bytes!(concat!(env!("OUT_DIR"), "/m10.sdk.bin"));
+    pub static FILE_DESCRIPTOR_SET: once_cell::sync::Lazy<prost_types::FileDescriptorSet> =
+        once_cell::sync::Lazy::new(|| {
+            prost::Message::decode(FILE_DESCRIPTOR_SET_BYTES).expect("file descriptor parse failed")
+        });
+
     pub mod model {
         include_proto!("m10.sdk.model");
         pub const FILE_DESCRIPTOR_SET_BYTES: &[u8] =
@@ -167,7 +84,7 @@ pub mod sdk {
     use core::{fmt, str};
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-    use crate::{arcadius2, Collection, Pack};
+    use crate::{sdk, Collection, Pack};
 
     impl str::FromStr for AccountRef {
         type Err = AccountRefParseError;
@@ -240,50 +157,52 @@ pub mod sdk {
         }
     }
 
-    impl From<CreateTransfer> for transaction_request_payload::Data {
+    use transaction_data::Data;
+
+    impl From<CreateTransfer> for Data {
         fn from(create_transfer: CreateTransfer) -> Self {
             Self::Transfer(create_transfer)
         }
     }
 
-    impl From<CreateLedgerAccount> for transaction_request_payload::Data {
+    impl From<CreateLedgerAccount> for Data {
         fn from(request: CreateLedgerAccount) -> Self {
             Self::CreateLedgerAccount(request)
         }
     }
 
-    impl From<SetFreezeState> for transaction_request_payload::Data {
+    impl From<SetFreezeState> for Data {
         fn from(request: SetFreezeState) -> Self {
             Self::SetFreezeState(request)
         }
     }
 
-    impl From<InvokeAction> for transaction_request_payload::Data {
+    impl From<InvokeAction> for Data {
         fn from(request: InvokeAction) -> Self {
             Self::InvokeAction(request)
         }
     }
 
-    impl From<CommitTransfer> for transaction_request_payload::Data {
+    impl From<CommitTransfer> for Data {
         fn from(request: CommitTransfer) -> Self {
             Self::CommitTransfer(request)
         }
     }
 
-    impl From<arcadius2::DocumentOperations> for transaction_request_payload::Data {
-        fn from(operations: arcadius2::DocumentOperations) -> Self {
+    impl From<sdk::DocumentOperations> for Data {
+        fn from(operations: sdk::DocumentOperations) -> Self {
             Self::DocumentOperations(operations)
         }
     }
 
-    impl From<Vec<arcadius2::Operation>> for transaction_request_payload::Data {
-        fn from(operations: Vec<arcadius2::Operation>) -> Self {
-            Self::from(arcadius2::DocumentOperations { operations })
+    impl From<Vec<sdk::Operation>> for Data {
+        fn from(operations: Vec<sdk::Operation>) -> Self {
+            Self::from(sdk::DocumentOperations { operations })
         }
     }
 
-    impl From<arcadius2::Operation> for transaction_request_payload::Data {
-        fn from(operation: arcadius2::Operation) -> Self {
+    impl From<sdk::Operation> for Data {
+        fn from(operation: sdk::Operation) -> Self {
             Self::from(vec![operation])
         }
     }
@@ -313,13 +232,90 @@ pub mod sdk {
     }
 
     impl std::error::Error for TransactionError {}
+
+    impl From<prost::bytes::Bytes> for Value {
+        fn from(bytes: prost::bytes::Bytes) -> Value {
+            Value {
+                value: Some(value::Value::BytesValue(bytes)),
+            }
+        }
+    }
+
+    impl Operation {
+        pub fn insert<D: Pack>(document: D) -> Self {
+            Self {
+                operation: Some(operation::Operation::InsertDocument(
+                    operation::InsertDocument {
+                        collection: D::COLLECTION.to_string(),
+                        document: document.pack(),
+                    },
+                )),
+            }
+        }
+
+        pub fn delete<D: Pack>(id: Vec<u8>) -> Self {
+            Self {
+                operation: Some(operation::Operation::DeleteDocument(
+                    operation::DeleteDocument {
+                        collection: D::COLLECTION.to_string(),
+                        primary_key: Some(bytes::Bytes::from(id).into()),
+                    },
+                )),
+            }
+        }
+
+        pub fn new_index<D: Pack>(path: Vec<String>) -> Self {
+            Self {
+                operation: Some(operation::Operation::InsertIndex(operation::InsertIndex {
+                    collection: D::COLLECTION.to_string(),
+                    path: path.join("."),
+                })),
+            }
+        }
+
+        pub fn new_collection(
+            name: String,
+            descriptor_name: String,
+            index_metadata: Vec<IndexMetadata>,
+        ) -> Self {
+            Self {
+                operation: Some(operation::Operation::InsertCollection(CollectionMetadata {
+                    name,
+                    descriptor_name,
+                    file_descriptor_set: Some(crate::sdk::FILE_DESCRIPTOR_SET.clone()),
+                    primary_key_path: "id".to_string(),
+                    index_metadata,
+                })),
+            }
+        }
+    }
+
+    impl Pack for RoleBinding {
+        const COLLECTION: Collection = Collection::RoleBindings;
+        fn set_id(&mut self, id: Vec<u8>) {
+            self.id = bytes::Bytes::from(id);
+        }
+        fn id(&self) -> &[u8] {
+            &self.id
+        }
+    }
+
+    impl Pack for Role {
+        const COLLECTION: Collection = Collection::Roles;
+        fn set_id(&mut self, id: Vec<u8>) {
+            self.id = bytes::Bytes::from(id);
+        }
+        fn id(&self) -> &[u8] {
+            &self.id
+        }
+    }
 }
 
 pub mod health {
     include_proto!("grpc.health.v1");
 }
 
-mod metadata;
+pub mod metadata;
 mod pack;
 
 /// Re-export of prost

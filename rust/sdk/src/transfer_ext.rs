@@ -1,4 +1,4 @@
-use m10_sdk_protos::sdk;
+use m10_protos::sdk;
 
 pub struct EnhancedTransfer {
     pub transfer: sdk::FinalizedTransfer,

@@ -1,4 +1,9 @@
-use m10_sdk_protos::{prost::Message, sdk};
+//! M10's helper library for signing messages with ED25519 or P256 elliptic-curve signatures
+//!
+//! This library contains a set of wrappers and traits that allow users to easily sign and verify
+//! signatures
+
+use m10_protos::{prost::Message, sdk};
 
 pub use ed25519::Ed25519;
 pub use p256::P256;
@@ -6,6 +11,7 @@ pub use p256::P256;
 mod ed25519;
 mod p256;
 
+/// A signed request containing both the serialized and signed payload; and the original message
 #[derive(Default, Clone)]
 pub struct SignedRequest<P: Message> {
     pub request_envelope: sdk::RequestEnvelope,
@@ -25,20 +31,33 @@ impl<P: Message> AsRef<P> for SignedRequest<P> {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum SigningError {
     #[error("internal")]
     Internal,
     #[error("malformed signature")]
     MalFormedSignature,
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    KeyRejected(#[from] ring::error::KeyRejected),
 }
 
+/// A trait repersenting a service or key that can sign a message
+///
+/// Typically this trait would be implemented by a key pair (like in [`KeyPair`]), an HSM, or some secure service like Vault
 #[async_trait::async_trait]
 pub trait Signer: Send + Sync {
-    async fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, Error>;
+    /// Signs the passed message, and returns the signature.
+    async fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError>;
+
+    /// Returns the public key associated with the signer
     fn public_key(&self) -> &[u8];
+
+    /// Returns the signing algorithm used by the signer
     fn algorithm(&self) -> sdk::signature::Algorithm;
 
-    async fn sign_payload(&self, payload: &[u8]) -> Result<sdk::Signature, Error> {
+    /// Signs the payload, and returns a signature structure containing the algorithm, public-key, and signature
+    async fn sign_payload(&self, payload: &[u8]) -> Result<sdk::Signature, SigningError> {
         Ok(sdk::Signature {
             algorithm: self.algorithm().into(),
             public_key: self.public_key().into(),
@@ -46,7 +65,8 @@ pub trait Signer: Send + Sync {
         })
     }
 
-    async fn sign_request<P: Message>(&self, data: P) -> Result<SignedRequest<P>, Error> {
+    /// Signs a [`Message`] and returns a [`SignedRequest`]
+    async fn sign_request<P: Message>(&self, data: P) -> Result<SignedRequest<P>, SigningError> {
         let payload = data.encode_to_vec();
         let signature = self.sign_payload(&payload).await?;
         let request_envelope = sdk::RequestEnvelope {
@@ -59,7 +79,12 @@ pub trait Signer: Send + Sync {
         })
     }
 
-    async fn endorse(&self, contract: &mut sdk::Contract, ledger_id: String) -> Result<(), Error> {
+    /// Adds an endorsement signatured to a [`sdk::Contract`]
+    async fn endorse(
+        &self,
+        contract: &mut sdk::Contract,
+        ledger_id: String,
+    ) -> Result<(), SigningError> {
         let public_key = self.public_key();
         let already_signed = contract
             .endorsements
@@ -76,6 +101,7 @@ pub trait Signer: Send + Sync {
     }
 }
 
+/// A P256 or ED25519 key pair
 pub enum KeyPair {
     P256(P256),
     Ed25519(Ed25519),
@@ -83,7 +109,7 @@ pub enum KeyPair {
 
 #[async_trait::async_trait]
 impl Signer for KeyPair {
-    async fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
+    async fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
         match self {
             KeyPair::P256(key_pair) => key_pair.sign(msg).await,
             KeyPair::Ed25519(key_pair) => key_pair.sign(msg).await,

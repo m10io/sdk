@@ -3,8 +3,8 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "sdk/model/model.proto";
 import "sdk/transaction/transaction.proto";
-import "arcadius2/rbac.proto";
-import "arcadius2/api.proto";
+import "sdk/rbac.proto";
+import "sdk/document.proto";
 
 package m10.sdk;
 
@@ -61,12 +61,12 @@ service M10QueryService {
       returns (m10.sdk.ListAccountSetsResponse);
 
   // RoleBinding
-  rpc GetRoleBinding(RequestEnvelope) returns (m10.arcadius2.RoleBinding);
+  rpc GetRoleBinding(RequestEnvelope) returns (m10.sdk.RoleBinding);
   rpc ListRoleBindings(RequestEnvelope)
       returns (m10.sdk.ListRoleBindingsResponse);
 
   // RoleBinding
-  rpc GetRole(RequestEnvelope) returns (m10.arcadius2.Role);
+  rpc GetRole(RequestEnvelope) returns (m10.sdk.Role);
   rpc ListRoles(RequestEnvelope) returns (m10.sdk.ListRolesResponse);
 
   // Resources
@@ -128,7 +128,7 @@ message ListRoleBindingsRequest {
 }
 
 message ListRoleBindingsResponse {
-  repeated m10.arcadius2.RoleBinding role_bindings = 1;
+  repeated m10.sdk.RoleBinding role_bindings = 1;
   ListRoleBindingsRequest next_request = 2;
 }
 
@@ -140,7 +140,7 @@ message ListRolesRequest {
 }
 
 message ListRolesResponse {
-  repeated m10.arcadius2.Role roles = 1;
+  repeated m10.sdk.Role roles = 1;
   ListRolesRequest next_request = 2;
 }
 
@@ -174,7 +174,7 @@ message ObserveAccountsRequest {
 
 message ObserveResourcesRequest {
   // Request resources matching the provided filter
-  m10.arcadius2.Exp expression = 1;
+  m10.sdk.Exp expression = 1;
   // The resource collection to observe
   string collection = 2;
   // Request transfers starting from the following transaction ID

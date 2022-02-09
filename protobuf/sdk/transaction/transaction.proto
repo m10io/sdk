@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "arcadius2/api.proto";
+import "sdk/document.proto";
 import "google/protobuf/any.proto";
 
 package m10.sdk.transaction;
@@ -8,20 +8,24 @@ package m10.sdk.transaction;
 // Decoded `LedgerRequest.payload` message data for requests related to
 // transactions and ledger state.
 message TransactionRequestPayload {
-  // block window + nonce used for replay protection
+  // Replay protection
   uint64 nonce = 1;
-  uint64 after_height = 2;
-  uint64 before_height = 3;
-  
+  // UNIX timestamp in microseconds
+  uint64 timestamp = 2;
+
   // [optional] unique Context ID, allowing linking of multiple requests
   bytes context_id = 5;
 
   // Request payload data.
+  TransactionData data = 6;
+}
+
+message TransactionData {
   oneof data {
     CreateTransfer transfer = 10;
     CreateLedgerAccount create_ledger_account = 11;
     SetFreezeState set_freeze_state = 12;
-    m10.arcadius2.DocumentOperations document_operations = 16;
+    m10.sdk.DocumentOperations document_operations = 16;
     InvokeAction invoke_action = 20;
     CreateTransfer initiate_transfer = 21;
     CommitTransfer commit_transfer = 22;
@@ -79,7 +83,7 @@ message TransactionError {
     INSUFFICIENT_BALANCE = 25;
     BALANCE_OVERFLOW = 26;
     ACCOUNT_DEPTH_EXCEEDED = 27;
-    
+
     // Action specific status codes
     INVALID_TARGET = 30;
   }
@@ -114,9 +118,7 @@ message ListTransferRequest {
   uint64 max_tx_id = 7;
 }
 
-message CreateTransfer {
-  repeated TransferStep transfer_steps = 1;
-}
+message CreateTransfer { repeated TransferStep transfer_steps = 1; }
 
 message TransferStep {
   bytes from_account_id = 1;
@@ -140,9 +142,7 @@ message FinalizedTransfer {
   }
 }
 
-message FinalizedTransfers {
-  repeated FinalizedTransfer transfers = 1;
-}
+message FinalizedTransfers { repeated FinalizedTransfer transfers = 1; }
 
 message CreateLedgerAccount {
   bytes parent_id = 1;
@@ -175,7 +175,8 @@ message InvokeAction {
   string name = 1;
   // Invoking account ID
   bytes from_account = 3;
-  // Specifies the identity/identities who have permission to see & be notified of the invoked action
+  // Specifies the identity/identities who have permission to see & be notified
+  // of the invoked action
   Target target = 4;
   // Opaque payload
   bytes payload = 5;
@@ -198,19 +199,16 @@ message Action {
   bytes context_id = 3;
   // Invoking account ID
   bytes from_account = 4;
-  // Specifies the identity/identities who have permission to see & be notified of the invoked action
+  // Specifies the identity/identities who have permission to see & be notified
+  // of the invoked action
   Target target = 5;
   // Opaque payload
   bytes payload = 6;
 }
 
-message Actions {
-  repeated Action actions = 1;
-}
+message Actions { repeated Action actions = 1; }
 
-message GetActionRequest {
-  uint64 tx_id = 1;
-}
+message GetActionRequest { uint64 tx_id = 1; }
 
 message ListActionsRequest {
   // Name of the action
@@ -226,10 +224,11 @@ message ListActionsRequest {
 }
 
 message CommitTransfer {
-    uint64 pending_tx_id = 1; // The transaction that contains a pending transfer / transaction
-    enum TransferState {
-      ACCEPTED = 0;
-      REJECTED = 1;
-    }
-    TransferState new_state = 2;
+  uint64 pending_tx_id =
+      1; // The transaction that contains a pending transfer / transaction
+  enum TransferState {
+    ACCEPTED = 0;
+    REJECTED = 1;
+  }
+  TransferState new_state = 2;
 }

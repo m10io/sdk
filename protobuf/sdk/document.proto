@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/field_mask.proto";
 
-package m10.arcadius2;
+package m10.sdk;
 
 message DocumentOperations { repeated Operation operations = 2; }
 
@@ -15,10 +15,12 @@ message Operation {
     CollectionMetadata insert_collection = 4;
     InsertIndex insert_index = 5;
   }
+
   message InsertDocument {
     string collection = 1;
     bytes document = 3;
   }
+
   message UpdateDocument {
     string collection = 1;
     Value primary_key = 2;
@@ -26,10 +28,12 @@ message Operation {
     google.protobuf.FieldMask field_mask = 4;
     bool merge_repeated = 5;
   }
+
   message DeleteDocument {
     string collection = 1;
     Value primary_key = 2;
   }
+
   message InsertIndex {
     string collection = 1;
     string path = 2;

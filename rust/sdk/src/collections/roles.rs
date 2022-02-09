@@ -1,6 +1,6 @@
 use super::*;
-use m10_sdk_protos::arcadius2::{Role, Rule};
-use m10_sdk_protos::prost::bytes::Bytes;
+use m10_protos::prost::bytes::Bytes;
+use m10_protos::sdk::{Role, Rule};
 
 impl DocumentUpdate<Role> {
     pub fn owner(&mut self, owner: Bytes) -> &mut Self {

@@ -1,6 +1,6 @@
 use super::*;
 use crate::document_id::DocumentId;
-use m10_sdk_protos::arcadius2::{Expression, RoleBinding};
+use m10_protos::sdk::{Expression, RoleBinding};
 
 impl DocumentUpdate<RoleBinding> {
     pub fn owner(&mut self, owner: Bytes) -> &mut Self {

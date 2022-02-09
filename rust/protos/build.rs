@@ -38,43 +38,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if cfg!(feature = "dynamic2") {
         prost_config
             .type_attribute(
-                ".m10.arcadius2.RoleBinding",
+                ".m10.sdk.RoleBinding",
                 "#[derive(looking_glass_derive::Instance)]",
             )
             .type_attribute(
-                ".m10.arcadius2.Expression",
+                ".m10.sdk.Expression",
                 "#[derive(looking_glass_derive::Instance)]",
             )
+            .type_attribute(".m10.sdk.Role", "#[derive(looking_glass_derive::Instance)]")
+            .type_attribute(".m10.sdk.Rule", "#[derive(looking_glass_derive::Instance)]")
             .type_attribute(
-                ".m10.arcadius2.Role",
-                "#[derive(looking_glass_derive::Instance)]",
-            )
-            .type_attribute(
-                ".m10.arcadius2.Rule",
-                "#[derive(looking_glass_derive::Instance)]",
-            )
-            .type_attribute(
-                ".m10.arcadius2.Value",
+                ".m10.sdk.Value",
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
-                ".m10.arcadius2.Value.value",
+                ".m10.sdk.Value.value",
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
-                ".m10.arcadius2.Operation",
+                ".m10.sdk.Operation",
                 "#[derive(serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
-                ".m10.arcadius2.DocumentOperations",
+                ".m10.sdk.DocumentOperations",
                 "#[derive(serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
-                ".m10.arcadius2.CollectionMetadata",
+                ".m10.sdk.CollectionMetadata",
                 "#[derive(serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
-                ".m10.arcadius2.IndexMetadata",
+                ".m10.sdk.IndexMetadata",
                 "#[derive(serde::Serialize, serde::Deserialize)]",
             )
             .field_attribute(
@@ -120,11 +114,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ".chronopigeon.SendEmailRequest.template_data",
             "#[allow(clippy::large_enum_variant)]",
         )
-        .bytes(&[".m10.arcadius2.RoleBinding", ".m10.arcadius2.Role", "Value"])
-        .file_descriptor_set_path(out_dir.join("m10.arcadius2.bin"));
+        .bytes(&[".m10.sdk.RoleBinding", ".m10.sdk.Role", "Value"])
+        .file_descriptor_set_path(out_dir.join("m10.sdk.bin"));
 
     let service_protos = with_additional_protos(
-        find_protos_in_dirs(&["arcadius2", "directory", "sdk"])?,
+        find_protos_in_dirs(&["directory", "sdk"])?,
         &["google/health/health.proto"],
     );
     tonic_build::configure()

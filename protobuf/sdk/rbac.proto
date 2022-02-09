@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "arcadius2/api.proto";
+import "sdk/document.proto";
 
-package m10.arcadius2;
+package m10.sdk;
 
 message RoleBinding {
   bytes id = 1;

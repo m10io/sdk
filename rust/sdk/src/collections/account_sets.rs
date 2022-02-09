@@ -1,5 +1,5 @@
 use super::*;
-use m10_sdk_protos::sdk::{AccountRef, AccountSet};
+use m10_protos::sdk::{AccountRef, AccountSet};
 
 impl DocumentUpdate<AccountSet> {
     pub fn owner(&mut self, owner: Vec<u8>) -> &mut Self {

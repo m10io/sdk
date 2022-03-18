@@ -1,4 +1,5 @@
 use futures_core::Stream;
+use m10_protos::sdk::AccountInfo;
 use m10_protos::sdk::{
     self, m10_query_service_client::M10QueryServiceClient,
     m10_tx_service_client::M10TxServiceClient, transaction_data::Data, TransactionData,
@@ -339,78 +340,92 @@ impl LedgerClient {
         signer: &impl Signer,
     ) -> Result<EnhancedTransferStep, Status> {
         let from = async {
-            self.query_client
-                .clone()
-                .get_account_info(Request::new(
-                    signer
-                        .sign_request(sdk::GetAccountRequest {
-                            id: transfer_step.from_account_id.clone(),
-                        })
-                        .await
-                        .map_err(|err| Status::internal(err.to_string()))?
-                        .into(),
-                ))
-                .await
-                .map(|res| res.into_inner())
+            Result::<_, Status>::Ok(
+                self.query_client
+                    .clone()
+                    .get_account_info(Request::new(
+                        signer
+                            .sign_request(sdk::GetAccountRequest {
+                                id: transfer_step.from_account_id.clone(),
+                            })
+                            .await
+                            .map_err(|err| Status::internal(err.to_string()))?
+                            .into(),
+                    ))
+                    .await
+                    .map(|res| res.into_inner())
+                    .ok(),
+            )
         };
         let to = async {
-            self.query_client
-                .clone()
-                .get_account_info(Request::new(
-                    signer
-                        .sign_request(sdk::GetAccountRequest {
-                            id: transfer_step.to_account_id.clone(),
-                        })
-                        .await
-                        .map_err(|err| Status::internal(err.to_string()))?
-                        .into(),
-                ))
-                .await
-                .map(|res| res.into_inner())
+            Result::<_, Status>::Ok(
+                self.query_client
+                    .clone()
+                    .get_account_info(Request::new(
+                        signer
+                            .sign_request(sdk::GetAccountRequest {
+                                id: transfer_step.to_account_id.clone(),
+                            })
+                            .await
+                            .map_err(|err| Status::internal(err.to_string()))?
+                            .into(),
+                    ))
+                    .await
+                    .map(|res| res.into_inner())
+                    .ok(),
+            )
         };
         let (from, to) = futures_util::future::try_join(from, to).await?;
         let from_bank = async {
-            if from.parent_account_id.is_empty() {
-                Ok(None)
+            if let Some(ref from) = from {
+                if from.parent_account_id.is_empty() {
+                    Ok(None)
+                } else {
+                    Result::<Option<AccountInfo>, Status>::Ok(
+                        self.query_client
+                            .clone()
+                            .get_account_info(Request::new(
+                                signer
+                                    .sign_request(sdk::GetAccountRequest {
+                                        id: from.parent_account_id.clone(),
+                                    })
+                                    .await
+                                    .map_err(|err| Status::internal(err.to_string()))?
+                                    .into(),
+                            ))
+                            .await
+                            .map(|res| res.into_inner())
+                            .ok(),
+                    )
+                }
             } else {
-                Result::<_, Status>::Ok(
-                    self.query_client
-                        .clone()
-                        .get_account_info(Request::new(
-                            signer
-                                .sign_request(sdk::GetAccountRequest {
-                                    id: from.parent_account_id.clone(),
-                                })
-                                .await
-                                .map_err(|err| Status::internal(err.to_string()))?
-                                .into(),
-                        ))
-                        .await
-                        .map(|res| res.into_inner())
-                        .ok(),
-                )
+                Ok(None)
             }
         };
         let to_bank = async {
-            if to.parent_account_id.is_empty() {
-                Ok(None)
+            if let Some(ref to) = to {
+                if to.parent_account_id.is_empty() {
+                    Ok(None)
+                } else {
+                    Result::<Option<AccountInfo>, Status>::Ok(
+                        self.query_client
+                            .clone()
+                            .get_account_info(Request::new(
+                                signer
+                                    .sign_request(sdk::GetAccountRequest {
+                                        id: to.parent_account_id.clone(),
+                                    })
+                                    .await
+                                    .map_err(|err| Status::internal(err.to_string()))?
+                                    .into(),
+                            ))
+                            .await
+                            .map(|res| res.into_inner())
+                            .ok(),
+                    )
+                }
             } else {
-                Result::<_, Status>::Ok(
-                    self.query_client
-                        .clone()
-                        .get_account_info(Request::new(
-                            signer
-                                .sign_request(sdk::GetAccountRequest {
-                                    id: to.parent_account_id.clone(),
-                                })
-                                .await
-                                .map_err(|err| Status::internal(err.to_string()))?
-                                .into(),
-                        ))
-                        .await
-                        .map(|res| res.into_inner())
-                        .ok(),
-                )
+                Ok(None)
             }
         };
         let (from_bank, to_bank) = futures_util::future::try_join(from_bank, to_bank).await?;

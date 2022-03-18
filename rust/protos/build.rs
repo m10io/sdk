@@ -106,14 +106,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     prost_config
-        .type_attribute(
-            ".chronopigeon.ScheduleTaskRequest.payload",
-            "#[allow(clippy::large_enum_variant)]",
-        )
-        .type_attribute(
-            ".chronopigeon.SendEmailRequest.template_data",
-            "#[allow(clippy::large_enum_variant)]",
-        )
         .bytes(&[".m10.sdk.RoleBinding", ".m10.sdk.Role", "Value"])
         .file_descriptor_set_path(out_dir.join("m10.sdk.bin"));
 

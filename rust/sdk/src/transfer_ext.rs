@@ -6,8 +6,8 @@ pub struct EnhancedTransfer {
 }
 
 pub struct EnhancedTransferStep {
-    pub from: sdk::AccountInfo,
+    pub from: Option<sdk::AccountInfo>,
     pub from_bank: Option<sdk::AccountInfo>,
-    pub to: sdk::AccountInfo,
+    pub to: Option<sdk::AccountInfo>,
     pub to_bank: Option<sdk::AccountInfo>,
 }

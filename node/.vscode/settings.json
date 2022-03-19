@@ -1,8 +1,0 @@
-{
-    // Set the default
-    "editor.formatOnSave": false,
-    "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": true
-    },
-}
-

@@ -2,12 +2,12 @@
 
 'use strict';
 var grpc = require('@grpc/grpc-js');
-var sdk_api_pb = require('./api_pb.js');
+var sdk_api_pb = require('../sdk/api_pb.js');
 var google_protobuf_empty_pb = require('google-protobuf/google/protobuf/empty_pb.js');
-var sdk_model_model_pb = require('./model/model_pb.js');
-var sdk_transaction_transaction_pb = require('./transaction/transaction_pb.js');
-var sdk_rbac_pb = require('./rbac_pb.js');
-var sdk_document_pb = require('./document_pb.js');
+var sdk_model_model_pb = require('../sdk/model/model_pb.js');
+var sdk_transaction_transaction_pb = require('../sdk/transaction/transaction_pb.js');
+var sdk_rbac_pb = require('../sdk/rbac_pb.js');
+var sdk_document_pb = require('../sdk/document_pb.js');
 
 function serialize_google_protobuf_Empty(arg) {
   if (!(arg instanceof google_protobuf_empty_pb.Empty)) {

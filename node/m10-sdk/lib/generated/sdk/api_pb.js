@@ -17,13 +17,13 @@ var global = Function('return this')();
 
 var google_protobuf_empty_pb = require('google-protobuf/google/protobuf/empty_pb.js');
 goog.object.extend(proto, google_protobuf_empty_pb);
-var sdk_model_model_pb = require('./model/model_pb.js');
+var sdk_model_model_pb = require('../sdk/model/model_pb.js');
 goog.object.extend(proto, sdk_model_model_pb);
-var sdk_transaction_transaction_pb = require('./transaction/transaction_pb.js');
+var sdk_transaction_transaction_pb = require('../sdk/transaction/transaction_pb.js');
 goog.object.extend(proto, sdk_transaction_transaction_pb);
-var sdk_rbac_pb = require('./rbac_pb.js');
+var sdk_rbac_pb = require('../sdk/rbac_pb.js');
 goog.object.extend(proto, sdk_rbac_pb);
-var sdk_document_pb = require('./document_pb.js');
+var sdk_document_pb = require('../sdk/document_pb.js');
 goog.object.extend(proto, sdk_document_pb);
 goog.exportSymbol('proto.m10.sdk.ChainInfo', null, global);
 goog.exportSymbol('proto.m10.sdk.FinalizedTransaction', null, global);

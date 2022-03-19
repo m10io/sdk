@@ -15,9 +15,9 @@ var jspb = require('google-protobuf');
 var goog = jspb;
 var global = Function('return this')();
 
-var sdk_api_pb = require('../sdk/api_pb.js');
+var sdk_api_pb = require('./api_pb.js');
 goog.object.extend(proto, sdk_api_pb);
-var sdk_transaction_transaction_pb = require('../sdk/transaction/transaction_pb.js');
+var sdk_transaction_transaction_pb = require('./transaction/transaction_pb.js');
 goog.object.extend(proto, sdk_transaction_transaction_pb);
 goog.exportSymbol('proto.m10.sdk.metadata.Attachment', null, global);
 goog.exportSymbol('proto.m10.sdk.metadata.Attachment.AttachmentType', null, global);

@@ -73,9 +73,13 @@ class LedgerClient {
     if (profileImageUrl != null) {
       account.setProfileImageUrl(profileImageUrl)
     }
-    if (owner) {
-      Base64.verify(owner)
-      account.setOwner(Base64.toUint8Array(owner))
+    if (owner != null) {
+      if (owner instanceof Uint8Array) {
+        account.setOwner(owner)
+      } else {
+        Base64.verify(owner)
+        account.setOwner(Base64.toUint8Array(owner))
+      }
     } else {
       account.setOwner(await signer.getPublicKey())
     }
@@ -149,6 +153,7 @@ class LedgerClient {
     profileImageUrl,
     signer,
     contextId,
+    owner,
   }) {
     Hex.verify(id)
 
@@ -166,6 +171,10 @@ class LedgerClient {
     if (profileImageUrl != null) {
       builder.setProfileImageUrl(profileImageUrl)
       builder.addMask('profile_image_url')
+    }
+    if (owner != null) {
+      builder.setOwner(owner)
+      builder.addMask('owner')
     }
 
     const request = updateTransactionFrom(builder)
@@ -434,7 +443,15 @@ class LedgerClient {
     return ledgerAccount
   }
 
-  async createLedgerAccount({ parentId = required('parentId'), signer, contextId }) {
+  async createLedgerAccount({
+    parentId = required('parentId'),
+    name,
+    publicName,
+    profileImageUrl,
+    owner,
+    contextId,
+    signer,
+  }) {
     Hex.verify(parentId)
 
     const txn = new Transaction.CreateLedgerAccount()
@@ -443,7 +460,13 @@ class LedgerClient {
     const request = createLedgerAccountRequestFrom(txn)
     const envelop = await signedEnvelopFrom({ request, signer, contextId })
     const response = await this.txClient.createTransaction(envelop)
-    return Hex.fromUint8Array(response.getAccountCreated_asU8())
+    const hexId = Hex.fromUint8Array(response.getAccountCreated_asU8())
+    if (owner) {
+      await this.createAccount({
+        id: hexId, name, publicName, profileImageUrl, owner, contextId, signer
+      })
+    }
+    return hexId
   }
 
   // User

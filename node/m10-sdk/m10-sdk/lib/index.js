@@ -1,9 +1,13 @@
 const { DirectoryClient } = require('./directory')
 const LedgerClient = require('./api')
+const crypto = require('./utils/crypto.js')
+const utils = require('./utils/utils.js')
 class M10 {
     constructor({ address, secure }) {
         this.ledgers = {}
         this.secure = secure
+        this.crypto = crypto
+        this.utils = utils
         this.directoryClient = new DirectoryClient(address, this.secure)
 
         return new Proxy(this, {

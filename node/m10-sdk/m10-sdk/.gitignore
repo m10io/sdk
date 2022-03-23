@@ -8,3 +8,4 @@ seeding/user_keys/*.pkcs8
 tests/init/keys/*.pem
 tests/init/private_key.pem
 tests/init/public_key.pem
+.vscode

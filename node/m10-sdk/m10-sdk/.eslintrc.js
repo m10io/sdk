@@ -27,7 +27,7 @@ module.exports = {
       ignoreUrls: true,
       ignoreTrailingComments: true,
       ignoreComments: true,
-      code: 140,
+      code: 180,
     }],
 
     'prefer-destructuring': ['error', { object: false, array: false }],

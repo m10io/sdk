@@ -5,21 +5,23 @@ The M10 Javascript SDK
 
 ## Using the SDK
 
-Create an instance of the SDK and pass it the URL of your ledger Directory, specifying TLS:
+> Create an instance of the SDK and pass it the URL of your ledger Directory, specifying TLS:
 
 ```javascript
 const M10 = require('m10-sdk')
 const m10 = new M10({ address: 'develop.m10.net', secure: 'true' })
 ```
 
-Initialize your SDK by requesting the latest information on ledgers managed by the specified Directory:
+> Initialize your SDK by requesting the latest information on ledgers managed by the specified Directory:
 ```javascript
 async function run() {
     await m10.refreshLedgers()
 }
 run()
 ```
-**Note**: this will set a timeout to refresh ledgers on a recurring basis, you can pass skipRefresh=true to disable
+**Note**: this will set a timeout to refresh ledgers on a recurring basis, you can pass skipRefresh=true to disable    
+</br>   
+
 
 ### A robust example of a basic SDK workflow
 
@@ -142,9 +144,10 @@ run()
 
 ## Developing the m10-sdk
 </br>
+
 ### Generating protobufs
 
-The protobuf APIs can be generated using the following command (requires protobufV3):
+> The protobuf APIs can be generated using the following command (requires protobufV3):
 
 ```sh
 yarn prepack
@@ -152,7 +155,7 @@ yarn prepack
 
 ### Testing
 
-Run the following command in order to run the unit test suite:
+> Run the following command in order to run the unit test suite:
 
 ```sh
 yarn test

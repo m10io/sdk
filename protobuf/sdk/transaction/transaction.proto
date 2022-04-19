@@ -29,6 +29,7 @@ message TransactionData {
     InvokeAction invoke_action = 20;
     CreateTransfer initiate_transfer = 21;
     CommitTransfer commit_transfer = 22;
+    SetInstrument set_instrument = 23;
   }
 }
 
@@ -144,15 +145,29 @@ message FinalizedTransfer {
 
 message FinalizedTransfers { repeated FinalizedTransfer transfers = 1; }
 
+message Instrument {
+  string code = 1;
+  uint32 decimal_places = 2;
+  string description = 3;
+}
+
 message CreateLedgerAccount {
   bytes parent_id = 1;
   bool issuance = 2;
   bool frozen = 3;
+  Instrument instrument = 4;
 }
 
 message SetFreezeState {
   bytes account_id = 1;
   bool frozen = 2;
+}
+
+message SetInstrument {
+  bytes account_id = 1;
+  string code = 2;
+  uint32 decimal_places = 3;
+  string description = 4;
 }
 
 message GetAccountRequest { bytes id = 1; }
@@ -162,6 +177,7 @@ message IndexedAccount {
   Issuance issuance = 3;
   uint64 balance = 4;
   bool frozen = 5;
+  Instrument instrument = 6;
   message Issuance {
     uint64 issued_balance = 1;
     uint64 non_leaf_children = 2;

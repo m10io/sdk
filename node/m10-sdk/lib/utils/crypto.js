@@ -30,42 +30,6 @@ class CryptoSigner {
   }
 }
 
-class VaultSigner {
-  constructor(token, keyName, vaultUrl) {
-    this.token = token
-    this.key_name = keyName
-    this.vault_url = vaultUrl
-  }
-
-  async sign(payload) {
-    const buffer = Buffer.from(payload)
-    const url = `${this.vault_url}/transit/sign/${this.key_name}`
-    const res = await axios.post(
-      url,
-      {
-        input: buffer.toString('base64')
-      },
-      {
-        headers: { 'X-Vault-Token': this.token }
-      }
-    )
-    return Buffer.from(res.data.data.signature.split(':', 3)[2], 'base64')
-  }
-
-  async getPublicKey() {
-    const url = `${this.vault_url}/transit/keys/${this.key_name}`
-    const res = await axios.get(url, {
-      headers: { 'X-Vault-Token': this.token }
-    })
-    return Buffer.from(res.data.data.keys['1'].public_key, 'base64')
-    // This returns the compressed 32 byte form (I think). That might not be what we want
-  }
-
-  getAlgorithm() {
-    return Algorithm.ED25519
-  }
-}
-
 class CryptoHasher {
   constructor() {
     this.hasher = crypto.createHash('sha256')
@@ -83,6 +47,5 @@ const Algorithm = {
 module.exports = {
   CryptoSigner,
   CryptoHasher,
-  VaultSigner,
   Algorithm
 }

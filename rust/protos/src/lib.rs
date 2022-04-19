@@ -177,6 +177,12 @@ pub mod sdk {
         }
     }
 
+    impl From<SetInstrument> for Data {
+        fn from(request: SetInstrument) -> Self {
+            Self::SetInstrument(request)
+        }
+    }
+
     impl From<InvokeAction> for Data {
         fn from(request: InvokeAction) -> Self {
             Self::InvokeAction(request)

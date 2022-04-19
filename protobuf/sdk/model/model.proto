@@ -28,4 +28,6 @@ message AccountInfo {
   bytes parent_account_id = 2;
   string public_name = 3;
   string profile_image_url= 4;
+  string code = 5;
+  uint32 decimal_places = 6;
 }

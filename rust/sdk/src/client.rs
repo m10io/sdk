@@ -6,11 +6,14 @@ use m10_protos::sdk::{
 };
 use m10_signing::SignedRequest;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tonic::{Request, Response, Status};
+use tonic::{Request, Response};
 
 use crate::transfer_ext::EnhancedTransfer;
 use crate::{EnhancedTransferStep, Signer};
 pub use tonic::transport::{Channel, ClientTlsConfig, Endpoint, Uri};
+
+// Re-export public error
+pub use tonic::Status;
 
 #[derive(Clone)]
 /// A client for the M10 Ledger.

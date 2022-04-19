@@ -9,7 +9,7 @@ const disableTls = process.env.DISABLE_TLS === 'true'
 const instrument = process.env.CURRENCY || 'ttt'
 const ledgerId = `${instrument}.m10`
 
-const bankName = 'NodeTB'
+const bankName = 'NodeTB TTT'
 
 exports.mochaHooks = {
     // global setup for all tests

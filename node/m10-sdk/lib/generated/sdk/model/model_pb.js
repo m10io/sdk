@@ -888,7 +888,9 @@ proto.m10.sdk.model.AccountInfo.toObject = function(includeInstance, msg) {
     accountId: msg.getAccountId_asB64(),
     parentAccountId: msg.getParentAccountId_asB64(),
     publicName: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    profileImageUrl: jspb.Message.getFieldWithDefault(msg, 4, "")
+    profileImageUrl: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    code: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    decimalPlaces: jspb.Message.getFieldWithDefault(msg, 6, 0)
   };
 
   if (includeInstance) {
@@ -940,6 +942,14 @@ proto.m10.sdk.model.AccountInfo.deserializeBinaryFromReader = function(msg, read
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setProfileImageUrl(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setCode(value);
+      break;
+    case 6:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setDecimalPlaces(value);
       break;
     default:
       reader.skipField();
@@ -995,6 +1005,20 @@ proto.m10.sdk.model.AccountInfo.serializeBinaryToWriter = function(message, writ
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getCode();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
+      f
+    );
+  }
+  f = message.getDecimalPlaces();
+  if (f !== 0) {
+    writer.writeUint32(
+      6,
       f
     );
   }
@@ -1118,6 +1142,42 @@ proto.m10.sdk.model.AccountInfo.prototype.getProfileImageUrl = function() {
  */
 proto.m10.sdk.model.AccountInfo.prototype.setProfileImageUrl = function(value) {
   return jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string code = 5;
+ * @return {string}
+ */
+proto.m10.sdk.model.AccountInfo.prototype.getCode = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.m10.sdk.model.AccountInfo} returns this
+ */
+proto.m10.sdk.model.AccountInfo.prototype.setCode = function(value) {
+  return jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional uint32 decimal_places = 6;
+ * @return {number}
+ */
+proto.m10.sdk.model.AccountInfo.prototype.getDecimalPlaces = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 6, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.m10.sdk.model.AccountInfo} returns this
+ */
+proto.m10.sdk.model.AccountInfo.prototype.setDecimalPlaces = function(value) {
+  return jspb.Message.setProto3IntField(this, 6, value);
 };
 
 

@@ -1,0 +1,56 @@
+@import './shared.module.scss';
+
+.buttonWrapper {
+  position: relative;
+}
+
+%button-theme-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.buttonThemePrimaryBlue {
+  @extend %button-theme-primary;
+  padding: 10px 20px;
+}
+
+.buttonThemeRedPrimary {
+  @extend %button-theme-primary;
+  background: $color-red-primary;
+  padding: 10px 20px;
+}
+
+.buttonThemePrimary {
+  @extend %button-theme-primary;
+  font-family: 'Libre Baskerville', serif;
+  padding: 10px 48px;
+  font-size: 16px;
+  font-weight: 400;
+  transition: filter 0.25s cubic-bezier(0.25, 0.1, 0.27, 1.42);
+
+  &:hover {
+    filter: brightness(85%);
+  }
+}
+
+.buttonThemeSecondary {
+  @extend %button-theme-primary;
+  padding: 10px 20px;
+  transition: filter 0.25s cubic-bezier(0.25, 0.1, 0.27, 1.42);
+
+  &:hover {
+    filter: brightness(85%);
+  }
+}
+
+.buttonDisabled {
+  opacity: 0.5;
+  cursor: default;
+}

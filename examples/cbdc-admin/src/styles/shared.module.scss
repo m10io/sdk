@@ -1,0 +1,104 @@
+$max-content-width: 1170px;
+$nav-height: 90px;
+$background-color: #fafafa;
+$content-background-color: #ffffff;
+$font-color-primary: #333333;
+$font-color-secondary: #999999;
+$color-blue-primary: #384764;
+$color-blue-secondary: #edf2ff;
+$color-light-gray: #CCCCCC;
+$color-light-blue: #E8EEFE;
+$color-red-primary: #DB114A;
+$color-red-dark: #9f0000;
+$color-green-primary: #1EAE5B;
+$color-gold-primary: #B59C65;
+$color-gold-secondary: #d79900;
+$color-blue-dp: #214A73;
+
+%card-style {
+  background: #ffffff;
+  box-shadow: 0px 1px 4px rgb(0 0 0 / 25%);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.app {
+  background-color: #282c34;
+  min-height: 100vh;
+  font-size: calc(10px + 2vmin);
+  color: black;
+
+  a {
+    text-decoration: none !important;
+  }
+}
+
+.clickableDiv {
+  text-align: center;
+  border: 1px solid #b5b5b5;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0px #c1c1c1;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: 0.4s;
+  text-decoration: none;
+
+  &:active {
+    position: relative;
+    left: 2px;
+    top: 2px;
+    transition: 0.4s;
+    box-shadow: none;
+  }
+}
+
+.textInput {
+  padding: 8px;
+  margin-bottom: 10px;
+  min-width: 130px;
+  border: 1px solid #01254d;
+}
+
+.formWrapper {
+  select {
+    height: 30px;
+    background: #ffffff;
+    padding: 8px;
+    margin-bottom: 10px;
+    min-width: 158px;
+    border: 1px solid #01254d;
+    border-radius: 3px;
+  }
+
+  label {
+    font-size: 12px;
+  }
+}
+
+.splashPageButton {
+  width: 200px;
+  font-size: 16px;
+  justify-content: flex-start;
+}
+
+.error {
+  color: $color-red-dark;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.addedInfoText {
+  font-size: 14px;
+}
+
+.flexDiv {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+
+  label {
+    padding-right: 12px;
+  }
+}

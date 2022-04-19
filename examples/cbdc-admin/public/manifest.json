@@ -1,0 +1,10 @@
+{
+  "short_name": "CBDC Admin",
+  "name": "CBDC Admin",
+  "icons": [
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

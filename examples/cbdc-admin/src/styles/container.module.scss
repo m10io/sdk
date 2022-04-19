@@ -1,0 +1,10 @@
+@import './shared.module.scss';
+
+.containerWrapper {
+  flex: 1;
+  max-width: $max-content-width;
+
+  &.fullWidth {
+    max-width: unset;
+  }
+}

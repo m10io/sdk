@@ -1,0 +1,84 @@
+@import './shared.module.scss';
+
+// GlobalNav
+.navigationWrapper {
+  // position: fixed;
+  z-index: 3;
+  height: $nav-height;
+  width: 100%;
+  background: #214A73;
+  box-shadow: 0px 1px 6px rgb(0 0 0 / 25%);
+  user-select: none;
+}
+
+.navigationContainer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding: 0 30px;
+}
+
+.navigationMenuItemsList {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  font-size: 13px;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.navigationMenuItemsLeft {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.navigationMenuItemsRight {
+  flex: 0 1 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.navigationMenuItemRight:not(:last-child) {
+  margin-right: 16px;
+}
+
+.globalInstrumentRadioDropdownWrapper {
+  .multiRadioDropdownButton {
+    button {
+      width: unset !important;
+      max-width: 290px;
+    }
+  }
+}
+
+.navigationItemsWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.navMenuItem {
+  color: #fff;
+  text-decoration: none;
+  margin-left: 20px;
+}
+
+.backButton {
+  padding: 10px 10px !important;
+  font-size: 24px;
+}

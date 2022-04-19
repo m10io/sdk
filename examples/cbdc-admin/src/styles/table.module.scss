@@ -1,0 +1,302 @@
+@import './shared.module.scss';
+
+.table {
+  table {
+    width: 100%;
+    margin: 0;
+    border-spacing: 0;
+    background: $content-background-color;
+    box-shadow: 0px 4px 4px rgb(0 0 0 / 25%);
+    font-size: 14px;
+    line-height: 20px;
+    border-collapse: collapse;
+
+    tr {
+      :last-child {
+        td {
+          border-bottom: 0;
+        }
+      }
+    }
+    th,
+    td {
+      margin: 0;
+      padding: 10px 30px;
+      border-bottom: 1px solid #eaeaea;
+
+      :last-child {
+        border-right: 0;
+      }
+    }
+
+    th {
+      text-align: left;
+      color: #999999;
+      font-weight: 500;
+    }
+
+    .tdSubRow {
+      padding: 0;
+
+      td {
+        border-bottom: 1px solid #eaeaea !important;
+      }
+    }
+
+    .trSubRow {
+    }
+  }
+
+  .tableTitleRow {
+    font-family: 'Rubik';
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background: $content-background-color;
+    box-shadow: 0px 0px 4px rgb(0 0 0 / 25%);
+    border-radius: 10px 10px 0 0;
+    border-bottom: 1px solid #eaeaea;
+    padding: 30px;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 20px;
+
+    .tableTitleIcon {
+      margin-right: 12px;
+
+      &.tableHeaderThemeCard {
+        margin-right: 8px;
+      }
+    }
+
+    &.tableHeaderThemeCard {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 20px 20px 10px;
+    }
+  }
+
+  .downloadButton {
+    color: #808080;
+    font-weight: 600;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .headerFormField {
+    margin-left: auto;
+    margin-right: 20px;
+    float: left;
+    z-index: 1;
+    position: relative;
+  }
+
+  .rightHeaderActions {
+    margin-left: auto;
+  }
+
+  .hidden {
+    opacity: 0;
+  }
+
+  .tableColumnSmallWidth {
+    max-width: 100px;
+    overflow-x: auto;
+  }
+
+  .tableBottomRow {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid #eaeaea;
+    background: $content-background-color;
+    box-shadow: 0px 1px 4px rgb(0 0 0 / 25%);
+    border-radius: 0 0 10px 10px;
+    padding: 40px 30px;
+
+    &.tableBottomRowNoPagination {
+      border-top: 0;
+      padding: 10px 30px;
+    }
+
+    margin-bottom: 20px;
+  }
+
+  .tablePageNumberLink {
+    cursor: pointer;
+
+    &.tablePageNumberLinkDisabled {
+      cursor: default;
+    }
+  }
+
+  .tableSizeSelectorWrapper {
+    position: absolute;
+    right: 30px;
+    bottom: 30px;
+  }
+
+  .tableCellStandard {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .tableCellIcon {
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+
+  .firstCellStandard {
+  }
+
+  .tableLinkCell {
+    font-size: 18px;
+    line-height: 20px;
+    color: $color-blue-primary;
+  }
+
+  .tableCellLargeText {
+    font-size: 18px;
+    line-height: 20px;
+  }
+
+  .tableExpanderCellIcon {
+  }
+
+  .subRowTableWrapper {
+    box-shadow: none;
+  }
+
+  .tableCellLargeFont {
+    font-size: 18px;
+    line-height: 18px;
+  }
+
+  .tdSubText {
+    margin: 5px 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: #808080;
+  }
+
+  .tdRightAlign {
+    text-align: right;
+  }
+
+  .tdMarginRight {
+    margin-right: 40px;
+  }
+
+  .tdBold {
+    font-weight: 500;
+    font-size: 18px;
+  }
+
+  .cellGreyText {
+    color: $font-color-secondary;
+  }
+
+  .cellTextDivider {
+    color: $font-color-secondary;
+    padding: 0 3px;
+  }
+
+  .tableTopRowSmall {
+    padding: 30px;
+  }
+
+  .cellTextWithIcon {
+    position: relative;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+  }
+
+  .cellIconPostText {
+    display: inline-block;
+    padding-left: 16px;
+  }
+
+  .cellIconPreText {
+    position: relative;
+    top: 2px;
+    right: 10px;
+    display: inline-block;
+    transition: transform 0.2s ease;
+
+    &.cellIconPreTextExpanded {
+      transform: rotate(90deg);
+      transition: transform 0.2s ease;
+    }
+  }
+
+  .tableTopRowBackgroundGrey {
+    background: #F3F3F3;
+  }
+
+  .expandedTxRow {
+    background: #f5f5f5;
+  }
+
+  .expandedTxRowTd {
+    border-bottom: 1px solid #dcdcdc;
+  }
+}
+
+.tableBottomRowArrowsDivider {
+  width: 100px;
+}
+
+.tableSizeSelectorWrapper {
+  select {
+    width: 100%;
+    height: 41px;
+    padding: 10px 20px;
+    border: 1px solid $color-light-gray;
+    box-shadow: 0px 1px 2px rgba(51, 51, 51, 0.2);
+    border-radius: 4px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: $content-background-color;
+    background-size: .6em;
+    background-position: calc(100% - 0.75em) center;
+    background-repeat: no-repeat;
+    font-size: 14px;
+    line-height: 20px;
+    cursor: pointer;
+  }
+
+  select::-ms-expand {
+    display: none;
+  }
+
+  select:disabled {
+    cursor: default;
+  }
+}
+
+.accordionExpander {
+  cursor: pointer;
+}
+
+.verticalLine {
+  position: absolute;
+  top: 21px;
+  left: 10px;
+  background: $font-color-primary;
+  width: 2px;
+  height: 79px;
+}
+
+.verticalLineTxChain {
+  position: absolute;
+  top: 61px;
+  left: 40px;
+  background: #CCCCCC;
+  width: 2px;
+  height: 79px;
+}

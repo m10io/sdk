@@ -1,0 +1,19 @@
+const BASE_ROUTE = '/'
+const ASSETS_PAGE_ROUTE = '/assets'
+const BANKS_PAGE_ROUTE = '/banks'
+const ACCOUNTS_PAGE_ROUTE = '/accounts'
+const LEDGER_INFO_PAGE_ROUTE = '/ledger'
+const ISSUE_PAGE_ROUTE = '/issue'
+const REDEEM_PAGE_ROUTE = '/redeem'
+const ONBOARD_BANK_PAGE_ROUTE = '/onboard-bank'
+
+module.exports = {
+  BASE_ROUTE,
+  ASSETS_PAGE_ROUTE,
+  BANKS_PAGE_ROUTE,
+  ACCOUNTS_PAGE_ROUTE,
+  LEDGER_INFO_PAGE_ROUTE,
+  ISSUE_PAGE_ROUTE,
+  REDEEM_PAGE_ROUTE,
+  ONBOARD_BANK_PAGE_ROUTE,
+}

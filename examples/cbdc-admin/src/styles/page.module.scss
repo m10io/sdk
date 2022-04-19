@@ -1,0 +1,48 @@
+@import 'shared.module.scss';
+
+.pageWrapper {
+  // position: relative;
+  // top: $nav-height;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: calc(100vh - 90px);
+  background: #282c34;
+}
+
+.pageContainer {
+  flex-grow: 1;
+  padding: 30px;
+  width: 90%;
+
+  &.pageContainerFullWidth {
+    padding: 0,
+  }
+}
+
+h2.pageTitle {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.titleRowContentWrapper {
+  display: flex;
+}
+
+.titleRowContentItem {
+  margin-right: 8px;
+
+  &:last-child {
+    margin-right: 0;
+  }
+}
+
+.pageLoadingSpinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -100px;
+  margin-left: -100px;
+  z-index: 5;
+}

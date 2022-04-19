@@ -1,0 +1,7 @@
+ledger_addr = "https://qa.m10.net"
+directory_addr = "https://qa.m10.net"
+operator_key = "MFMCAQEwBQYDK2VwBCIEIMA9e6xaIFATarh2S5yVEe7jene/36EOcM+3B/sOH0y/oSMDIQDA9/WOLKaVoXq92lOSjloExzLXCdRz8oW9TweVGAGqZg=="
+central_bank_key = "MFMCAQEwBQYDK2VwBCIEIPx4/t2ofbHbOzNFDHIppkxFmdcOwCrb2wihczFB23sUoSMDIQA5vchjxwfcRTl7c1OBpIoQ47ah5iMaebXWO8ASVZzrJQ=="
+banks_key = "MFMCAQEwBQYDK2VwBCIEIIEOT5vlgRx5qlNpavYfE63mXNAEGYkb5CZHMMD10ko9oSMDIQB10whMJ96apEvFigfqocGnL8TN2OXf641KsnXBHgd9rQ=="
+sandbox_issuer_role = "77436769-8bf9-4581-b0cb-e62b66d5d9a9"
+sandbox_nostro_role = "0c8a1d5f-ec36-4342-93ca-0893103e9b60"

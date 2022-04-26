@@ -1,0 +1,10 @@
+@import 'shared.module.scss';
+
+.card {
+  @extend %card-style;
+  margin: 20px 0;
+}
+
+.customerCardTitle {
+  margin-bottom: 4px;
+}

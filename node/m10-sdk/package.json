@@ -1,6 +1,6 @@
 {
   "name": "m10-sdk",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "M10 SDK",
   "main": "lib/index.js",
   "author": "Michael Wittner <michael.wittner@m10.io>",

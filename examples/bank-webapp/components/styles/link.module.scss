@@ -1,0 +1,15 @@
+@import 'shared.module.scss';
+
+.linkThemeBlue {
+  color: $color-blue-primary;
+  text-decoration: underline;
+}
+
+.linkThemeGold {
+  color: $color-gold-primary;
+  text-decoration: underline;
+}
+
+.linkDisabled {
+  cursor: default !important;
+}

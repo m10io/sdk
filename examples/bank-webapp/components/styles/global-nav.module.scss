@@ -1,0 +1,256 @@
+@import 'shared.module.scss';
+
+// GlobalNav
+.navigationWrapper {
+  position: fixed;
+  z-index: 3;
+  height: $nav-height;
+  width: 100%;
+  background: #ffffff;
+  box-shadow: 0px 1px 6px rgb(0 0 0 / 25%);
+  user-select: none;
+}
+
+.navigationContainer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding: 0 30px;
+}
+
+.navigationMenuItemsList {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  font-size: 13px;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.navigationMenuItemsLeft {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.navigationMenuItemsRight {
+  flex: 0 1 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.navigationMenuItemRight:not(:last-child) {
+  margin-right: 16px;
+}
+
+.globalInstrumentRadioDropdownWrapper {
+  .multiRadioDropdownButton {
+    button {
+      width: unset !important;
+      max-width: 290px;
+    }
+  }
+}
+
+.navigationItemsWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.navigationItem {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  height: 100%;
+}
+
+.navigationLogo {
+  margin-right: 30px;
+}
+
+.navMenuItemWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: #000000;
+  text-decoration: none;
+  margin-right: 20px;
+  font-weight: 500;
+  cursor: default;
+
+  &:hover {
+    color: #087CC7;
+  }
+}
+
+.navMenuItemLink {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// DesktopNavMenuItem
+.subMenuItemsWrapper {
+  display: none;
+  position: absolute;
+  top: 70px;
+  left: 0;
+  width: 240px;
+  border: 0.5px solid #e7ebef;
+  background-color: #f8f9fb;
+  text-decoration: none;
+  color: #000000;
+  font-size: 400;
+
+  .subMenuItemWrapper {
+    display: block;
+    padding: 10px 10px 10px 20px;
+    border-bottom: 0.5px solid #e7ebef;
+
+    &:hover {
+      color: #087CC7;
+      background-color: #ecf3f7;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+}
+
+.navMenuItemWrapper:hover {
+  .subMenuItemsWrapper {
+    z-index: 2;
+    display: block;
+  }
+}
+
+// Global nav dropdown
+.globalNavDropdown {
+  z-index: 5;
+  background-color: #ffffff;
+  border: 1px solid #CCCCCC;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  top: $nav-height - 11.5; // 23 / 2
+  right: 20px;
+  position: absolute;
+
+  .dropdownName {
+    font-size: 14px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    font-feature-settings: 'pnum' on, 'lnum' on, 'liga' off;
+    color: #333333;
+    padding-bottom: 3px;
+  }
+
+  .dropdownEmail {
+    font-size: 14px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    font-feature-settings: 'pnum' on, 'lnum' on, 'liga' off;
+    color: #999999;
+  }
+
+  .dropdownDivider {
+    background-color: #CCCCCC;
+    color: #CCCCCC;
+    height: 1px;
+    margin-left: 20px;
+    margin-right: 20px;
+    width: 230px;
+  }
+
+  .dropdownSignOut {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    font-feature-settings: 'pnum' on, 'lnum' on, 'liga' off;
+    color: #333333;
+    margin: 15px;
+    padding: 10px;
+    cursor: pointer;
+  }
+
+  .logoutIcon {
+    margin-right: 13px;
+    height: 28px;
+  }
+
+  .dropdownSignOut:hover {
+    background: #edf2ff;
+    border-radius: 4px;
+  }
+}
+
+.profileInfoLink {
+  margin: 15px;
+  padding: 8px 10px;
+  display: flex;
+  flex-flow: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  background: #ffffff;
+}
+
+.profileInfoLink:hover {
+  background: #edf2ff;
+  border-radius: 4px;
+}
+
+.globalNavDropdownToggleIcon {
+  cursor: pointer;
+}
+
+.fadeIn {
+  opacity: 1;
+  transition: opacity 100ms easse-out;
+}
+
+.fadeOut {
+  display: none;
+  // TODO: reconfigure fade out effect without having invisible element overlapping others when unused.
+  opacity: 0;
+  transition: opacity 100ms ease-in;
+}
+
+.dropdownLogoutIcon {
+  width: 45px;
+  border-radius: 50%;
+  position: relative;
+  top: 2px;
+}
+
+.bankLogoName {
+  // font-family: 'Rubik', sans-serif;
+  font-family: 'Libre Baskerville', serif;
+  color: #fff;
+  font-weight: 600;
+  font-size: 19px;
+  padding: 20px;
+  border-radius: 4px;
+}

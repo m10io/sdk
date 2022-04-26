@@ -1,0 +1,36 @@
+listen_addr = "0.0.0.0:8080"
+database_url = "postgres://m10bankemulator@localhost/m10bankemulator"
+log_filter = "m10_bank_emulator=debug,m10_notifier=debug,sqlx=warn,info"
+ledger_addr = "http://0.0.0.0:50051"
+directory_addr = "https://develop.m10.net"
+prometheus_port = "27777"
+
+key_pair = "MFMCAQEwBQYDK2VwBCIEIFX1/JTSaE+IV9aM3SWMLhh6Gi8G3+Uu8rfQG4+jmqmfoSMDIQAYsbQ3kBzKG2ijScMH9jnRYg7JUCL+QQkum+Sc1NIPEg=="
+
+[oauth]
+issuer   = "https://dev-m10.us.auth0.com/"
+audience = "https://api.m10.net"
+
+[bank]
+type = "Emulator"
+currencies = [{currency = "USD", account_name = "holding-usd"}]
+checking_account_start = 500000000
+
+[currencies.usd]
+ledger_account_name = "Bank Emulator USD"
+code = "usd"
+asset = false
+
+[currencies.ttt]
+ledger_account_name = "Bank A"
+account_owner = "6qot3U5hJXqxqzX6/k1ZgukkN3cbmtq3RG3oHRgym88="
+code = "ttt"
+asset = false
+test = true
+
+[notification]
+type = "Mock"
+
+[directory]
+address = "https://develop.m10.net"
+is_secure = true

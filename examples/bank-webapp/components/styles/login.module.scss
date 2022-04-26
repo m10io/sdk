@@ -1,0 +1,200 @@
+@import 'shared.module.scss';
+
+.loginPageWrapper {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  background: $content-background-color;
+  overflow-y: hidden;
+  min-height: 100vh;
+
+  &.loginPageWrapperMobile {
+    flex-flow: column nowrap;
+  }
+}
+
+.loginCardFormWrapper {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  justify-content: space-around;
+  flex: 1;
+  padding: 160px 0 30px;
+
+  &.loginCardFormWrapperSmallMobileViewport {
+    padding-top: 30px;
+  }
+}
+
+.loginCardWrapper {
+  box-shadow: 0 12px 40px rgb(0 0 0 / 12%);
+  border-radius: 3px;
+  padding: 60px 30px 60px 30px;
+}
+
+.logo {
+  width: 70px;
+  min-width: 70px;
+  padding-bottom: 60px;
+}
+
+.logoDP {
+  width: 150px;
+  margin-bottom: 60px;
+}
+
+.loginCardWrapper {
+  flex: 1 1 45%;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.loginCardContent {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.welcomeText {
+  margin-top: 20px;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 20px;
+  padding-bottom: 10px;
+  text-align: center;
+  color: $font-color-primary;
+}
+
+.instructionsText {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  color: #999999;
+  padding-bottom: 30px;
+  text-align: center;
+}
+
+.loginFormWrapper {
+  display: flex;
+  flex-flow: column nowrap;
+  width: 100%;
+}
+
+.singleFormField {
+  margin-bottom: 12px;
+}
+
+.submitButton {
+  padding: 13px 20px;
+}
+
+.SignInButton {
+  align-items: center;
+  width: 100%;
+}
+
+.infoWrapper {
+  position: absolute;
+  top: 90%;
+  bottom: 7%;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+
+  &.infoWrapperMobile {
+    position: relative;
+  }
+}
+
+.needAccessText {
+  padding-bottom: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  align-items: center;
+  color: #333333;
+
+  a {
+    color: $color-blue-primary;
+    margin-left: 3px;
+  }
+}
+
+.copyrightText {
+  font-size: 12px;
+  line-height: 20px;
+  color: #CCCCCC;
+}
+
+.contentWrapper {
+  flex: 1 0 60%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background-color: $color-blue-dp;
+}
+
+.content {
+  padding: 60px 120px;
+
+  h1 {
+    max-width: 600px;
+    font-weight: 500;
+    font-size: 40px;
+    line-height: 50px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.visit {
+  position: absolute;
+  left: 85%;
+  right: 10%;
+  top: 90%;
+  bottom: 7%;
+  width: 200px;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: right;
+
+  a {
+    color: #FFFFFF;
+  }
+}
+
+.loginFormErrorText {
+  margin-top: 8px;
+  color: $color-pink-primary;
+  font-size: 14px;
+}
+
+.emailVerifiedCardWrapper {
+  box-shadow: 0 12px 40px rgb(0 0 0 / 12%);
+  border-radius: 3px;
+  padding: 30px 30px 30px 30px;
+  min-width: 250px;
+  min-height: 300px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.loginCardWrapperSmallMobileViewport {
+  box-shadow: none;
+}
+
+.bankLogoName {
+  // font-family: 'Rubik', sans-serif;
+  font-family: 'Libre Baskerville', serif;
+  color: #fff;
+  font-weight: 600;
+  font-size: 19px;
+  padding: 20px;
+  border-radius: 4px;
+}

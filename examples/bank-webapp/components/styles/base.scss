@@ -1,0 +1,55 @@
+@font-face {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Libre Baskerville', serif;
+  margin-top: 0;
+}
+
+body {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  color: #333333;
+  font-family: 'Rubik';
+  font-style: normal;
+  font-weight: 400;
+  background: #ffffff;
+  overflow-x: hidden;
+  min-width: 320px; // iphone 5
+}
+
+a {
+  color: currentColor;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+img {
+  display: block;
+}
+
+*:focus {
+  outline: none;
+}
+
+button {
+  padding: 0;
+  margin: 0;
+  border: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.react-datepicker__input-container {
+  display: flex !important;
+}
+
+.react-datepicker__triangle {
+  display: none;
+}

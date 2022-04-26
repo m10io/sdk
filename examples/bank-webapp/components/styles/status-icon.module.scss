@@ -1,0 +1,39 @@
+@import 'shared.module.scss';
+
+.statusIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  border-radius: 4px;
+  user-select: none;
+  font-size: 13px;
+  line-height: 20px;
+  max-width: 72px;
+  white-space: nowrap;
+
+  &.statusIconTypeDeposit,
+  &.statusIconTypeWithdrawal {
+    color: #ffffff;
+    background: #787a7f;
+  }
+
+  &.statusIconTypeSuccess,
+  &.statusIconTypeVerified,
+  &.statusIconTypeOpen {
+    color: #ffffff;
+    background: #3b813f;
+  }
+
+  &.statusIconTypePending {
+    color: #ffffff;
+    background: $color-blue-primary;
+  }
+
+  &.statusIconTypeError,
+  &statusIconTypeUnknown,
+  &.statusIconTypeFailed {
+    color: #ffffff;
+    background: $color-red-dark;
+  }
+}

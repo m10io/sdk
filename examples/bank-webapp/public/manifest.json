@@ -1,0 +1,11 @@
+{
+    "name": "Commercial Bank",
+    "short_name": "Commercial Bank",
+    "icons": [{
+        "src": "logo.png",
+        "sizes": "180x180"
+    }],
+    "background_color": "#ffffff",
+    "theme_color": "#384764",
+    "display": "fullscreen"
+}

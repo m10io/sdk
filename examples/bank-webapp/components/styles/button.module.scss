@@ -1,0 +1,173 @@
+@import 'shared.module.scss';
+
+.buttonWrapper {
+  position: relative;
+}
+
+%button-theme-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.buttonThemePrimaryBlue {
+  @extend %button-theme-primary;
+  padding: 10px 20px;
+}
+
+.buttonThemeRedPrimary {
+  @extend %button-theme-primary;
+  background: $color-red-primary;
+  padding: 10px 20px;
+}
+
+.buttonThemePrimary {
+  @extend %button-theme-primary;
+  font-family: 'Libre Baskerville', serif;
+  padding: 18px 60px;
+  font-size: 21px;
+  font-weight: 400;
+  transition: filter 0.25s cubic-bezier(0.25, 0.1, 0.27, 1.42);
+
+  &:hover {
+    filter: brightness(85%);
+  }
+}
+
+.buttonThemeSecondary {
+  @extend %button-theme-primary;
+  padding: 10px 20px;
+  transition: filter 0.25s cubic-bezier(0.25, 0.1, 0.27, 1.42);
+
+  &:hover {
+    filter: brightness(85%);
+  }
+}
+
+.buttonDropdownIcon {
+  position: absolute;
+  right: 11px;
+  top: 13px;
+  width: 13px;
+  height: 14px;
+}
+
+.buttonDisabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.loadingSpinner {
+  animation-name: spin;
+  animation-duration: 1000ms;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+@keyframes spin {
+  from {transform:rotate(0deg);}
+  to {transform:rotate(360deg);}
+}
+
+.buttonDynamicWrapper {
+  height: 40px;
+}
+
+.dynamicButtonContent {
+  position: relative;
+  transition: all .33s ease-in-out;
+
+  .dynamicButtonLoadingSpinner {
+    position: absolute;
+    top: calc(50% + 2px);
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+  }
+
+  &:not(.success) {
+    transition: none;
+  }
+
+  &.success {
+    content: '';
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    // Simulate checkmark icon
+    display: inline-block;
+    height: 8px;
+    width: 20px;
+
+    border: 3px solid #fff;
+    border-top-width: 0;
+    border-right-width: 0;
+
+    transform: translate(-50%, -75%) rotate(-45deg);
+
+    animation: loading-btn--fade-in .6s ease;
+  }
+
+  &.fail {
+    content: '';
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    // Simulate cross icon
+    display: inline-block;
+    height: 25px;
+    width: 25px;
+
+    // Using background gradient is the only solution creating a cross with a single element
+    background:
+      linear-gradient(
+        to bottom,
+        transparent 44%,
+        #fff 44%,
+        #fff 56%,
+        transparent 56%
+      ),
+
+      linear-gradient(
+        to right,
+        transparent 44%,
+        #fff 44%,
+        #fff 56%,
+        transparent 56%
+    );
+
+    transform: translate(-50%, -50%) rotate(-45deg);
+
+    animation: loading-btn--fade-in .6s ease;
+  }
+}
+
+@keyframes loading-btn--fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.dynamicButtonText {
+  &.hidden {
+    opacity: 0;
+  }
+}
+
+.hidden {
+  opacity: 0;
+}

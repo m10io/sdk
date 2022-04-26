@@ -1,0 +1,48 @@
+@import 'shared.module.scss';
+
+.background {
+  background: $background-color;
+}
+
+.card {
+  @extend %card-style;
+  margin: 20px 0;
+
+  h3 {
+    margin-bottom: 0;
+  }
+
+  .infoRow {
+    margin-bottom: 14px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  h4 {
+    display: flex;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e1e1e1;
+  }
+
+  .titleIcon {
+    margin-right: 8px;
+  }
+}
+
+.findCustomersForm {
+  display: flex;
+}
+
+.findCustomersTextInput {
+}
+
+.findCustomersSubmitButton {
+  margin-left: 8px;
+}
+
+.warningImage {
+  margin-right: 8px;
+}

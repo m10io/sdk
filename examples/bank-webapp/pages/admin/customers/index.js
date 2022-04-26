@@ -1,0 +1,63 @@
+/* eslint-disable camelcase */
+import React, { Component } from 'react'
+import PropTypes from 'prop-types'
+import Page from 'components/page'
+import { withRouter } from 'next/router'
+import TableContacts from 'components/table-contacts'
+import { getCustomers } from 'lib/api/customers'
+
+class CustomersPage extends Component {
+  state = {
+    isLoading: false,
+    loadError: null,
+    data: [],
+  }
+
+  loadTableData = async query => {
+    this.setState({ isLoading: true, loadError: null })
+    try {
+      const res = await getCustomers(query)
+      this.setState({ data: res?.data, isLoading: false })
+    } catch (e) {
+      this.setState({ isLoading: false, loadError: e })
+    }
+  }
+
+  async componentDidMount() {
+    await this.loadTableData()
+  }
+
+  render() {
+    const {
+      isLoading,
+      loadError,
+      data,
+    } = this.state
+    const { router, query, windowWidth } = this.props
+    return (
+      <Page
+        withSidebar
+        withGlobalNav
+        loadError={loadError}
+        windowWidth={windowWidth}
+      >
+        <TableContacts
+          customers={data?.data || []}
+          isLoading={isLoading}
+          filters={query}
+          router={router}
+          loadData={this.loadTableData}
+          nextPageToken={data?.next_page_token || {}}
+          tableName={'Customers'}
+          windowWidth={windowWidth}
+        />
+      </Page>
+    )
+  }
+}
+
+CustomersPage.propTypes = {
+  query: PropTypes.object,
+}
+
+export default withRouter(CustomersPage)

@@ -1,0 +1,95 @@
+@import 'shared.module.scss';
+
+.sidebarWrapper {
+  min-width: 230px;
+  max-width: 230px;
+  padding: 30px 20px;
+  min-height: calc(100vh - 150px);
+  background: $content-background-color;
+  align-self: stretch;
+  user-select: none;
+  z-index: 1;
+  box-shadow: 1px 0px 15px #00000017;
+}
+
+.sidebarContainer {
+  position: sticky;
+  position: -webkit-sticky; /* Safari */
+  width: 230px;
+  top: 120px;
+}
+
+.sidebarMenuItemWrapper {
+  position: relative;
+  display: flex;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+
+  &.sidebarMenuItemActive {
+    font-weight: 500;
+    color: #000000;
+  }
+
+  &:hover {
+    background: addSuffix($bankPrimaryColor, '28');
+    color: #000000;
+  }
+}
+
+.submenuToggleArrow {
+  position: absolute;
+  right: 17px;
+  top: 12px;
+}
+
+.sidebarMenuItemTitle {
+  font-weight: 500;
+}
+
+.sidebarMenuItemTitleWithOpenSubmenu {
+}
+
+.sidebarMenuItemContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.sidebarSubmenuItemWrapper {
+  margin: 0 0 1px;
+  padding: 10px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.sidebarMenuItemIcon {
+  position: relative;
+  bottom: 1px;
+  width: 18px;
+}
+
+.sidebarMenuIconTitle {
+  margin-left: 12px;
+}
+
+.sidebarsubMenuItemsWrapper {
+  position: relative;
+  left: 14px;
+  bottom: 5px;
+  display: flex;
+  flex-flow: column nowrap;
+  // NOTE: need to specify width due to relative position left.
+  width: calc(100% - 30px);
+  padding-left: 10px;
+  border-left: 4px solid #E8EEFE;
+
+  &.sidebarsubMenuItemsWrapperOpen {
+  }
+}

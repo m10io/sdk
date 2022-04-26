@@ -1,0 +1,42 @@
+$max-content-width: 1170px;
+$nav-height: 90px;
+$background-color: #fafafa;
+$content-background-color: #ffffff;
+$font-color-primary: #333333;
+$font-color-secondary: #999999;
+$color-blue-primary: #384764;
+$color-blue-secondary: #edf2ff;
+$color-light-gray: #CCCCCC;
+$color-light-blue: #E8EEFE;
+$color-red-primary: #DB114A;
+$color-pink-primary: #b25c74;
+$color-red-dark: #9f0000;
+$color-green-primary: #1EAE5B;
+$color-gold-primary: #B59C65;
+$color-gold-secondary: #d79900;
+$color-blue-dp: #214A73;
+
+%card-style {
+  background: $content-background-color;
+  box-shadow: 0px 1px 4px rgb(0 0 0 / 25%);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.centeredOnPage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -100px;
+  margin-left: -100px;
+}
+
+%diapay-base-style {
+  font-family: 'Libre Baskerville', serif;
+  background-image: linear-gradient(to right, rgba(37, 34, 47, 1), rgba(22, 21, 27, 1));
+  color: #ffffff;
+}
+
+@function addSuffix($colour, $suffix: '') {
+  @return unquote($colour+$suffix)
+}

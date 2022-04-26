@@ -1,0 +1,13 @@
+[package]
+name = "m10-rds-pool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1.52"
+bb8 = "0.7.1"
+percent-encoding = "2"
+rusoto_credential = "0.47"
+rusoto_signature = "0.47"
+sqlx-core = { version = "0.5", features = ["runtime-tokio-rustls", "postgres"] }
+url = "2"

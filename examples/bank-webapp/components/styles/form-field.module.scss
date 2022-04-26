@@ -1,0 +1,415 @@
+@import 'shared.module.scss';
+
+.formFieldSelect {
+  position: relative;
+}
+
+.formFieldThemeGreyOutlineActive {
+  font-size: 14px;
+  line-height: 20px;
+  width: 100%;
+
+  &.formFieldWithLabel {
+    input, select {
+      margin-top: 10px;
+    }
+  }
+
+  &.textFormFieldErrorBelow {
+    position: relative;
+    top: 6px;
+  }
+
+  label {
+    color: #4C4C4C;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  input {
+    border: 1px solid $color-light-gray;
+    box-shadow: 0px 1px 2px rgba(51, 51, 51, 0.2);
+    border-radius: 4px;
+    padding: 10px 19px;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  select {
+    width: 100%;
+    height: 41px;
+    padding: 10px 20px;
+    border: 1px solid $color-light-gray;
+    box-shadow: 0px 1px 2px rgba(51, 51, 51, 0.2);
+    border-radius: 4px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: $content-background-color;
+    background-size: .6em;
+    background-position: calc(100% - 0.75em) center;
+    background-repeat: no-repeat;
+    font-size: 14px;
+    line-height: 20px;
+    cursor: pointer;
+  }
+
+  select::-ms-expand {
+    display: none;
+  }
+
+  select:disabled {
+    cursor: default;
+  }
+}
+
+.formFieldThemeAuthentication {
+  font-size: 14px;
+  line-height: 20px;
+  width: 100%;
+
+  .textFormFieldInputWrapper {
+    display: flex;
+  }
+
+  .datePickerInputContainer {
+    &.react-datepicker__input-container {
+      display: flex;
+      height: 200px;
+    }
+  }
+
+  &.formFieldSelect {
+    position: relative;
+    display: flex;
+    flex-flow: column nowrap;
+  }
+
+  .formFieldSelectDownArrow {
+    width: 12px !important;
+    position: absolute;
+    right: 12px;
+    bottom: 29px;
+  }
+
+  &.formFieldWithLabel {
+    input, select {
+      margin-top: 6px;
+    }
+  }
+
+  &.error {
+    color: $color-pink-primary;
+    position: relative;
+    top: 2px;
+  }
+
+  label {
+    color: #4C4C4C;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  input {
+    height: 42px;
+    border-radius: 4px;
+    padding: 0 0 0 12px;
+    border: 1px solid #d5d5d5;
+    flex: 2;
+  }
+
+  // hide number spinner
+  input[type='number'] {
+    -moz-appearance:textfield;
+  }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  select {
+    height: 43px;
+    border-radius: 4px;
+    padding: 0 0 0 12px;
+    border: 1px solid #d5d5d5;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: transparent;
+    background-repeat: no-repeat;
+    background-position-x: 100%;
+    background-position-y: 8px;
+  }
+
+  .checkbox label {
+    font-size: 12px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 15px;
+    color: #ffffff;
+    margin-bottom: 0 !important;
+  }
+
+  .checkbox input {
+    margin-right: 10px !important;
+    min-width: unset !important;
+  }
+}
+
+.textFormFieldInputWrapper {
+  position: relative;
+}
+
+.formFieldInputWarningIcon {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+// radio button
+.radioButtonsWrapper {
+  display: flex;
+  flex-flow: column nowrap;
+
+  // hide default radio button
+  input {
+    width: unset !important;
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+    display: none;
+  }
+
+  .radioButtonsLabel {
+    padding-bottom: 10px;
+  }
+
+  .radioButtonWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    padding-bottom: 20px;
+    font-size: 14px;
+    line-height: 20px;
+    user-select: none;
+    padding-right: 10px;
+
+    &.radioButtonWrapperChecked {
+      font-weight: 500;
+    }
+
+    // custom radio button
+    .radioButton {
+      position: relative;
+      height: 25px;
+      width: 25px;
+      border: 1px solid $color-light-gray;
+      border-radius: 50%;
+      margin-right: 10px;
+      cursor: pointer;
+
+      .radioButtonChecked {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        width: 15px;
+        height: 15px;
+        background-color: $color-blue-primary;
+        border-radius: 50%;
+      }
+    }
+
+    .radioButtonLabel {
+      cursor: pointer;
+    }
+  }
+}
+
+.checkbox label {
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  color: #333333;
+}
+
+.checkbox input {
+  min-width: unset !important;
+}
+
+.formField {
+  // input::-webkit-outer-spin-button,
+  // input::-webkit-inner-spin-button {
+  //   -webkit-appearance: none;
+  //   margin: 0;
+  // }
+  //
+  // input[type=number] {
+  //   -moz-appearance:textfield; /* Firefox */
+  // }
+  //
+  // input[type=text],
+  // input[type=password],
+  // input[type=number] {
+  //   &.inputWithErrorIcon {
+  //     background-image: url('../../assets/icons/icon-warning-red.svg');
+  //     background-size: 20px;
+  //     background-repeat: no-repeat;
+  //     background-position: 98% 52%;
+  //   }
+  // }
+}
+
+.fileUploadFieldWrapper {
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.fileUploadFieldLabel {
+  color: #4C4C4C;
+  padding-bottom: 5px;
+  font-size: 14px;
+}
+
+.fileUploadInput {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  color: #050533;
+  font-size: 14px;
+  line-height: 20px;
+  height: 42px;
+  border-radius: 4px;
+  padding: 0 0 0 12px;
+  border: 1px solid #d5d5d5;
+}
+
+.fileUploadInputFileName {
+  flex: 1 1 210px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fileUploadBrowseButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 20px;
+  background: $color-gold-primary;
+  color: #ffffff;
+  height: 42px;
+  width: 60px;
+  border-radius: 0 3px 3px 0;
+  transition: background 0.25s cubic-bezier(0.25, 0.1, 0.27, 1.42);
+  cursor: pointer;
+
+  &:hover {
+    background: #a18851;
+  }
+}
+
+.fileUploadFormFieldError {
+  color: $color-pink-primary;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.stripeElement {
+  width: calc(100% - 35px);
+  padding: 12.5px 15px 12.5px 20px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #d5d5d5;
+  margin-top: 5px;
+}
+
+.stripeCardElementBottomText {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.dateSelectorInputsWrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+
+  input:nth-of-type(1) {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    width: 40px;
+    flex: 0;
+  }
+
+  input:nth-of-type(2) {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    width: 35px;
+    flex: 0;
+  }
+
+  input:nth-of-type(3) {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    width: 35px;
+    flex: 0;
+  }
+
+  .dateInputSpaceFiller {
+    height: 42px;
+    border-radius: 0 4px 4px 0;
+    padding: 0 0 0 12px;
+    border: 1px solid #d5d5d5;
+    border-left: 0;
+    flex: 2;
+  }
+}
+
+.dateSelectorInputsWrapperNoDatePicker {
+  input:nth-of-type(1) {
+    border-left: 1px solid #d5d5d5;
+    border-right: 0;
+    border-radius: 4px 0 0 4px;
+    width: 40px;
+    flex: 0;
+  }
+}
+
+.dateSelectorCalendarIcon {
+  border-radius: 4px 0 0 4px;
+  height: 42px;
+  border: 1px solid #d5d5d5;
+  border-right: 0;
+  padding-left: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-right: 8px;
+  font-size: 30px;
+  line-height: 30px;
+  user-select: none;
+  cursor: pointer;
+}
+
+.dateInputDivider {
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  color: #d5d5d5;
+  border-top: 1px solid #d5d5d5;
+  border-bottom: 1px solid #d5d5d5;
+  user-select: none;
+}

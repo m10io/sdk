@@ -1,0 +1,24 @@
+@import 'shared.module.scss';
+
+.cardWrapper {
+  @extend %card-style;
+  margin: 0 0 20px 0;
+
+  .cardTitle {
+    display: flex;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e1e1e1;
+    font-size: 16px;
+    font-family: 'Libre Baskerville', serif;
+    font-weight: 600;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+}
+
+.cardTitleIcon {
+  margin-right: 8px;
+}

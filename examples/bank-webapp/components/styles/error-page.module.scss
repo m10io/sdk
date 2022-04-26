@@ -1,0 +1,38 @@
+@import 'shared.module.scss';
+
+.pageWrapper404 {
+  position: relative;
+  background: #ffffff;
+  height: calc(100vh - 90px);
+}
+
+.errorPageContent {
+  position: relative;
+  margin: 170px auto 50px;
+  max-width: 500px;
+}
+
+.errorPageContent {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+}
+
+.backgroundImage {
+  position: absolute;
+  left: 0;
+  top: 200px;
+}
+
+.errorPageText {
+  margin: 40px 0;
+  font-weight: 500;
+  font-size: 40px;
+  line-height: 50px;
+  color: $font-color-primary;
+  text-align: center;
+}
+
+.errorPageButton {
+  max-width: 300px;
+}

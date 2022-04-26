@@ -1,0 +1,174 @@
+@import 'shared.module.scss';
+
+.mobileNavTopWrapper {
+  position: fixed;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 3;
+  height: $nav-height;
+  width: 100%;
+  background: #ffffff;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  user-select: none;
+}
+
+.mobileNavLogo {
+  padding-left: 30px;
+  display: flex;
+  max-height: 70px;
+}
+
+.mobileNavHamburgerMenu {
+  padding-right: 30px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mobileNavWrapper {
+  display: none;
+}
+
+.mobileNavWrapperOpen {
+  overflow: hidden;
+  display: block;
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  z-index: 3;
+  top: $nav-height;
+  background: #ffffff;
+}
+
+.mobileNavTopLink {
+  width: 100%;
+}
+
+.mobileNavMenuItemWrapper {
+  width: 100%;
+
+  a {
+    text-decoration: none;
+  }
+
+  &:first-child {
+    border-top: 1px solid #afbec8;
+  }
+}
+
+.mobileNavUserInfoWrapper {
+  display: flex;
+  align-items: center;
+  padding-left: 30px;
+  margin-top: 10px;
+}
+
+.userImageWrapper {
+  margin-right: 10px;
+}
+
+.userImage {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.dropdownName {
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  font-feature-settings: 'pnum' on, 'lnum' on, 'liga' off;
+  color: #333333;
+  padding-top: 20px;
+  padding-bottom: 3px;
+  margin-right: 20px;
+}
+
+.dropdownEmail {
+  font-size: 14px;
+  line-height: 20px;
+  padding-bottom: 21px;
+  display: flex;
+  align-items: center;
+  font-feature-settings: 'pnum' on, 'lnum' on, 'liga' off;
+  color: #999999;
+  margin-right: 20px;
+}
+
+.mobileNavMenuItemContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 10px 20px 30px;
+  border-bottom: 1px solid $color-light-gray;
+  height: 100%;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 2px;
+  cursor: pointer;
+
+  &:hover {
+    background: addSuffix($bankPrimaryColor, '28');
+  }
+}
+
+.mobileNavMenuItemCaret {
+  position: relative;
+  font-size: 26px;
+  font-weight: 400;
+  color: #c2cdd5;
+  line-height: 12px;
+}
+
+.mobilesubMenuItemsWrapper {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  background: #ffffff;;
+}
+
+.mobileSubMenuItemWrapper {
+  width: 100%;
+  padding: 20px 10px 20px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-bottom: 1px solid $color-light-gray;
+  cursor: pointer;
+}
+
+.dropdownSignOut {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  font-feature-settings: 'pnum' on, 'lnum' on, 'liga' off;
+  color: #333333;
+  margin: 15px;
+  padding-bottom: 10px;
+  padding-left: 13px;
+  padding-right: 13px;
+  cursor: pointer;
+}
+
+.logoutImage {
+  padding-right: 8px !important;
+}
+
+.bankLogoName {
+  font-family: 'Libre Baskerville', serif;
+  color: #fff;
+  font-weight: 600;
+  font-size: 19px;
+  padding: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

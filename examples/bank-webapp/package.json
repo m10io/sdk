@@ -1,0 +1,46 @@
+{
+  "name": "m10-bank-webapp",
+  "version": "1.0.0",
+  "license": "ISC",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next build && next start",
+    "lint": "eslint --ext .js,.jsx --ignore-pattern public .",
+    "debug": "NODE_OPTIONS='--inspect' next dev"
+  },
+  "dependencies": {
+    "axios": "^0.21.2",
+    "classnames": "2.3.1",
+    "dotenv": "^8.2.0",
+    "final-form": "^4.20.2",
+    "form-data": "^4.0.0",
+    "js-cookie": "^3.0.1",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.1",
+    "next": "12",
+    "numeral": "^2.0.6",
+    "prop-types": "^15.7.2",
+    "react": "^17.0.2",
+    "react-content-loader": "^6.0.3",
+    "react-dom": "^17.0.2",
+    "react-final-form": "^6.5.3",
+    "react-table": "^7.7.0",
+    "react-tooltip": "^4.2.21",
+    "sass": "^1.36.0",
+    "webpack": "^5.64.0",
+    "yarn": "^1.22.11"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.32.0",
+    "eslint-config-next": "^11.0.1",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "2.23.4",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-react": "7.24.0",
+    "eslint-plugin-react-hooks": "^3.0.0",
+    "eslint-plugin-standard": "^5.0.0"
+  }
+}

@@ -15,7 +15,7 @@ This adds a generic bank webapp frontend to pair with the generic bank backend
   OAUTH_DOMAIN=https://dev-m10.us.auth0.com
   OAUTH_AUDIENCE=https://api.m10.net
 
-  OXIDE_API_URL=https://develop.m10.net/trust-oxide/api/v1/
+  OXIDE_API_URL=https://develop.m10.net/bank-emulator/api/v1/
   BASE_API_URL=https://develop.m10.net/
 
   BANK_NAME=Iron Bank

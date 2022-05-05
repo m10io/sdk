@@ -10,7 +10,16 @@ import Button from 'components/button'
 import LoadingOverlay from 'components/loading-overlay'
 import { logout, parseJwt } from 'utils/auth'
 import { getUser } from 'lib/api/auth'
+import routes from 'routes'
 import styles from './styles/page.module.scss'
+
+const redirectIfUnauthorized = (nextProps, router) => {
+  const code = nextProps?.loadError?.response?.data?.code
+  const isUnauthorized = code === 'unauthorized'
+  if (isUnauthorized) {
+    router.push(`${routes.LOGIN_PAGE}?redirect=${router.asPath}`)
+  }
+}
 
 export const PageError = ({ router }) => {
   return (
@@ -57,6 +66,10 @@ class Page extends Component {
     } catch (e) {
       console.log(e)
     }
+  }
+
+  componentWillReceiveProps(nextProps) {
+    redirectIfUnauthorized(nextProps, this.props.router)
   }
 
   render() {
@@ -132,6 +145,7 @@ Page.propTypes = {
   customer: PropTypes.object,
   isLoading: PropTypes.bool,
   title: PropTypes.string,
+  bannerText: PropTypes.string,
 }
 
 export default withRouter(Page)

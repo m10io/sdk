@@ -3,7 +3,7 @@
 This adds a generic bank webapp frontend to pair with the generic bank backend
 
 ##### Current Pinned Versions:
-- `node v14.17.0`
+- `node v16.14.2`
 - `npm  v6.14.4`
 
 
@@ -82,7 +82,7 @@ yarn lint
 ## Debugging
 1. Start the app in debug mode - `yarn debug`
 2. Open Chrome and go to `chrome://inspect`. In the "Remote Target" section, click "inspect" next to the listed corresponding application.
-3.  Add a `.vscode/launch.json` file to the root `bank-admin` folder:
+3.  Add a `.vscode/launch.json` file to the root `bank-webapp` folder:
 ```
 {
   "version": "0.2.0",

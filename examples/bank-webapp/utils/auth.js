@@ -84,7 +84,7 @@ export function withAuthorization(WrappedComponent) {
   return class extends Component {
     async componentWillMount() {
       const token = Cookies.get('access_token')
-      if (!token) Router.push(`${routes.LOGIN_PAGE}?redirect=${Router.route}`)
+      if (!token) Router.push(`${routes.LOGIN_PAGE}?redirect=${Router.asPath}`)
       const user = parseJwt(token)
       const isAuthorized = isAuthorizedRoute({ user, route: Router.route })
       if (!isAuthorized) Router.replace(routes.ERROR_404_PAGE)

@@ -84,6 +84,7 @@ const GlobalNav = ({
   logout,
   customer = {},
   jwtUser,
+  bannerText,
 }) => {
   const [isShowingMenu, setShowingMenu] = useState(false)
   const toggleMenu = () => setShowingMenu(!isShowingMenu)

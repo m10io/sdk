@@ -6,7 +6,7 @@ export const getCustomers = async query => (
   await axios.get(routes.CUSTOMERS_API, {
     params: { ...query },
     headers: {
-      Authorization: `Bearer ${Cookies.get('access_token')}`
+      Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     }
   })
 )
@@ -14,7 +14,7 @@ export const getCustomers = async query => (
 export const getCustomerById = async id => (
   await axios.get(`${routes.CUSTOMERS_API}/${id}`, {
     headers: {
-      Authorization: `Bearer ${Cookies.get('access_token')}`
+      Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     }
   })
 )
@@ -25,7 +25,7 @@ export const updateCustomerContactInfo = async({ customerId, body }) => (
     url: `${routes.CUSTOMERS_API}/${customerId}/contact`,
     data: body,
     headers: {
-      Authorization: `Bearer ${Cookies.get('access_token')}`
+      Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     },
   })
 )

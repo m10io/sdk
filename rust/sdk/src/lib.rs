@@ -1,5 +1,7 @@
 mod document_id;
 
+#[cfg(feature = "account")]
+pub mod account;
 #[cfg(feature = "service")]
 pub mod client;
 #[cfg(feature = "collections")]

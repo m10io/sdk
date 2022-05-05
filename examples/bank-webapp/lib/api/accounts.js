@@ -6,7 +6,7 @@ export const getAccounts = async query => (
   await axios.get(routes.ACCOUNTS_API, {
     params: { ...query },
     headers: {
-      Authorization: `Bearer ${Cookies.get('access_token')}`
+      Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     }
   })
 )
@@ -14,7 +14,7 @@ export const getAccounts = async query => (
 export const getAccountById = async id => (
   await axios.get(`${routes.ACCOUNTS_API}/${id}`, {
     headers: {
-      Authorization: `Bearer ${Cookies.get('access_token')}`
+      Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     }
   })
 )

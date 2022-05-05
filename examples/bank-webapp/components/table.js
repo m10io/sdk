@@ -335,6 +335,7 @@ Table.propTypes = {
       time: PropTypes.string,
     }),
     PropTypes.string,
+    PropTypes.number,
   ]),
   tablePageIndex: PropTypes.number.isRequired,
   setPageIndex: PropTypes.func.isRequired,

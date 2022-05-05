@@ -41,7 +41,7 @@ const renderTableReceiverName = ({ metadataType, receiverName }) => {
   )
 }
 
-const makeColumns = ({ payments, totalCount, tableName, isSmallViewport, noLinkArrows, accountId }) => {
+const makeColumns = ({ payments, totalCount, tableName, isSmallViewport, noLinkArrows, accountId, customBaseUrl }) => {
   let columns = [
     {
       Header: 'Sender',
@@ -95,8 +95,11 @@ const makeColumns = ({ payments, totalCount, tableName, isSmallViewport, noLinkA
         accessor: 'id',
         style: { minWidth: 15 },
         Cell: ({ cell: { row: { original: { id } } } }) => {
+          const url = customBaseUrl
+            ? `${customBaseUrl}/${id}`
+            : `${routes.ADMIN_PAYMENTS_PAGE}/${id}?asset=${BANK_ASSET}&accountId=${accountId}`
           return (
-            <a href={`${routes.ADMIN_PAYMENTS_PAGE}/${id}?asset=${BANK_ASSET}&accountId=${accountId}`}>
+            <a href={url}>
               <Image
                 height={15}
                 width={15}
@@ -170,10 +173,11 @@ const TablePayments = ({
   noLinkArrows,
   accountId,
   onlyForwardPagination,
+  customBaseUrl,
 }) => {
   const isSmallViewport = windowWidth < 600
   const serverData = React.useMemo(() => payments, [payments])
-  const columns = makeColumns({ payments, totalCount, tableName, isSmallViewport, noLinkArrows, accountId })
+  const columns = makeColumns({ payments, totalCount, tableName, isSmallViewport, noLinkArrows, accountId, customBaseUrl })
   return (
     <Table
       columns={columns}
@@ -205,6 +209,7 @@ TablePayments.propTypes = {
   headerTheme: PropTypes.string,
   accountId: PropTypes.string,
   onlyForwardPagination: PropTypes.bool,
+  customBaseUrl: PropTypes.string,
 }
 
 export default TablePayments

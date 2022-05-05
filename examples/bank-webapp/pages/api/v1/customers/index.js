@@ -28,7 +28,8 @@ export default async(req, res) => {
         res.status(200).json(customers)
       } catch (e) {
         logError(e)
-        res.status(500).json({ error: 'Internal Server Error' })
+        const code = e?.response?.data?.code
+        res.status(500).json({ error: 'Internal Server Error', code })
       }
       break
     default:

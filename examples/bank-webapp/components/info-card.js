@@ -75,7 +75,7 @@ export const AccountCard = ({ account = {} }) => {
   )
 }
 
-export const PaymentCard = ({ payment }) => {
+export const PaymentCard = ({ payment, title }) => {
   const txChain = Array.isArray(payment?.txChain) ? payment?.txChain : []
   const senderBank = txChain[0]?.sender?.bank
   const receiverBank = txChain[0]?.receiver?.bank
@@ -83,7 +83,7 @@ export const PaymentCard = ({ payment }) => {
   // const receiverAccountId = txChain[0]?.receiver?.account_id
   const memo = txChain[0]?.memo
   return (
-    <Card title={'Payment'} iconComponent={<IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />}>
+    <Card title={title || 'Payment'} iconComponent={<IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />}>
       <InfoRow title={'Amount'} value={`${formatMoney(payment?.amount)} ${payment?.senderInstrument}`} />
       <InfoRow title={'Date/Time'} value={moment(payment?.timestamp).format('MMM Do YYYY, h:mm:ss a')} />
       {payment?.memo && (

@@ -13,7 +13,7 @@ export const login = async body => (
 export const getUser = async() => (
   await axios.get(`${routes.AUTH_API}/user`, {
     headers: {
-      Authorization: `Bearer ${Cookies.get('access_token')}`,
+      Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`,
     },
   })
 )

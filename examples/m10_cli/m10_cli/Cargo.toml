@@ -16,7 +16,7 @@ futures-lite = "1.11"
 hex = "0.4"
 hyper = "0.14"
 hyper-rustls = "0.22"
-m10-sdk = "0.19.3"
+m10-sdk = { path = "../../../shared/rust/sdk" }
 m10-protos = { path = "../../../shared/rust/protos", features = ["dynamic2"] }
 ron = "0.6.0"
 serde = { version = "1", features = ["derive"] }

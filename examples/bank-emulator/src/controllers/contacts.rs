@@ -266,7 +266,7 @@ async fn list_payments(
     let PaymentQuery {
         include_child_accounts,
     } = include_child_accounts.into_inner();
-    let limit = limit.unwrap_or(100);
+    let limit = limit.map(|l| if l > 50 { 50 } else { l }).unwrap_or(50);
     let payments = utils::list_payments(
         &*instrument,
         id.unwrap_or_default(),

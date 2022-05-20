@@ -8,10 +8,12 @@ const Container = ({
   fullWidth,
   className,
   style,
+  centeredContent,
 }) => (
   <div
     className={classnames(
       styles.containerWrapper,
+      centeredContent && styles.containerCenteredContent,
       fullWidth && styles.fullWidth,
       className,
     )}
@@ -26,6 +28,7 @@ Container.propTypes = {
   fullWidth: PropTypes.bool,
   className: PropTypes.string,
   style: PropTypes.object,
+  centeredContent: PropTypes.bool,
 }
 
 export default Container

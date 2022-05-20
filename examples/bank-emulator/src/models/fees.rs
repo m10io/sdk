@@ -40,11 +40,11 @@ impl FeeMetadata {
         fee_type: FeeType,
         currency: &str,
     ) -> Result<Self, Error> {
-        Ok(Metadata::get(
+        Metadata::get(
             db,
             &format!("{}_{}_{}", currency, fee_type, FEE_METADATA_KEY),
         )
-        .await?)
+        .await
     }
 
     pub async fn insert(

@@ -86,6 +86,9 @@ class Page extends Component {
       windowWidth,
       customer,
       isLoading,
+      withM10Logo,
+      centeredContent,
+      navLogoRoute,
     } = this.props
     const isSmallViewport = windowWidth < 900
     return (windowWidth
@@ -99,6 +102,8 @@ class Page extends Component {
               logout={logout}
               customer={customer}
               jwtUser={jwtUser}
+              withM10Logo={withM10Logo}
+              navLogoRoute={navLogoRoute}
             />
           )}
           <div className={classnames(
@@ -113,7 +118,7 @@ class Page extends Component {
               fullWidth && styles.pageContainerFullWidth,
               containerClassName,
             )}>
-              <Container fullWidth={fullWidth}>
+              <Container fullWidth={fullWidth} centeredContent={centeredContent}>
                 {isLoading
                   ? <LoadingOverlay />
                   : loadError
@@ -146,6 +151,9 @@ Page.propTypes = {
   isLoading: PropTypes.bool,
   title: PropTypes.string,
   bannerText: PropTypes.string,
+  centeredContent: PropTypes.bool,
+  withM10Logo: PropTypes.bool,
+  navLogoRoute: PropTypes.string,
 }
 
 export default withRouter(Page)

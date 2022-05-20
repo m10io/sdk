@@ -65,6 +65,7 @@ class PaymentsPage extends Component {
           nextPageToken={nextPageToken}
           noLinkArrows
           noPagination
+          limit={50}
         />
       </Page>
     )

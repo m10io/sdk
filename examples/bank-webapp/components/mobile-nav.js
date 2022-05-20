@@ -6,6 +6,7 @@ import Link from './link'
 import Image from 'next/image'
 import authPlaceholderIcon from 'assets/icons/icon-default-user-circle.svg'
 import logoutIcon from 'assets/icons/icon-logout.svg'
+import m10LogoBlue from 'assets/icons/m10-logo-blue.svg'
 import routes from 'routes'
 import styles from './styles/mobile-nav.module.scss'
 import getConfig from 'next/config'
@@ -184,14 +185,22 @@ class MobileNav extends Component {
   }
 
   render() {
-    const { menuItems, user, logout } = this.props
+    const { menuItems, user, logout, withM10Logo, navLogoRoute, LOGGED_IN_BASE_ROUTE } = this.props
     return (
       <div className={styles.mobileNavTopWrapper}>
-				<div className={styles.mobileNavLogo}>
-					<div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
-						{publicRuntimeConfig.bankName}
-					</div>
-				</div>
+				<Link href={navLogoRoute || LOGGED_IN_BASE_ROUTE} className={styles.mobileNavLogo}>
+					{withM10Logo
+						? (
+							<Image
+								src={m10LogoBlue}
+								alt={'M10'}
+							/>
+						) : (
+							<div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
+								{publicRuntimeConfig.bankName}
+							</div>
+						)}
+				</Link>
         <div className={styles.mobileNavHamburgerMenu} onClick={this.handleClick}>
           <HamburgerMenu
             isOpen={this.state.isOpen}
@@ -254,6 +263,9 @@ MobileNav.propTypes = {
 	menuItems: PropTypes.array,
 	user: PropTypes.object,
 	logout: PropTypes.func,
+	withM10Logo: PropTypes.bool,
+	navLogoRoute: PropTypes.string,
+	LOGGED_IN_BASE_ROUTE: PropTypes.string.isRequired,
 }
 
 export default MobileNav

@@ -1,0 +1,31 @@
+{
+    "ts-node": {
+        "files": true,
+    },
+    "compilerOptions": {
+        "target": "es6",
+        "lib": [ "es2020" ],
+        "sourceMap": true,
+        "declaration": true,
+        "allowJs": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "noUnusedParameters": true,
+        "noUnusedLocals": true,
+        "forceConsistentCasingInFileNames": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "baseUrl": ".",
+        "outDir": "out",
+        "incremental": true
+    },
+    "typedocOptions": {
+        "entryPoints": ["src/index.ts"],
+        "out": "docs"
+    },
+    "include": [ "common.d.ts", "**/*.ts" ],
+    "exclude": [ "node_modules", "out", "tests" ]
+}

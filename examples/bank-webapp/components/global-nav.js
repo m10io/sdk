@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Link from './link'
 import OutsideClickAlerter from 'components/outside-click-alerter'
 import authPlaceholderIcon from 'assets/icons/icon-default-user-circle.svg'
+import m10LogoBlue from 'assets/icons/m10-logo-blue.svg'
 import logoutIcon from 'assets/icons/icon-logout.svg'
 import { createNavItems } from 'components/sidebar'
 import routes from 'routes'
@@ -76,6 +77,8 @@ GlobalNavDropdownMenu.propTypes = {
   }),
 }
 
+const LOGGED_IN_BASE_ROUTE = routes.ADMIN_CUSTOMERS_PAGE
+
 const GlobalNav = ({
   navMenuItems = [],
   router,
@@ -85,6 +88,8 @@ const GlobalNav = ({
   customer = {},
   jwtUser,
   bannerText,
+  withM10Logo,
+  navLogoRoute,
 }) => {
   const [isShowingMenu, setShowingMenu] = useState(false)
   const toggleMenu = () => setShowingMenu(!isShowingMenu)
@@ -93,7 +98,16 @@ const GlobalNav = ({
   return (
     <nav role={'navigation'}>
       {isSmallViewport
-        ? <MobileNav menuItems={NAV_ITEMS} user={user} logout={logout} />
+        ? (
+          <MobileNav
+            menuItems={NAV_ITEMS}
+            user={user}
+            logout={logout}
+            navLogoRoute={navLogoRoute}
+            LOGGED_IN_BASE_ROUTE={LOGGED_IN_BASE_ROUTE}
+            withM10Logo={withM10Logo}
+          />
+        )
         : (
           <div className={styles.navigationWrapper}>
             <Container fullWidth className={styles.navigationContainer}>
@@ -104,11 +118,19 @@ const GlobalNav = ({
                       styles.navigationItem,
                       styles.navigationLogo,
                     )}
-                    href={'/'}
+                    href={navLogoRoute || LOGGED_IN_BASE_ROUTE}
                   >
-                    <div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
-                      {publicRuntimeConfig.bankName}
-                    </div>
+                    {withM10Logo
+                      ? (
+                        <Image
+                          src={m10LogoBlue}
+                          alt={'M10'}
+                        />
+                      ) : (
+                        <div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
+                          {publicRuntimeConfig.bankName}
+                        </div>
+                      )}
                   </Link>
                   <div className={styles.navigationItemsWrapper}>
                     {/* nav menu items */}
@@ -160,12 +182,11 @@ GlobalNav.propTypes = {
     name: PropTypes.string,
     email: PropTypes.string,
   }),
-  customer: PropTypes.shape({
-    business_id: PropTypes.number,
-  }),
   jwtUser: PropTypes.shape({
     permissions: PropTypes.arrayOf(PropTypes.string.isRequired),
   }),
+  withM10Logo: PropTypes.bool,
+  navLogoRoute: PropTypes.string,
 }
 
 export default GlobalNav

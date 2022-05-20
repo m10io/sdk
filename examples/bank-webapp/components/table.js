@@ -292,8 +292,8 @@ const Table = ({
   )
 }
 
-const TableWrapper = ({ loadData, ...props }) => {
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
+const TableWrapper = ({ loadData, limit, ...props }) => {
+  const [pageSize, setPageSize] = useState(limit || PAGE_SIZE_OPTIONS[0])
   const updatePageSize = async e => {
     const limit = e.target.value
     await loadData({ limit: Number(limit) })
@@ -346,6 +346,7 @@ Table.propTypes = {
   ]).isRequired,
   isSmallViewport: PropTypes.bool,
   onlyForwardPagination: PropTypes.bool,
+  limit: PropTypes.number,
 }
 
 Table.defaultProps = {

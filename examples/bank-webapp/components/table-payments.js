@@ -87,7 +87,8 @@ const makeColumns = ({ payments, totalCount, tableName, isSmallViewport, noLinkA
     },
     {
       Header: 'Date/Time',
-      Cell: ({ cell: { row: { original: { timestamp } } } }) => moment(timestamp).format('MMM Do YYYY, h:mm:ss a'),
+      // 2022-05-10 19:33:18.419719
+      Cell: ({ cell: { row: { original: { timestamp } } } }) => moment(timestamp, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a'),
     },
     ...(!noLinkArrows ? [
       {
@@ -129,7 +130,7 @@ const SubRowTable = ({
 }) => {
   const transfers = row?.original?.steps || []
   return transfers.map((tx, index) => {
-    const timeFormatted = moment(tx.timestamp).format('MMM Do YYYY, h:mm:ss a')
+    const timeFormatted = moment(tx.timestamp, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
     const metadataType = (Array.isArray(tx.metadata) ? tx.metadata[0] : {})?.metadata_type
     return (
       <tr key={index} className={styles.expandedTxRow}>
@@ -159,10 +160,7 @@ const SubRowTable = ({
 const TablePayments = ({
   payments,
   isLoading,
-  filters,
   loadData,
-  pageIndex,
-  pageSize,
   totalCount,
   tableName,
   nextPageToken,
@@ -174,6 +172,7 @@ const TablePayments = ({
   accountId,
   onlyForwardPagination,
   customBaseUrl,
+  limit,
 }) => {
   const isSmallViewport = windowWidth < 600
   const serverData = React.useMemo(() => payments, [payments])
@@ -185,8 +184,6 @@ const TablePayments = ({
       isLoading={isLoading}
       totalCount={totalCount}
       loadData={loadData}
-      pageIndex={pageIndex}
-      pageSize={pageSize}
       nextPageToken={nextPageToken}
       noPagination={noPagination}
       withAccordion={withAccordion}
@@ -194,6 +191,7 @@ const TablePayments = ({
       isSmallViewport={isSmallViewport}
       renderRowSubComponent={SubRowTable}
       onlyForwardPagination={onlyForwardPagination}
+      limit={limit}
     />
   )
 }

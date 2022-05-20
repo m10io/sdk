@@ -13,7 +13,7 @@ const { publicRuntimeConfig } = getConfig()
 // NOTE: all moment deprecation warnings are due to receiving initial null values
 moment.suppressDeprecationWarnings = true
 
-const InfoRow = ({ title, value }) => (
+export const InfoRow = ({ title, value }) => (
   <div className={styles.infoRow}>
     <div className={styles.topCardTitle}>{title}</div>
     <div className={styles.topCardValue}>{value}</div>
@@ -21,8 +21,7 @@ const InfoRow = ({ title, value }) => (
 )
 
 export const CustomerInfoCard = ({ customer = {} }) => {
-  const updatedAt = moment(customer?.['update-at']).format('MMM Do YYYY, h:mm:ss a')
-  const createdAt = moment(customer?.['created-at']).format('MMM Do YYYY, h:mm:ss a')
+  const createdAt = moment(customer?.created_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
   return (customer?.id ? (
     <Card title={'Customer Info'} iconComponent={<IconUser color={publicRuntimeConfig.bankPrimaryColor} />}>
       <div className={styles.cardColumn}>
@@ -32,7 +31,6 @@ export const CustomerInfoCard = ({ customer = {} }) => {
         {customer['description-of-services'] && (
           <InfoRow title={'Description of Services'} value={customer['description-of-services']} />
         )}
-        <InfoRow title={'Last Updated'} value={updatedAt} />
         <InfoRow title={'Date Created'} value={createdAt} />
         {customer.contact_type && <InfoRow title={'Contact Type'} value={customer.contact_type} />}
       </div>
@@ -42,13 +40,11 @@ export const CustomerInfoCard = ({ customer = {} }) => {
 
 export const UserCard = ({ title, user, isLoaded }) => {
   const phone = user?.['https://m10.net/user_metadata']?.phone || user.phone_number
-  const updatedAt = moment(user?.['update-at']).format('MMM Do YYYY, h:mm:ss a')
   return (
     <Card title={title || 'User Info'} iconComponent={<IconUser color={publicRuntimeConfig.bankPrimaryColor} />}>
       <InfoRow title={'Name'} value={user?.name} />
       <InfoRow title={'Email'} value={user?.email} />
       {phone && <InfoRow title={'Phone'} value={phone} />}
-      <InfoRow title={'Last Updated'} value={updatedAt} />
       {user?.picture && (
         <InfoRow title={'Picture'} value={<img src={user?.picture} />} />
       )}
@@ -59,8 +55,8 @@ export const UserCard = ({ title, user, isLoaded }) => {
 export const AccountCard = ({ account = {} }) => {
   const bank = account?.bank_reference || {}
   const title = account?.id ? `Account - ${account?.id}` : 'Account'
-  const updatedAt = moment(account?.['update-at']).format('MMM Do YYYY, h:mm:ss a')
-  const createdAt = moment(account?.['created-at']).format('MMM Do YYYY, h:mm:ss a')
+  const updatedAt = moment(account?.updated_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
+  const createdAt = moment(account?.created_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
   // TODO: show icons for other account status types
   const statusValue = account?.status === 'Open' ? <StatusIcon type={STATUS_ICON_TYPE_OPEN} /> : account?.status
   return (
@@ -85,7 +81,7 @@ export const PaymentCard = ({ payment, title }) => {
   return (
     <Card title={title || 'Payment'} iconComponent={<IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />}>
       <InfoRow title={'Amount'} value={`${formatMoney(payment?.amount)} ${payment?.senderInstrument}`} />
-      <InfoRow title={'Date/Time'} value={moment(payment?.timestamp).format('MMM Do YYYY, h:mm:ss a')} />
+      <InfoRow title={'Date/Time'} value={moment(payment?.timestamp, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')} />
       {payment?.memo && (
         <InfoRow title={'Memo'} value={payment?.memo} />
       )}

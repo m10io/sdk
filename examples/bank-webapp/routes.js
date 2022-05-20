@@ -22,11 +22,23 @@ const ACCOUNTS_API = '/api/v1/accounts'
 const PAYMENTS_API = '/api/v1/payments'
 const AUTH_API = '/api/v1/auth'
 
+// bursar routes
+// NOTE: Bursar pages are not for demo purposes only and not tied to the primary bank-webapp functionality
+const OFFLINE_PAYMENTS_WALLETS_PAGE = '/offline-payments/wallets'
+const OFFLINE_PAYMENTS_PAYMENTS_PAGE = '/offline-payments/payments'
+const OFFLINE_PAYMENTS_WALLETS_API = '/api/v1/offline-payments/wallets'
+const OFFLINE_PAYMENTS_PAYMENTS_API = '/api/v1/offline-payments/payments'
+
 const UNAUTHENTICATED_ROUTES = [
   BASE_ROUTE,
   ERROR_404_PAGE,
   ERROR_500_PAGE,
   LOGIN_PAGE,
+
+  OFFLINE_PAYMENTS_WALLETS_PAGE,
+  OFFLINE_PAYMENTS_PAYMENTS_PAGE,
+  OFFLINE_PAYMENTS_WALLETS_API,
+  OFFLINE_PAYMENTS_PAYMENTS_API,
 ]
 
 const ADMIN_OWNER_ROUTES = [
@@ -85,4 +97,10 @@ module.exports = {
   BUSINESS_OWNER_ROUTES,
   AUTHENTICATED_ROUTES,
   SHARED_AUTHENTICATED_ROUTES,
+
+  // bursar
+  OFFLINE_PAYMENTS_WALLETS_PAGE,
+  OFFLINE_PAYMENTS_PAYMENTS_PAGE,
+  OFFLINE_PAYMENTS_WALLETS_API,
+  OFFLINE_PAYMENTS_PAYMENTS_API,
 }

@@ -8,42 +8,37 @@ import IconUsers from 'assets/icons/icon-users'
 import IconBookOpen from 'assets/icons/icon-book-open'
 import IconDollarSign from 'icons/icon-dollar-sign'
 import Link from './link'
-import { isAuthorizedAdmin } from 'utils/auth'
 import styles from './styles/sidebar.module.scss'
 import getConfig from 'next/config'
 const { publicRuntimeConfig } = getConfig()
 
-export const createNavItems = ({ jwtUser = {} }) => {
-  if (!jwtUser?.sub) return []
-  const isAdminUser = isAuthorizedAdmin(jwtUser?.['https://m10.net/roles'])
+export const createNavItems = () => {
   return [
-    ...(!isAdminUser ? [{
-      title: 'Welcome',
-      url: routes.WELCOME_PAGE,
+    {
+      title: 'Payments',
+      url: routes.ADMIN_PAYMENTS_PAGE,
+      icon: <IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />,
+    },
+    {
+      title: 'Customers',
+      url: routes.ADMIN_CUSTOMERS_PAGE,
       icon: <IconUsers color={publicRuntimeConfig.bankPrimaryColor} />,
-      // prevent clicking on link to reload page if at path
-      preventLinkIfRoot: true,
-    }] : []),
-    ...(isAdminUser ? [{
-        title: 'Payments',
-        url: routes.ADMIN_PAYMENTS_PAGE,
-        icon: <IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />,
-    }] : []),
-    ...(isAdminUser ? [{
-        title: 'Customers',
-        url: routes.ADMIN_CUSTOMERS_PAGE,
-        icon: <IconUsers color={publicRuntimeConfig.bankPrimaryColor} />,
-    }] : []),
-    ...(isAdminUser ? [{
-        title: 'Accounts',
-        url: routes.ADMIN_ACCOUNTS_PAGE,
-        icon: <IconBookOpen color={publicRuntimeConfig.bankPrimaryColor} />,
-    }] : []),
+  },
+    {
+      title: 'Offline Payments',
+      url: routes.OFFLINE_PAYMENTS_PAYMENTS_PAGE,
+      icon: <IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />,
+  },
+    {
+      title: 'Accounts',
+      url: routes.ADMIN_ACCOUNTS_PAGE,
+      icon: <IconBookOpen color={publicRuntimeConfig.bankPrimaryColor} />,
+    },
   ]
 }
 
 const Sidebar = ({ router, customer, jwtUser, isLoading }) => {
-  const NAV_ITEMS = createNavItems({ jwtUser, isLoading })
+  const NAV_ITEMS = createNavItems()
   const { pathname, asPath } = router
 
   // auto-open submenu if it includes current page route

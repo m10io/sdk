@@ -4,6 +4,10 @@ The M10 (SDK) gives you access to the M10 APIs allowing you to build custom clie
 
 The M10-SDK is documented primary using TypeDoc (use `yarn run docs` to generate them) and examples in the tests.
 
+## Installation & Requirements
+
+Run `yarn install` for a node version >16.
+
 ## Using the SDK
 
 Create an instance of the SDK and pass it the URL of your ledger Directory, specifying TLS:

@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { LedgerClient } from "../src/client";
 
 
-const LEDGER_URL = "develop.m10.net";
+const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
 
 describe("query", () => {
 

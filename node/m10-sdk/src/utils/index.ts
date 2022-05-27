@@ -5,6 +5,8 @@ import type { m10 } from "../../protobufs";
 
 import { isSome } from "./common";
 
+const BEGIN_PRIV_KEY_PREFIX = 8;
+const END_PRIV_KEY_PREFIX = 56;
 
 export function getRPCImpl(
     ledgerUrl: string,
@@ -26,9 +28,19 @@ export function getRPCImplStream(
 ): RPCImpl {
     const Client = grpc.makeGenericClientConstructor({}, serviceName);
     const client = new Client(ledgerUrl, credentials);
+    let stream: grpc.ClientReadableStream<Buffer>;
 
-    return (method, requestData) => {
-        client.makeServerStreamRequest(`/${serviceName}/${method.name}`, arg => Buffer.from(arg), arg => arg, requestData);
+    return (method, requestData, callback) => {
+        if (!isSome(method) || !isSome(requestData)) {
+            client.close();
+            stream?.cancel();
+            return;
+        }
+
+        stream = client.makeServerStreamRequest(`/${serviceName}/${method.name}`, arg => Buffer.from(arg), arg => arg, requestData);
+        stream.on("data", (chunk) => callback(null, chunk));
+        stream.on("error", (error) => callback(error, null));
+        stream.on("close", () => callback(null, null));
     };
 }
 
@@ -57,6 +69,15 @@ export function getPrivateKey(privateKey: string): string {
     const KEY_HEADER = "-----BEGIN PRIVATE KEY-----\n";
     const KEY_FOOTER = "-----END PRIVATE KEY-----\n";
     return `${KEY_HEADER}${privateKey}\n${KEY_FOOTER}`;
+}
+
+/**
+ * Converts a PKCS#8 v2 key to the v1 format with only the PRV and version.
+ */
+export function convertPkcs8V2KeyToV1(pkcs8v2Key: string): string {
+    const key = "MC4CAQAw" + pkcs8v2Key.substr(BEGIN_PRIV_KEY_PREFIX, END_PRIV_KEY_PREFIX);
+
+    return key;
 }
 
 // -------------------------------------------------------------------------

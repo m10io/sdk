@@ -27,5 +27,5 @@
         "out": "docs"
     },
     "include": [ "common.d.ts", "**/*.ts" ],
-    "exclude": [ "node_modules", "out", "tests" ]
+    "exclude": [ "node_modules", "out" ]
 }

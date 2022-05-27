@@ -1,6 +1,6 @@
 {
     "name": "m10-sdk",
-  "version": "0.20.0",
+  "version": "0.20.1",
     "description": "M10 SDK",
     "repository": {
         "type": "git",
@@ -36,14 +36,13 @@
         "statements": 65
     },
     "scripts": {
-        "build": "yarn proto && tsc --build",
+        "build": "yarn proto:ts && tsc --build",
         "prepublish": "yarn build",
         "proto:js": "pbjs -t static-module -w commonjs -o protobufs/index.js '../../protobuf/sdk/**/*.proto' '../../protobuf/directory/api.proto'",
-        "proto:ts": "pbjs -t static-module '../../protobuf/sdk/**/*.proto' '../../protobuf/directory/api.proto' | pbts -o protobufs/index.d.ts -",
-        "proto": "yarn proto:js && yarn proto:ts",
+        "proto:ts": "yarn proto:js && pbts -o protobufs/index.d.ts protobufs/index.js",
         "lint": "npx eslint .",
         "docs": "npx typedoc",
-        "test": "mocha -r ts-node/register 'tests/**/*.test.ts'",
+        "test": "mocha -r ts-node/register 'tests/**/*.test.ts' --require tests/hooks.ts",
         "test:cover": "rm -rf coverage .nyc_output && nyc yarn run test"
     },
     "dependencies": {

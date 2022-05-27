@@ -5,7 +5,7 @@ import { LedgerClient } from "../src/client";
 import { CryptoSigner, getPrivateKey } from "../src/utils";
 
 const BANK_ADMIN = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
-const LEDGER_URL = "develop.m10.net";
+const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
 
 
 describe("query", () => {

@@ -3,8 +3,6 @@ import type { LedgerClient } from "../client";
 import * as collections from "../collections";
 import * as utils from "../utils";
 
-
-
 export async function getBankAdminAccount(
     client: LedgerClient,
     bankAdminSigner: utils.CryptoSigner,
@@ -40,13 +38,21 @@ export async function getBankAdminAccount(
 export async function createLedgerAccount(
     client: LedgerClient,
     signer: utils.CryptoSigner,
-    parentId: string,
+    parentId?: string,
+    instrument?: m10.sdk.transaction.IInstrument,
+    frozen?: boolean,
+    issuance?: boolean,
 ): Promise<string> {
 
-    utils.validate(parentId, "id", utils.isValidAccountId);
+    if (parentId) {
+        utils.validate(parentId, "id", utils.isValidAccountId);
+    }
 
     const createLedgerAccountPayload = new m10.sdk.transaction.CreateLedgerAccount({
-        parentId: utils.getUint8ArrayFromAccountId(parentId),
+        parentId: parentId == undefined ? undefined : utils.getUint8ArrayFromAccountId(parentId),
+        instrument,
+        frozen,
+        issuance,
     });
 
     const transactionData = new m10.sdk.transaction.TransactionData({

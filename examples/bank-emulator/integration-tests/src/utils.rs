@@ -28,7 +28,7 @@ pub(crate) fn public_key() -> String {
 pub async fn admin_jwt() -> String {
     ADMIN_JWT
         .get_or_init(|| async {
-            create_or_get_auth_token("iron-admin@m10test.io", "trust:admin openid").await
+            create_or_get_auth_token("omega-admin@m10test.io", "trust:admin openid").await
         })
         .await
         .clone()
@@ -82,20 +82,20 @@ pub async fn delete_account(client: &reqwest::Client, jwt: &str) {
 
 pub(crate) async fn default_user_jwt() -> String {
     DEFAULT_USER_JWT
-        .get_or_init(|| async { create_or_get_user("iron-default-user@m10test.io").await })
+        .get_or_init(|| async { create_or_get_user("omega-default-user@m10test.io").await })
         .await
         .clone()
 }
 
 pub(crate) async fn prepopulated_user_jwt() -> String {
     PREPOPULATED_USER_JWT
-        .get_or_init(|| async { create_or_get_user("iron-prepopulated-user@m10test.io").await })
+        .get_or_init(|| async { create_or_get_user("omega-prepopulated-user@m10test.io").await })
         .await
         .clone()
 }
 
 pub async fn create_or_get_user(email: &str) -> String {
-    // TODO: Own scope for Iron Bank
+    // TODO: Own scope for omega Bank
     let jwt = create_or_get_auth_token(email, "trust:user openid").await;
     jwt
 }

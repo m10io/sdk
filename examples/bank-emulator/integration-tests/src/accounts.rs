@@ -7,7 +7,7 @@ use super::utils::*;
 
 #[tokio::test]
 async fn accounts_wire_routes() {
-    let jwt = create_or_get_user("iron-user-test-wire@m10test.io").await;
+    let jwt = create_or_get_user("omega-user-test-wire@m10test.io").await;
     let client = reqwest::Client::default();
     delete_contact(&client, &jwt).await;
     delete_account(&client, &jwt).await;
@@ -16,7 +16,7 @@ async fn accounts_wire_routes() {
         tenant: "m10-test".into(),
         contact: serde_json::to_value(json!({
             "name": "default",
-            "email": "iron-user-test-wire@m10test.io",
+            "email": "omega-user-test-wire@m10test.io",
         }))
         .unwrap(),
         contact_type: Some(ContactType::Individual),
@@ -234,7 +234,7 @@ async fn accounts_sandbox_routes() {
 
 #[tokio::test]
 async fn accounts_crud() {
-    let jwt = create_or_get_user("iron-user-with-account@m10test.io").await;
+    let jwt = create_or_get_user("omega-user-with-account@m10test.io").await;
     let client = reqwest::Client::default();
     delete_contact(&client, &jwt).await;
     delete_account(&client, &jwt).await;
@@ -243,7 +243,7 @@ async fn accounts_crud() {
         tenant: "m10-test".into(),
         contact: serde_json::to_value(json!({
             "name": "default",
-            "email": "iron-user-with-account@m10test.io",
+            "email": "omega-user-with-account@m10test.io",
         }))
         .unwrap(),
         contact_type: Some(ContactType::Individual),

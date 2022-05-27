@@ -18,7 +18,7 @@ This adds a generic bank webapp frontend to pair with the generic bank backend
   OXIDE_API_URL=https://develop.m10.net/m10-bank/api/v1/
   BASE_API_URL=https://develop.m10.net/
 
-  BANK_NAME=Iron Bank
+  BANK_NAME=Omega Bank
   BANK_ASSET=USD
   BANK_PRIMARY_COLOR=#4b0908
   ```
@@ -40,8 +40,8 @@ Additionally, we have included user-specific metadata, such as `name` and `phone
 
 Finally, Auth0 allows creating Roles in order to subdivide permissions for authenticated users. In order to view the admin pages of this webapp, one of the following roles are required:
 
-- `iron-admin`
-- `iron-test-admin`
+- `omega-admin`
+- `omega-test-admin`
 
 The aforementioned user object includes a `https://m10.net/roles` field that includes user roles in string format. The implementation of this can be found in `utils/auth`.
 

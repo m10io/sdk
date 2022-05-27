@@ -35,7 +35,7 @@ VALUES
 INSERT INTO public.contacts
     (user_id, account_id, contact_data, rbac_role, account_set, tenant)
 VALUES
-    ('auth0|6227946b65653d0068e10403', 19, '{"name": "prepop", "email": "iron-prepopulated-user@m10test.io"}', '7e1c8a82-3aed-44a3-83bc-5a7a487299aa', '864683c2-a3d1-4384-907e-f59802e451cf', 'm10-test');
+    ('auth0|6227946b65653d0068e10403', 19, '{"name": "prepop", "email": "omega-prepopulated-user@m10test.io"}', '7e1c8a82-3aed-44a3-83bc-5a7a487299aa', '864683c2-a3d1-4384-907e-f59802e451cf', 'm10-test');
 
 INSERT INTO public.assets
     (ledger_account_id, instrument, linked_account, tenant)

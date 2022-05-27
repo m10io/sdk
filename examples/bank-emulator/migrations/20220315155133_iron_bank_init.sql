@@ -10,5 +10,7 @@ VALUES
 
 -- Create Holding accounts
 SELECT public.open_account(100000000, 'holding-usd', 'USD', 1000000000);
+SELECT public.open_account(100000000, 'holding-gbp', 'GBP', 1000000000);
 SELECT public.open_account(100000000, 'holding-cad', 'CAD', 1000000000);
+SELECT public.open_account(100000000, 'holding-sar', 'SAR', 1000000000);
 SELECT public.open_account(100000000, 'holding-eur', 'EUR', 1000000000);

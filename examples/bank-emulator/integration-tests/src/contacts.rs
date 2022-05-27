@@ -177,7 +177,7 @@ async fn unimplemented_contacts_sandbox_routes() {
 
 #[tokio::test]
 async fn contacts_sandbox_routes() {
-    let jwt = create_or_get_user("iron-sandbox-user@m10test.io").await;
+    let jwt = create_or_get_user("omega-sandbox-user@m10test.io").await;
     let client = reqwest::Client::default();
     delete_contact(&client, &jwt).await;
 
@@ -185,7 +185,7 @@ async fn contacts_sandbox_routes() {
         tenant: "m10-test".into(),
         contact_data: serde_json::to_value(json!({
             "name": "default",
-            "email": "iron-sandbox-user@m10test.io",
+            "email": "omega-sandbox-user@m10test.io",
         }))
         .unwrap(),
         contact_type: Some(ContactType::Individual),
@@ -276,7 +276,7 @@ async fn contacts_crud() {
         tenant: "m10-test".into(),
         contact_data: serde_json::to_value(json!({
             "name": "default",
-            "email": "iron-default-user@m10test.io",
+            "email": "omega-default-user@m10test.io",
         }))
         .unwrap(),
         contact_type: Some(ContactType::Individual),

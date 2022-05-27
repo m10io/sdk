@@ -20,14 +20,26 @@ export class LedgerClient {
 
     private txClient: m10.sdk.M10TxService;
     private queryClient: m10.sdk.M10QueryService;
-    private queryClientStream: m10.sdk.M10QueryService;
 
-    public constructor(ledger_url: string, tls: boolean) {
-        const credentials = tls ? grpc.credentials.createSsl() : grpc.credentials.createInsecure();
+    private ledgerUrl: string;
+    private credentials: grpc.ChannelCredentials;
 
-        this.txClient = m10.sdk.M10TxService.create(utils.getRPCImpl(ledger_url, credentials, "m10.sdk.M10TxService"));
-        this.queryClient = m10.sdk.M10QueryService.create(utils.getRPCImpl(ledger_url, credentials, "m10.sdk.M10QueryService"));
-        this.queryClientStream = m10.sdk.M10QueryService.create(utils.getRPCImplStream(ledger_url, credentials, "m10.sdk.M10QueryService"));
+    public constructor(ledgerUrl: string, tls: boolean) {
+        this.ledgerUrl = ledgerUrl;
+        this.credentials = tls ? grpc.credentials.createSsl() : grpc.credentials.createInsecure();
+
+        this.txClient = m10.sdk.M10TxService.create(
+            utils.getRPCImpl(this.ledgerUrl, this.credentials, "m10.sdk.M10TxService"),
+        );
+        this.queryClient = m10.sdk.M10QueryService.create(
+            utils.getRPCImpl(this.ledgerUrl, this.credentials, "m10.sdk.M10QueryService"),
+        );
+    }
+
+    private getQueryServiceStream(): m10.sdk.M10QueryService {
+        return m10.sdk.M10QueryService.create(
+            utils.getRPCImplStream(this.ledgerUrl, this.credentials, "m10.sdk.M10QueryService"),
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -314,59 +326,71 @@ export class LedgerClient {
     }
 
     // -------------------------------------------------------------------------
-    // Observations
+    // Observations (can be improved after https://github.com/protobufjs/protobuf.js/pull/1115 is merged)
     // -------------------------------------------------------------------------
 
-    public async getObserveTransfers(
+    public getObserveTransfers(
         signer: utils.CryptoSigner,
         properties: m10.sdk.IObserveAccountsRequest,
-    ): Promise<m10.sdk.IFinalizedTransactions> {
+    ): [ m10.sdk.M10QueryService, () => void ] {
 
         const request = new m10.sdk.ObserveAccountsRequest(properties);
         const payload = m10.sdk.ObserveAccountsRequest.encode(request).finish();
 
         const envelope = new m10.sdk.RequestEnvelope({ payload, signature: signer.getSignature(payload) });
 
-        return this.queryClientStream.observeTransfers(envelope);
+        const service = this.getQueryServiceStream();
+        const startObserver = (): void => { service.observeTransfers(envelope); };
+
+        return [ service, startObserver ];
     }
 
-    public async getObserveResources(
+    public getObserveResources(
         signer: utils.CryptoSigner,
         properties: m10.sdk.IObserveResourcesRequest,
-    ): Promise<m10.sdk.IFinalizedTransactions> {
+    ): [ m10.sdk.M10QueryService, () => void ] {
 
         const request = new m10.sdk.ObserveResourcesRequest(properties);
         const payload = m10.sdk.ObserveResourcesRequest.encode(request).finish();
 
         const envelope = new m10.sdk.RequestEnvelope({ payload, signature: signer.getSignature(payload) });
 
-        return this.queryClientStream.observeResources(envelope);
+        const service = this.getQueryServiceStream();
+        const startObserver = (): void => { service.observeResources(envelope); };
+
+        return [ service, startObserver ];
     }
 
-    public async getObserveAccounts(
+    public getObserveAccounts(
         signer: utils.CryptoSigner,
         properties: m10.sdk.IObserveAccountsRequest,
-    ): Promise<m10.sdk.IFinalizedTransactions> {
+    ): [ m10.sdk.M10QueryService, () => void ] {
 
         const request = new m10.sdk.ObserveAccountsRequest(properties);
         const payload = m10.sdk.ObserveAccountsRequest.encode(request).finish();
 
         const envelope = new m10.sdk.RequestEnvelope({ payload, signature: signer.getSignature(payload) });
 
-        return this.queryClientStream.observeAccounts(envelope);
+        const service = this.getQueryServiceStream();
+        const startObserver = (): void => { service.observeAccounts(envelope); };
+
+        return [ service, startObserver ];
     }
 
-    public async getObserveActions(
+    public getObserveActions(
         signer: utils.CryptoSigner,
         properties: m10.sdk.IObserveActionsRequest,
-    ): Promise<m10.sdk.IFinalizedTransactions> {
+    ): [ m10.sdk.M10QueryService, () => void ] {
 
         const request = new m10.sdk.ObserveActionsRequest(properties);
         const payload = m10.sdk.ObserveActionsRequest.encode(request).finish();
 
         const envelope = new m10.sdk.RequestEnvelope({ payload, signature: signer.getSignature(payload) });
 
-        return this.queryClientStream.observeActions(envelope);
+        const service = this.getQueryServiceStream();
+        const startObserver = (): void => { service.observeActions(envelope); };
+
+        return [ service, startObserver ];
     }
 
     // -------------------------------------------------------------------------

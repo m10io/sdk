@@ -23,7 +23,7 @@ Setup signer based on the key:
 
 ```typescript
 const bankAdmin = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
-const bankAdminSigner = new sdk.signer.CryptoSigner(getPrivateKey(bankAdmin));
+const bankAdminSigner = sdk.signer.CryptoSigner.getSignerFromPkcs8V1(bankAdmin);
 ```
 
 Make a request:

@@ -5,9 +5,6 @@ import type { m10 } from "../../protobufs";
 
 import { isSome } from "./common";
 
-const BEGIN_PRIV_KEY_PREFIX = 8;
-const END_PRIV_KEY_PREFIX = 56;
-
 export function getRPCImpl(
     ledgerUrl: string,
     credentials: grpc.ChannelCredentials,
@@ -63,21 +60,6 @@ export function checkTransactionResponse(response: m10.sdk.transaction.ITransact
     if (isSome(response.error)) {
         throw new Error(`TransactionError: ${response.error.message}`);
     }
-}
-
-export function getPrivateKey(privateKey: string): string {
-    const KEY_HEADER = "-----BEGIN PRIVATE KEY-----\n";
-    const KEY_FOOTER = "-----END PRIVATE KEY-----\n";
-    return `${KEY_HEADER}${privateKey}\n${KEY_FOOTER}`;
-}
-
-/**
- * Converts a PKCS#8 v2 key to the v1 format with only the PRV and version.
- */
-export function convertPkcs8V2KeyToV1(pkcs8v2Key: string): string {
-    const key = "MC4CAQAw" + pkcs8v2Key.substr(BEGIN_PRIV_KEY_PREFIX, END_PRIV_KEY_PREFIX);
-
-    return key;
 }
 
 // -------------------------------------------------------------------------

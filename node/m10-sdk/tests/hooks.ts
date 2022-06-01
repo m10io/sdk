@@ -4,7 +4,7 @@ import type { Context } from "mocha";
 import { LedgerClient } from "../src/client";
 import { accounts, createUser, roleBindings } from "../src/helpers";
 import type { AccountId } from "../src/utils";
-import { CryptoSigner, getPrivateKey } from "../src/utils";
+import { CryptoSigner } from "../src/utils";
 
 
 export type InjectableContext = Readonly<{ context?: TestSuiteContext }>;
@@ -29,7 +29,7 @@ export const mochaHooks = (): Mocha.RootHookObject => {
         beforeAll: async function(this: TestContext) {
             this.timeout(INCREASED_TEST_TIMEOUT);
 
-            const BANK_ADMIN_KEY = getPrivateKey("MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK");
+            const BANK_ADMIN_KEY = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
             const BANK_NAME = "NodeTB TTT";
             const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
 
@@ -39,7 +39,7 @@ export const mochaHooks = (): Mocha.RootHookObject => {
 
             const ledgerClient = new LedgerClient(LEDGER_URL, true);
 
-            const bankAdminSigner = new CryptoSigner(BANK_ADMIN_KEY);
+            const bankAdminSigner = CryptoSigner.getSignerFromPkcs8V1(BANK_ADMIN_KEY);
             const parentAccountId = await accounts.getBankAdminAccount(ledgerClient, bankAdminSigner, BANK_NAME);
 
             // -------------------------------------------------------------------------

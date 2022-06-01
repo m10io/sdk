@@ -5,7 +5,6 @@ import type { LedgerClient } from "../client";
 import { checkTransactionResponse, CryptoSigner, getUint8ArrayFromDocumentId } from "../utils";
 import { collections } from "..";
 
-
 // -----------------------------------------------------------------------------
 // User
 // -----------------------------------------------------------------------------
@@ -40,3 +39,4 @@ export async function createUser(client: LedgerClient): Promise<[ CryptoSigner, 
 
 export * as roleBindings from "./role-bindings";
 export * as accounts from "./accounts";
+export * as transfers from "./transfers";

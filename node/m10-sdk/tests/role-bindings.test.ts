@@ -2,7 +2,7 @@ import { assert } from "chai";
 
 import type { m10 } from "../protobufs";
 import { LedgerClient } from "../src/client";
-import { CryptoSigner, getPrivateKey } from "../src/utils";
+import { CryptoSigner } from "../src/utils";
 
 const BANK_ADMIN = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
 const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
@@ -14,7 +14,7 @@ describe("query", () => {
 
         it("listRoleBindings", async () => {
 
-            const bankAdminSigner = new CryptoSigner(getPrivateKey(BANK_ADMIN));
+            const bankAdminSigner = CryptoSigner.getSignerFromPkcs8V1(BANK_ADMIN);
             const ledgerClient = new LedgerClient(LEDGER_URL, true);
 
             const request: m10.sdk.IListRoleBindingsRequest = {

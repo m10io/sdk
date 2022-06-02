@@ -1,6 +1,6 @@
 {
     "name": "m10-sdk",
-  "version": "0.20.4",
+  "version": "0.20.5",
     "description": "M10 SDK",
     "repository": {
         "type": "git",
@@ -37,7 +37,8 @@
     },
     "scripts": {
         "build": "yarn proto:ts && tsc --build tsconfig.build.json",
-        "prepublish": "rm -rf out && yarn build",
+        "purge": "rm -rf out node_modules",
+        "prepublishOnly": "yarn purge && yarn install && yarn build",
         "proto:js": "pbjs -t static-module -w commonjs -o protobufs/index.js '../../protobuf/sdk/**/*.proto' '../../protobuf/directory/api.proto'",
         "proto:ts": "yarn proto:js && pbts -o protobufs/index.d.ts protobufs/index.js",
         "lint": "npx eslint .",

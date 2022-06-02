@@ -1,6 +1,6 @@
 [package]
 name = "m10-protos"
-version = "0.20.3"
+version = "0.20.4"
 authors = ["Sascha Wise <sascha@m10.io>"]
 edition = "2021"
 description = "M10 Protocol Buffers"

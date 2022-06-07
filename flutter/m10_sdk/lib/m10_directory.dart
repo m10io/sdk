@@ -32,7 +32,6 @@ class M10Directory {
     required String accountSetId,
     required Alias_Type aliasType,
     required String operator,
-    required String instrument,
   }) async {
     final request = Alias(
       handle: handle,
@@ -40,7 +39,6 @@ class M10Directory {
       accountSetId: Uuid.parse(accountSetId),
       aliasType: aliasType,
       operator: operator,
-      code: instrument,
     );
     await _client.createAlias(request, options: await options);
   }

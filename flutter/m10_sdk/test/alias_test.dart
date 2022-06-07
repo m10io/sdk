@@ -15,20 +15,19 @@ void main() {
           displayName: '',
           accountSetId: aliceId,
           aliasType: Alias_Type.HANDLE,
-          operator: operator,
-          instrument: instrument);
+          operator: operator);
     });
 
     test('it should resolve an alias', () async {
       final accountId = await bob.createAccount(
         parentId: parentAccountId,
         name: "Spending Account",
-        instrument: instrument,
+        operator: operator,
       );
-      final ledgerId = "$instrument.m10";
+      final ledgerId = "m10";
       final accountRef = AccountRefDoc.fromIds(ledgerId, accountId);
       await bob.updateUser(
-          userId: bobId, instrument: instrument, accounts: [accountRef.model]);
+          userId: bobId, operator: operator, accounts: [accountRef.model]);
 
       final handle = randomAlpha(10);
 
@@ -37,15 +36,14 @@ void main() {
           displayName: '',
           accountSetId: bobId,
           aliasType: Alias_Type.HANDLE,
-          operator: operator,
-          instrument: instrument);
+          operator: operator);
 
       final alias = await directory.getAlias(handle);
       expect(alias?.accountSetId, bobId);
 
       final resolvedAccounts = await alice.getUser(
         userId: bobId,
-        instrument: instrument,
+        operator: operator,
       );
       expect(resolvedAccounts.accounts.contains(accountRef), true);
     });

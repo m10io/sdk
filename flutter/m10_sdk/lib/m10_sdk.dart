@@ -47,11 +47,11 @@ class M10Sdk {
 
   final Map<String, ServiceClient> serviceClients = {};
 
-  ClientChannel getChannel(String ledgerId) {
+  ClientChannel getChannel(String operator) {
     final ledger = _ledgers.firstWhere(
-      (it) => it.id.toLowerCase() == ledgerId.toLowerCase(),
+      (it) => it.id.toLowerCase() == operator.toLowerCase(),
       orElse: () => throw ArgumentError(
-        'No ledger matching ID $ledgerId\n'
+        'No ledger matching ID $operator\n'
         'Ledgers: ${_ledgers.map((it) => it.asMap())}',
       ),
     );
@@ -61,16 +61,12 @@ class M10Sdk {
     );
   }
 
-  ServiceClient getServiceClient(String ledgerId) {
+  ServiceClient getServiceClient(String operator) {
     return serviceClients.putIfAbsent(
-      ledgerId,
-      () => ServiceClient(getChannel(ledgerId)),
+      operator,
+      () => ServiceClient(getChannel(operator)),
     );
   }
-
-  String getLedgerId(String instrumentCode) => _ledgers.findId(
-        instrument: instrumentCode,
-      );
 
   Future<RequestEnvelope> requestEnvelope({
     required GeneratedMessage request,
@@ -88,7 +84,7 @@ class M10Sdk {
   }
 
   Future<String> createUser({
-    required String instrument,
+    required String operator,
     String? contextId,
     String? id,
   }) async {
@@ -101,7 +97,7 @@ class M10Sdk {
     user.owner = await signer.publicKey();
 
     final request = user.createRequest();
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -111,19 +107,17 @@ class M10Sdk {
 
   Future<AccountSetDoc> getUser({
     required String userId,
-    required String instrument,
+    required String operator,
   }) async {
     final request = GetAccountSetRequest(id: Uuid.parse(userId));
     final envelop = await requestEnvelope(request: request);
-    final user = await getServiceClient(getLedgerId(instrument))
-        .query
-        .getAccountSet(envelop);
-    return AccountSetDoc(user, instrument);
+    final user = await getServiceClient(operator).query.getAccountSet(envelop);
+    return AccountSetDoc(user);
   }
 
   Future<String> updateUser({
     required String userId,
-    required String instrument,
+    required String operator,
     String? defaultCurrency,
     String? contextId,
     List<AccountRef> accounts = const [],
@@ -137,7 +131,7 @@ class M10Sdk {
       builder.accounts(accounts);
     }
     final request = AccountSetExt.updateRequest(builder);
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -147,12 +141,12 @@ class M10Sdk {
 
   Future<String> deleteUser({
     required String userId,
-    required String instrument,
+    required String operator,
     String? contextId,
   }) async {
     final request = AccountSetExt.deleteRequest(Uuid.parse(userId));
 
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -162,7 +156,7 @@ class M10Sdk {
 
   Future<String> createAccount({
     required String parentId,
-    required String instrument,
+    required String operator,
     String? name,
     String? publicName,
     String? owner,
@@ -173,7 +167,7 @@ class M10Sdk {
 
     final accountId = await createLedgerAccount(
       parentId: parentId,
-      instrument: instrument,
+      operator: operator,
     );
 
     Account account = Account();
@@ -193,7 +187,7 @@ class M10Sdk {
     }
 
     final request = account.createRequest();
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -204,35 +198,31 @@ class M10Sdk {
 
   Future<AccountDoc> getAccount({
     required String id,
-    required String instrument,
+    required String operator,
   }) async {
     final request = GetAccountRequest();
     request.id = hex.decode(id);
     final envelop = await requestEnvelope(request: request);
-    final account = await getServiceClient(getLedgerId(instrument))
-        .query
-        .getAccount(envelop);
+    final account = await getServiceClient(operator).query.getAccount(envelop);
     final indexedAccount =
-        await _getLedgerAccount(accountId: id, instrument: instrument);
+        await _getLedgerAccount(accountId: id, operator: operator);
 
     return AccountDoc.fromModel(account, indexedAccount);
   }
 
   Future<AccountInfo> getAccountInfo({
     required String id,
-    required String instrument,
+    required String operator,
   }) async {
     final request = GetAccountRequest();
     request.id = hex.decode(id);
     final envelop = await requestEnvelope(request: request);
-    return await getServiceClient(getLedgerId(instrument))
-        .query
-        .getAccountInfo(envelop);
+    return await getServiceClient(operator).query.getAccountInfo(envelop);
   }
 
   Future<AccountInfo> getAccountInfoCached({
     required String id,
-    required String instrument,
+    required String operator,
   }) async {
     if (_accountInfoCache.containsKey(id)) {
       return Future.value(_accountInfoCache[id]);
@@ -240,7 +230,7 @@ class M10Sdk {
 
     late AccountInfo accountInfo;
     try {
-      accountInfo = await getAccountInfo(id: id, instrument: instrument);
+      accountInfo = await getAccountInfo(id: id, operator: operator);
     } catch (e) {
       // The account does not exist or we can't resolve it currently
       accountInfo =
@@ -253,22 +243,21 @@ class M10Sdk {
 
   Future<List<AccountDoc>> findAccountByOwner({
     required String owner,
-    required String instrument,
+    required String operator,
   }) async {
     final request = ListAccountsRequest();
     request.owner = base64Decode(owner);
 
     final envelop = await requestEnvelope(request: request);
-    final documents = await getServiceClient(getLedgerId(instrument))
-        .query
-        .listAccounts(envelop);
+    final documents =
+        await getServiceClient(operator).query.listAccounts(envelop);
 
     return documents.accounts.map((account) => AccountDoc(account)).toList();
   }
 
   Future<int> updateAccount({
     required String id,
-    required String instrument,
+    required String operator,
     String? name,
     String? publicName,
     String? profileImageUrl,
@@ -286,7 +275,7 @@ class M10Sdk {
       builder.profileImageUrl(profileImageUrl);
     }
     final request = AccountExt.updateRequest(builder);
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -299,22 +288,21 @@ class M10Sdk {
 
   Future<RoleBindingDoc> getRoleBinding({
     required String name,
-    required String instrument,
+    required String operator,
   }) async {
     final request = ListRoleBindingsRequest();
     request.name = name;
 
     final envelop = await requestEnvelope(request: request);
-    final bindings = await getServiceClient(getLedgerId(instrument))
-        .query
-        .listRoleBindings(envelop);
+    final bindings =
+        await getServiceClient(operator).query.listRoleBindings(envelop);
 
     return RoleBindingDoc(bindings.roleBindings.first);
   }
 
   Future updateRoleBinding({
     required String id,
-    required String instrument,
+    required String operator,
     List<String>? subjects,
     String? contextId,
   }) async {
@@ -326,7 +314,7 @@ class M10Sdk {
     }
 
     final request = RoleBindingExt.updateRequest(builder);
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -336,7 +324,7 @@ class M10Sdk {
 
   Future<TransactionResponseDoc> transfer({
     required List<TransferStepDoc> steps,
-    required String instrument,
+    required String operator,
     String? contextId,
     bool commit = true,
   }) async {
@@ -347,7 +335,7 @@ class M10Sdk {
         ? TransactionRequestPayload(data: TransactionData(transfer: transfer))
         : TransactionRequestPayload(
             data: TransactionData(initiateTransfer: transfer));
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -361,7 +349,7 @@ class M10Sdk {
     required String fromAccountId,
     required String toAccountId,
     required int amount,
-    required String instrument,
+    required String operator,
     String memo = "",
     List<Attachment> attachments = const [],
     Contract? contract,
@@ -382,49 +370,48 @@ class M10Sdk {
           toAccountId: toAccountId,
           amount: amount,
           metadata: metadata)
-    ], instrument: instrument, contextId: contextId);
+    ], operator: operator, contextId: contextId);
   }
 
   Future<TransferDoc> getTransfer({
     required int txId,
-    required String instrument,
+    required String operator,
   }) async {
     final request = GetTransferRequest()..txId = Int64(txId);
     final envelop = await requestEnvelope(request: request);
-    final transfer = await getServiceClient(getLedgerId(instrument))
-        .query
-        .getTransfer(envelop);
-    return TransferDoc(transfer, instrument);
+    final transfer =
+        await getServiceClient(operator).query.getTransfer(envelop);
+    return TransferDoc(transfer, operator);
   }
 
   Future<List<EnhancedTransferStepDoc>> enhance(TransferDoc transfer) async {
     return await Stream.fromIterable(transfer.model.transferSteps)
-        .asyncMap((step) => enhanceTransferStep(transfer.instrument, step))
+        .asyncMap((step) => enhanceTransferStep(transfer.operator, step))
         .toList();
   }
 
   Future<EnhancedTransferStepDoc> enhanceTransferStep(
-    String instrument,
+    String operator,
     TransferStep step,
   ) async {
     AccountInfo from = await getAccountInfoCached(
-        id: hex.encode(step.fromAccountId), instrument: instrument);
+        id: hex.encode(step.fromAccountId), operator: operator);
     AccountInfo? fromBank = from.parentAccountId.isNotEmpty
         ? await getAccountInfoCached(
-            id: hex.encode(from.parentAccountId), instrument: instrument)
+            id: hex.encode(from.parentAccountId), operator: operator)
         : null;
     AccountInfo to = await getAccountInfoCached(
-        id: hex.encode(step.toAccountId), instrument: instrument);
+        id: hex.encode(step.toAccountId), operator: operator);
     AccountInfo? toBank = to.parentAccountId.isNotEmpty
         ? await getAccountInfoCached(
-            id: hex.encode(to.parentAccountId), instrument: instrument)
+            id: hex.encode(to.parentAccountId), operator: operator)
         : null;
     return EnhancedTransferStepDoc(
         step: step, from: from, to: to, fromBank: fromBank, toBank: toBank);
   }
 
   Future<List<TransferDoc>> listTransfers({
-    required String instrument,
+    required String operator,
     String? accountId,
     String? contextId,
     int minTxId = 0,
@@ -450,17 +437,15 @@ class M10Sdk {
 
     final envelop = await requestEnvelope(request: request);
     FinalizedTransfers response =
-        await getServiceClient(getLedgerId(instrument))
-            .query
-            .listTransfers(envelop);
+        await getServiceClient(operator).query.listTransfers(envelop);
     return response.transfers
-        .map((transfer) => TransferDoc(transfer, instrument))
+        .map((transfer) => TransferDoc(transfer, operator))
         .toList();
   }
 
   // Context
   Future<List<TransactionDoc>> listTransactions({
-    required String instrument,
+    required String operator,
     required String contextId,
     int minTxId = 0,
     int maxTxId = 0,
@@ -474,14 +459,12 @@ class M10Sdk {
 
     final envelop = await requestEnvelope(request: request);
     FinalizedTransactions response =
-        await getServiceClient(getLedgerId(instrument))
-            .query
-            .listTransactions(envelop);
+        await getServiceClient(operator).query.listTransactions(envelop);
     return response.transactions.map((tx) => TransactionDoc(tx)).toList();
   }
 
   Future<List<List<TransactionDoc>>> groupTransactions({
-    required String instrument,
+    required String operator,
     required String accountId,
     int minTxId = 0,
     int maxTxId = 0,
@@ -495,9 +478,7 @@ class M10Sdk {
 
     final envelop = await requestEnvelope(request: request);
     GroupedFinalizedTransactions response =
-        await getServiceClient(getLedgerId(instrument))
-            .query
-            .groupTransactions(envelop);
+        await getServiceClient(operator).query.groupTransactions(envelop);
     return response.groups
         .map((group) =>
             group.transactions.map((tx) => TransactionDoc(tx)).toList())
@@ -506,7 +487,7 @@ class M10Sdk {
 
   // Actions
   Future<TransactionResponseDoc> invokeAction({
-    required String instrument,
+    required String operator,
     required String name,
     required String fromAccountId,
     required String targetAccountId,
@@ -521,7 +502,7 @@ class M10Sdk {
 
     final request =
         TransactionRequestPayload(data: TransactionData(invokeAction: action));
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -532,19 +513,17 @@ class M10Sdk {
 
   Future<ActionDoc> getAction({
     required int txId,
-    required String instrument,
+    required String operator,
   }) async {
     final request = GetActionRequest(txId: Int64(txId));
     final envelop = await requestEnvelope(request: request);
-    final action = await getServiceClient(getLedgerId(instrument))
-        .query
-        .getAction(envelop);
+    final action = await getServiceClient(operator).query.getAction(envelop);
 
     return ActionDoc(action);
   }
 
   Future<List<ActionDoc>> listActions({
-    required String instrument,
+    required String operator,
     required String name,
     required String accountId,
     int minTxId = 0,
@@ -559,9 +538,8 @@ class M10Sdk {
         limit: Int64(limit));
 
     final envelop = await requestEnvelope(request: request);
-    final response = await getServiceClient(getLedgerId(instrument))
-        .query
-        .listActions(envelop);
+    final response =
+        await getServiceClient(operator).query.listActions(envelop);
 
     return response.actions.map((tx) => ActionDoc(tx)).toList();
   }
@@ -569,7 +547,7 @@ class M10Sdk {
   // Accounts
   Future<String> createLedgerAccount({
     required String parentId,
-    required String instrument,
+    required String operator,
     String? contextId,
   }) async {
     CreateLedgerAccount account = CreateLedgerAccount();
@@ -577,7 +555,7 @@ class M10Sdk {
 
     final request = TransactionRequestPayload(
         data: TransactionData(createLedgerAccount: account));
-    final client = getServiceClient(getLedgerId(instrument));
+    final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null);
@@ -587,19 +565,18 @@ class M10Sdk {
 
   Future<IndexedAccount> _getLedgerAccount({
     required String accountId,
-    required String instrument,
+    required String operator,
   }) async {
     GetAccountRequest request = GetAccountRequest();
     request.id = hex.decode(accountId);
     final envelop = await requestEnvelope(request: request);
-    final response = await getServiceClient(getLedgerId(instrument))
-        .query
-        .getIndexedAccount(envelop);
+    final response =
+        await getServiceClient(operator).query.getIndexedAccount(envelop);
     return response;
   }
 
   Future<Stream<List<TransferResultDoc>>> observeTransfers({
-    required String instrument,
+    required String operator,
     required List<String> accounts,
     Int64? startingFrom,
   }) async {
@@ -611,16 +588,15 @@ class M10Sdk {
     }
 
     final envelop = await requestEnvelope(request: request);
-    final stream = await getServiceClient(getLedgerId(instrument))
-        .query
-        .observeTransfers(envelop);
+    final stream =
+        await getServiceClient(operator).query.observeTransfers(envelop);
     return stream.map((transactions) => transactions.transactions
         .map((result) => TransferResultDoc.fromModel(result))
         .toList());
   }
 
   Future<Stream<List<ActionDoc>>> observeActions({
-    required String instrument,
+    required String operator,
     required String name,
     required List<String> accounts,
     Int64? startingFrom,
@@ -634,9 +610,8 @@ class M10Sdk {
     }
 
     final envelop = await requestEnvelope(request: request);
-    final stream = await getServiceClient(getLedgerId(instrument))
-        .query
-        .observeActions(envelop);
+    final stream =
+        await getServiceClient(operator).query.observeActions(envelop);
     return stream.map((transactions) => transactions.transactions.map((tx) {
           final action = tx.request.data.invokeAction;
           return ActionDoc(Action(
@@ -650,7 +625,7 @@ class M10Sdk {
   }
 
   Future<Stream<List<ResourceResultDoc>>> observeResources({
-    required String instrument,
+    required String operator,
     required String expression,
     required String collection,
     Map<String, Value> variables = const {},
@@ -667,9 +642,8 @@ class M10Sdk {
     }
 
     final envelop = await requestEnvelope(request: request);
-    final stream = await getServiceClient(getLedgerId(instrument))
-        .query
-        .observeResources(envelop);
+    final stream =
+        await getServiceClient(operator).query.observeResources(envelop);
     return stream.map((transactions) => transactions.transactions
         .map((result) => ResourceResultDoc.fromModel(result))
         .toList());
@@ -683,13 +657,13 @@ class M10Sdk {
   /// A helper function that updates the ledger-account status
   Future<void> updateAccountStatus({
     required String id,
-    required String instrument,
+    required String operator,
     required bool frozen,
     String? contextId,
   }) async {
     final account = await _getLedgerAccount(
       accountId: id,
-      instrument: instrument,
+      operator: operator,
     );
 
     SetFreezeState freezeState = SetFreezeState();
@@ -702,7 +676,7 @@ class M10Sdk {
       final envelop = await requestEnvelope(
           request: request,
           contextId: contextId != null ? hex.decode(contextId) : null);
-      final client = getServiceClient(getLedgerId(instrument));
+      final client = getServiceClient(operator);
       await client.tx.createTransaction(envelop);
     }
   }
@@ -723,12 +697,12 @@ extension M10Actions on M10Sdk {
   static const requestActionName = "m10.Request";
 
   Future<TransactionResponseDoc> request({
-    required String instrument,
+    required String operator,
     required CreateTransfer transferRequest,
     String? contextId,
   }) async {
     return await invokeAction(
-      instrument: instrument,
+      operator: operator,
       name: requestActionName,
       fromAccountId: hex.encode(transferRequest.transferSteps[0].toAccountId),
       targetAccountId:
@@ -742,13 +716,13 @@ extension M10Actions on M10Sdk {
   }
 
   Future<TransactionResponseDoc> cancel({
-    required String instrument,
+    required String operator,
     required String fromAccountId,
     required String targetAccountId,
     required String contextId,
   }) async {
     return await invokeAction(
-      instrument: instrument,
+      operator: operator,
       name: requestActionName,
       fromAccountId: fromAccountId,
       targetAccountId: targetAccountId,
@@ -760,13 +734,13 @@ extension M10Actions on M10Sdk {
   }
 
   Future<TransactionResponseDoc> decline({
-    required String instrument,
+    required String operator,
     required String fromAccountId,
     required String targetAccountId,
     required String contextId,
   }) async {
     return await invokeAction(
-      instrument: instrument,
+      operator: operator,
       name: requestActionName,
       fromAccountId: fromAccountId,
       targetAccountId: targetAccountId,
@@ -778,7 +752,7 @@ extension M10Actions on M10Sdk {
   }
 
   Future<List<PaymentRequestDoc>> listRequests({
-    required String instrument,
+    required String operator,
     required String accountId,
     int minTxId = 0,
     int maxTxId = 0,
@@ -790,7 +764,7 @@ extension M10Actions on M10Sdk {
 
     do {
       List<List<TransactionDoc>> txGroups = await groupTransactions(
-          instrument: instrument,
+          operator: operator,
           accountId: accountId,
           minTxId: minTxId,
           maxTxId: maxRequestTxId,
@@ -817,9 +791,9 @@ extension M10Actions on M10Sdk {
       // Augment the account info fields
       final requestDocs = requests.map((request) async {
         request.fromAccount = await getAccountInfoCached(
-            id: request.fromAccountId, instrument: instrument);
+            id: request.fromAccountId, operator: operator);
         request.toAccount = await getAccountInfoCached(
-            id: request.toAccountId, instrument: instrument);
+            id: request.toAccountId, operator: operator);
         return request;
       });
 

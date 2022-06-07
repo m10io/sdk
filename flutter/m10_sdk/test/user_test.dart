@@ -24,7 +24,7 @@ void main() {
     test('it should get an existing user', () async {
       await userSdk.getUser(
         userId: userId,
-        instrument: instrument,
+        operator: operator,
       );
     }, skip: false);
 
@@ -32,14 +32,14 @@ void main() {
       await userSdk.updateUser(
         userId: userId,
         accounts: ["ttt.m10/05800002000000003d00000000000003".parse()],
-        instrument: instrument,
+        operator: operator,
       );
 
       sleep(Duration(milliseconds: 200));
 
       final AccountSetDoc alice = await userSdk.getUser(
         userId: userId,
-        instrument: instrument,
+        operator: operator,
       );
 
       final found = alice.accounts.any(
@@ -51,7 +51,7 @@ void main() {
       // Note: A regular user has no permission to delete
       await userSdk.deleteUser(
         userId: userId,
-        instrument: instrument,
+        operator: operator,
       );
 
       // Note: Since the record is deleted now, the ownership
@@ -61,7 +61,7 @@ void main() {
       expect(
           () async => await bankAdmin.getUser(
                 userId: userId,
-                instrument: instrument,
+                operator: operator,
               ),
           throwsA(predicate((e) => e is GrpcError && e.code == 5)));
     });

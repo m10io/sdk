@@ -8754,12 +8754,6 @@ export namespace m10 {
 
             /** Ledger url */
             url?: (string|null);
-
-            /** Ledger code */
-            code?: (string|null);
-
-            /** Ledger decimals */
-            decimals?: (number|null);
         }
 
         /** Represents a Ledger. */
@@ -8776,12 +8770,6 @@ export namespace m10 {
 
             /** Ledger url. */
             public url: string;
-
-            /** Ledger code. */
-            public code: string;
-
-            /** Ledger decimals. */
-            public decimals: number;
 
             /**
              * Creates a new Ledger instance using the specified properties.
@@ -8959,9 +8947,6 @@ export namespace m10 {
             /** Alias operator */
             operator?: (string|null);
 
-            /** Alias code */
-            code?: (string|null);
-
             /** Alias aliasType */
             aliasType?: (m10.directory.Alias.Type|null);
         }
@@ -8986,9 +8971,6 @@ export namespace m10 {
 
             /** Alias operator. */
             public operator: string;
-
-            /** Alias code. */
-            public code: string;
 
             /** Alias aliasType. */
             public aliasType: m10.directory.Alias.Type;

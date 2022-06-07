@@ -17,16 +17,18 @@ void main() {
         'it should register a new user, create an account, activate the account and issue funds to the new account',
         () async {
       final userId = await userSdk.createUser(
-        instrument: instrument,
+        operator: operator,
       );
 
       final owner = base64Encode(await bankAdmin.signer.publicKey());
       final issuanceAccount = (await bankAdmin.findAccountByOwner(
-              owner: owner, instrument: instrument))
+        owner: owner,
+        operator: operator,
+      ))
           .first;
       final accountId = await bankAdmin.createAccount(
         parentId: issuanceAccount.id,
-        instrument: instrument,
+        operator: operator,
         owner: base64Encode(await userSdk.signer.publicKey()),
       );
 
@@ -34,7 +36,7 @@ void main() {
 
       await userSdk.updateUser(
         userId: userId,
-        instrument: instrument,
+        operator: operator,
         accounts: [accountRef.model],
       );
 
@@ -42,14 +44,14 @@ void main() {
 
       final user = await userSdk.getUser(
         userId: userId,
-        instrument: instrument,
+        operator: operator,
       );
       expect(user.model.accounts.length, 1);
 
       print("Update account status");
 
       await bankAdmin.updateAccountStatus(
-          id: accountRef.accountId, instrument: instrument, frozen: false);
+          id: accountRef.accountId, operator: operator, frozen: false);
 
       print("creating transfer");
 
@@ -57,12 +59,12 @@ void main() {
         fromAccountId: issuanceAccount.id,
         toAccountId: accountRef.accountId,
         amount: 100,
-        instrument: instrument,
+        operator: operator,
       );
 
       await userSdk.listTransfers(
         accountId: accountRef.accountId,
-        instrument: instrument,
+        operator: operator,
       );
     }, timeout: Timeout(Duration(seconds: 60)));
   });

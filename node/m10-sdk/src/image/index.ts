@@ -1,5 +1,8 @@
 import superagent from "superagent";
 
+interface StatusObject {
+    status: number;
+}
 
 export class ImageClient {
 
@@ -9,29 +12,13 @@ export class ImageClient {
         this.address = address;
     }
 
-    public async put_image(name: string, image: Blob): Promise<Result<string>> {
-
-        const url = `${this.address}/images/${name}`;
-
-        try {
-            await superagent.put(url).send(image);
-            return url;
-        } catch (error) {
-            return error as Error;
-        }
+    public async putImage(image: Buffer): Promise<StatusObject> {
+        const url = this.address;
+        return await superagent.put(url).send(image);
     }
 
-    public async get_image(name: string): Promise<Result<Blob>> {
-
-        const url = `${this.address}/images/${name}`;
-
-        try {
-            const response = await superagent.get(url)
-                .responseType("blob");
-
-            return response.body;
-        } catch (error) {
-            return error as Error;
-        }
+    public async getImage(url: string): Promise<Uint8Array> {
+        const response = await superagent.get(url);
+        return response.body;
     }
 }

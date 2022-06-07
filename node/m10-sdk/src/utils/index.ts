@@ -2,6 +2,7 @@ import * as grpc from "@grpc/grpc-js";
 import type { RPCImpl } from "protobufjs";
 
 import type { m10 } from "../../protobufs";
+import type { TokenProvider } from "../helpers/auth";
 
 import { isSome } from "./common";
 
@@ -38,6 +39,29 @@ export function getRPCImplStream(
         stream.on("data", (chunk) => callback(null, chunk));
         stream.on("error", (error) => callback(error, null));
         stream.on("close", () => callback(null, null));
+    };
+}
+
+export function getRPCImplWithTokenProvider(
+    ledgerUrl: string,
+    credentials: grpc.ChannelCredentials,
+    tokenProvider: TokenProvider,
+    serviceName: string,
+): RPCImpl {
+    const Client = grpc.makeGenericClientConstructor({}, serviceName);
+    const client = new Client(ledgerUrl, credentials);
+
+    return (method, requestData, callback) => {
+        const options: grpc.CallOptions = {
+            credentials: grpc.CallCredentials.createFromGoogleCredential({
+                getRequestHeaders: async (): Promise<{ [index: string]: string }> => {
+                    const accessToken = await tokenProvider.getAccessToken();
+                    return { Authorization: `Bearer ${accessToken}` };
+                },
+            }),
+        };
+
+        client.makeUnaryRequest(`/${serviceName}/${method.name}`, arg => Buffer.from(arg), arg => arg, requestData, options, callback);
     };
 }
 

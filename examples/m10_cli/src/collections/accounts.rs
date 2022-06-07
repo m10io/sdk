@@ -170,3 +170,40 @@ impl From<sdk::AccountRef> for AccountRef {
         }
     }
 }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AccountInfo {
+    pub id: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub parent_id: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub public_name: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub profile_image_url: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub code: String,
+    pub decimals: u32,
+}
+
+impl TryFrom<sdk::AccountInfo> for AccountInfo {
+    type Error = anyhow::Error;
+
+    fn try_from(other: sdk::AccountInfo) -> Result<AccountInfo, Self::Error> {
+        let sdk::AccountInfo {
+            account_id,
+            parent_account_id,
+            public_name,
+            profile_image_url,
+            code,
+            decimal_places,
+        } = other;
+        Ok(AccountInfo {
+            id: hex::encode(account_id),
+            parent_id: hex::encode(parent_account_id),
+            public_name,
+            profile_image_url,
+            code,
+            decimals: decimal_places,
+        })
+    }
+}

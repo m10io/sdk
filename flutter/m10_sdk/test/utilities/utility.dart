@@ -25,8 +25,6 @@ final instrument = Platform.environment['CURRENCY'] ?? 'ttt';
 final ledgerId = '$instrument.m10';
 final _ledgers = [
   Ledger()
-    ..code = instrument
-    ..decimals = 2
     ..operator = operator
     ..url = 'https://$_ledgerHost/',
 ];
@@ -103,9 +101,9 @@ class Utility {
     );
 
     final owner = base64Encode(await bankAdmin.signer.publicKey());
-    final issuanceAccount = (await bankAdmin.findAccountByOwner(
-            owner: owner, instrument: instrument))
-        .first;
+    final issuanceAccount =
+        (await bankAdmin.findAccountByOwner(owner: owner, operator: operator))
+            .first;
     parentAccountId = issuanceAccount.id;
 
     // Setup test user "Alice"
@@ -143,15 +141,15 @@ class Utility {
     required M10Sdk sdk,
   }) async {
     final userId = await sdk.createUser(
-      instrument: instrument,
+      operator: operator,
     );
     final roleBinding = await bankAdmin.getRoleBinding(
-        name: "dart-test-customer", instrument: instrument);
+        name: "dart-test-customer", operator: operator);
     final userKey = await sdk.signer.publicKey();
     if (!roleBinding.subjects.contains(userKey)) {
       final subject = base64.encode(userKey);
       await bankAdmin.updateRoleBinding(
-          id: roleBinding.id, instrument: instrument, subjects: [subject]);
+          id: roleBinding.id, operator: operator, subjects: [subject]);
     }
     return userId;
   }
@@ -161,7 +159,7 @@ class Utility {
       parentId: parentAccountId,
       name: "Dart SDK Test Account",
       publicName: publicName,
-      instrument: instrument,
+      operator: operator,
     );
   }
 }

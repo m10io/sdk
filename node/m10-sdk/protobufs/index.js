@@ -21345,8 +21345,6 @@ $root.m10 = (function() {
              * @interface ILedger
              * @property {string|null} [operator] Ledger operator
              * @property {string|null} [url] Ledger url
-             * @property {string|null} [code] Ledger code
-             * @property {number|null} [decimals] Ledger decimals
              */
 
             /**
@@ -21381,22 +21379,6 @@ $root.m10 = (function() {
             Ledger.prototype.url = "";
 
             /**
-             * Ledger code.
-             * @member {string} code
-             * @memberof m10.directory.Ledger
-             * @instance
-             */
-            Ledger.prototype.code = "";
-
-            /**
-             * Ledger decimals.
-             * @member {number} decimals
-             * @memberof m10.directory.Ledger
-             * @instance
-             */
-            Ledger.prototype.decimals = 0;
-
-            /**
              * Creates a new Ledger instance using the specified properties.
              * @function create
              * @memberof m10.directory.Ledger
@@ -21424,10 +21406,6 @@ $root.m10 = (function() {
                     writer.uint32(/* id 1, wireType 2 =*/10).string(message.operator);
                 if (message.url != null && Object.hasOwnProperty.call(message, "url"))
                     writer.uint32(/* id 2, wireType 2 =*/18).string(message.url);
-                if (message.code != null && Object.hasOwnProperty.call(message, "code"))
-                    writer.uint32(/* id 4, wireType 2 =*/34).string(message.code);
-                if (message.decimals != null && Object.hasOwnProperty.call(message, "decimals"))
-                    writer.uint32(/* id 5, wireType 0 =*/40).int32(message.decimals);
                 return writer;
             };
 
@@ -21467,12 +21445,6 @@ $root.m10 = (function() {
                         break;
                     case 2:
                         message.url = reader.string();
-                        break;
-                    case 4:
-                        message.code = reader.string();
-                        break;
-                    case 5:
-                        message.decimals = reader.int32();
                         break;
                     default:
                         reader.skipType(tag & 7);
@@ -21515,12 +21487,6 @@ $root.m10 = (function() {
                 if (message.url != null && message.hasOwnProperty("url"))
                     if (!$util.isString(message.url))
                         return "url: string expected";
-                if (message.code != null && message.hasOwnProperty("code"))
-                    if (!$util.isString(message.code))
-                        return "code: string expected";
-                if (message.decimals != null && message.hasOwnProperty("decimals"))
-                    if (!$util.isInteger(message.decimals))
-                        return "decimals: integer expected";
                 return null;
             };
 
@@ -21540,10 +21506,6 @@ $root.m10 = (function() {
                     message.operator = String(object.operator);
                 if (object.url != null)
                     message.url = String(object.url);
-                if (object.code != null)
-                    message.code = String(object.code);
-                if (object.decimals != null)
-                    message.decimals = object.decimals | 0;
                 return message;
             };
 
@@ -21563,17 +21525,11 @@ $root.m10 = (function() {
                 if (options.defaults) {
                     object.operator = "";
                     object.url = "";
-                    object.code = "";
-                    object.decimals = 0;
                 }
                 if (message.operator != null && message.hasOwnProperty("operator"))
                     object.operator = message.operator;
                 if (message.url != null && message.hasOwnProperty("url"))
                     object.url = message.url;
-                if (message.code != null && message.hasOwnProperty("code"))
-                    object.code = message.code;
-                if (message.decimals != null && message.hasOwnProperty("decimals"))
-                    object.decimals = message.decimals;
                 return object;
             };
 
@@ -21809,7 +21765,6 @@ $root.m10 = (function() {
              * @property {string|null} [displayName] Alias displayName
              * @property {Uint8Array|null} [accountSetId] Alias accountSetId
              * @property {string|null} [operator] Alias operator
-             * @property {string|null} [code] Alias code
              * @property {m10.directory.Alias.Type|null} [aliasType] Alias aliasType
              */
 
@@ -21861,14 +21816,6 @@ $root.m10 = (function() {
             Alias.prototype.operator = "";
 
             /**
-             * Alias code.
-             * @member {string} code
-             * @memberof m10.directory.Alias
-             * @instance
-             */
-            Alias.prototype.code = "";
-
-            /**
              * Alias aliasType.
              * @member {m10.directory.Alias.Type} aliasType
              * @memberof m10.directory.Alias
@@ -21908,8 +21855,6 @@ $root.m10 = (function() {
                     writer.uint32(/* id 5, wireType 2 =*/42).bytes(message.accountSetId);
                 if (message.operator != null && Object.hasOwnProperty.call(message, "operator"))
                     writer.uint32(/* id 8, wireType 2 =*/66).string(message.operator);
-                if (message.code != null && Object.hasOwnProperty.call(message, "code"))
-                    writer.uint32(/* id 9, wireType 2 =*/74).string(message.code);
                 if (message.aliasType != null && Object.hasOwnProperty.call(message, "aliasType"))
                     writer.uint32(/* id 10, wireType 0 =*/80).int32(message.aliasType);
                 return writer;
@@ -21957,9 +21902,6 @@ $root.m10 = (function() {
                         break;
                     case 8:
                         message.operator = reader.string();
-                        break;
-                    case 9:
-                        message.code = reader.string();
                         break;
                     case 10:
                         message.aliasType = reader.int32();
@@ -22011,9 +21953,6 @@ $root.m10 = (function() {
                 if (message.operator != null && message.hasOwnProperty("operator"))
                     if (!$util.isString(message.operator))
                         return "operator: string expected";
-                if (message.code != null && message.hasOwnProperty("code"))
-                    if (!$util.isString(message.code))
-                        return "code: string expected";
                 if (message.aliasType != null && message.hasOwnProperty("aliasType"))
                     switch (message.aliasType) {
                     default:
@@ -22049,8 +21988,6 @@ $root.m10 = (function() {
                         message.accountSetId = object.accountSetId;
                 if (object.operator != null)
                     message.operator = String(object.operator);
-                if (object.code != null)
-                    message.code = String(object.code);
                 switch (object.aliasType) {
                 case "HANDLE":
                 case 0:
@@ -22092,7 +22029,6 @@ $root.m10 = (function() {
                             object.accountSetId = $util.newBuffer(object.accountSetId);
                     }
                     object.operator = "";
-                    object.code = "";
                     object.aliasType = options.enums === String ? "HANDLE" : 0;
                 }
                 if (message.handle != null && message.hasOwnProperty("handle"))
@@ -22103,8 +22039,6 @@ $root.m10 = (function() {
                     object.accountSetId = options.bytes === String ? $util.base64.encode(message.accountSetId, 0, message.accountSetId.length) : options.bytes === Array ? Array.prototype.slice.call(message.accountSetId) : message.accountSetId;
                 if (message.operator != null && message.hasOwnProperty("operator"))
                     object.operator = message.operator;
-                if (message.code != null && message.hasOwnProperty("code"))
-                    object.code = message.code;
                 if (message.aliasType != null && message.hasOwnProperty("aliasType"))
                     object.aliasType = options.enums === String ? $root.m10.directory.Alias.Type[message.aliasType] : message.aliasType;
                 return object;

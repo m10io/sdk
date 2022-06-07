@@ -15,12 +15,12 @@ void main() {
         toAccountId: targetAccount,
         amount: 100,
         memo: "Funds",
-        instrument: instrument,
+        operator: operator,
       );
 
       final transfer = await bankAdmin.getTransfer(
         txId: response.txId,
-        instrument: instrument,
+        operator: operator,
       );
       final step = (await bankAdmin.enhance(transfer))[0];
 
@@ -33,7 +33,7 @@ void main() {
     test('it should get a list of transactions', () async {
       final transfers = await bankAdmin.listTransfers(
         accountId: targetAccount,
-        instrument: instrument,
+        operator: operator,
       );
 
       expect(transfers.isNotEmpty, true);
@@ -75,12 +75,12 @@ void main() {
       ];
       final response = await alice.transfer(
         steps: steps,
-        instrument: instrument,
+        operator: operator,
       );
       expect(response.txId > 0, true);
       final transfer = await alice.getTransfer(
         txId: response.txId,
-        instrument: instrument,
+        operator: operator,
       );
       expect(transfer.steps.length, 3);
     });

@@ -73,12 +73,6 @@ pub(crate) struct CreateLedgerOptions {
     /// Ledger url
     #[clap(short, long)]
     url: String,
-    /// Currency code
-    #[clap(short, long)]
-    code: String,
-    /// Number of relevant currency decimals
-    #[clap(short, long)]
-    decimals: i32,
 }
 
 impl CreateLedgerOptions {
@@ -88,18 +82,8 @@ impl CreateLedgerOptions {
         &self,
         client: &mut DirectoryServiceClient<InterceptedService<Channel, F>>,
     ) -> anyhow::Result<()> {
-        let Self {
-            operator,
-            url,
-            code,
-            decimals,
-        } = self.to_owned();
-        let request = Ledger {
-            operator,
-            url,
-            code,
-            decimals,
-        };
+        let Self { operator, url } = self.to_owned();
+        let request = Ledger { operator, url };
         client.create_ledger(request).await?;
         Ok(())
     }
@@ -123,9 +107,6 @@ pub(crate) struct CreateAliasOptions {
     /// Operator id
     #[clap(short, long)]
     operator: String,
-    /// Currency code
-    #[clap(short, long)]
-    code: String,
 }
 
 impl CreateAliasOptions {
@@ -141,7 +122,6 @@ impl CreateAliasOptions {
             alias_type,
             account_set_id,
             operator,
-            code,
         } = self.to_owned();
         let request = Alias {
             handle,
@@ -149,7 +129,6 @@ impl CreateAliasOptions {
             alias_type: alias_type.parse()?,
             account_set_id: account_set_id.as_bytes().to_vec(),
             operator,
-            code,
         };
         client.create_alias(request).await?;
         Ok(())

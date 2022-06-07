@@ -10,7 +10,7 @@ void main() {
       final contextId = hex.encode(Uuid().v4().codeUnits);
       final ids = await submitContextTxs(contextId);
       final txs = await bankAdmin.listTransactions(
-          instrument: instrument, contextId: contextId);
+          operator: operator, contextId: contextId);
       expect(txs.length, 3);
       expect(txs[0].txId, ids[2]);
       expect(txs[0].transfer != null, true);
@@ -31,7 +31,7 @@ void main() {
       int firstId = groups.values.map((l) => l.first).reduce(min);
 
       final groupedTxs = await bankAdmin.groupTransactions(
-          instrument: instrument,
+          operator: operator,
           accountId: parentAccountId,
           limitGroups: 3,
           minTxId: firstId);
@@ -58,7 +58,7 @@ Future<List<int>> submitContextTxs(String contextId) async {
       fromAccountId: parentAccountId,
       targetAccountId: bobsAccountId,
       payload: "context".codeUnits,
-      instrument: instrument,
+      operator: operator,
       contextId: contextId);
   expect(first.txId > 0, true);
 
@@ -67,7 +67,7 @@ Future<List<int>> submitContextTxs(String contextId) async {
       toAccountId: bobsAccountId,
       amount: 100,
       memo: "Funds",
-      instrument: instrument,
+      operator: operator,
       contextId: contextId);
 
   expect(second.txId > 0, true);
@@ -77,7 +77,7 @@ Future<List<int>> submitContextTxs(String contextId) async {
       toAccountId: bobsAccountId,
       amount: 100,
       memo: "Funds",
-      instrument: instrument,
+      operator: operator,
       contextId: contextId);
 
   expect(third.txId > 0, true);

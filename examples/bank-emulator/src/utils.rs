@@ -1,6 +1,5 @@
 use std::future::Future;
 
-use crate::config::CurrencyConfig;
 use crate::error::Error;
 use crate::models::TransferChain;
 use crate::{context::Context, models::Payment};
@@ -17,7 +16,6 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 const ALIAS_DEFAULT_OPERATOR: &str = "m10";
-const ALIAS_DEFAULT_CURRENCY: &str = "usd";
 
 pub(crate) async fn submit_transaction(
     data: impl Into<Data>,
@@ -44,10 +42,8 @@ pub(crate) async fn submit_transaction(
 pub(crate) async fn create_account_set(
     ledger_accounts: Vec<Vec<u8>>,
     context: &Context,
-    currency: Option<CurrencyConfig>,
 ) -> Result<Uuid, Error> {
     let account_set_id = Uuid::new_v4();
-    let currency_code = currency.map_or(ALIAS_DEFAULT_CURRENCY.to_string(), |c| c.code);
     let payload = sdk::Operation::insert(sdk::AccountSet {
         id: account_set_id.as_bytes().to_vec(),
         owner: context.signer.public_key().to_vec(),
@@ -55,7 +51,7 @@ pub(crate) async fn create_account_set(
             .into_iter()
             .map(|account_id| sdk::AccountRef {
                 account_id,
-                ledger_id: format!("{}.{}", currency_code, ALIAS_DEFAULT_OPERATOR),
+                ledger_id: ALIAS_DEFAULT_OPERATOR.to_string(),
             })
             .collect(),
     });
@@ -210,7 +206,6 @@ pub(crate) async fn create_alias_from_contact_data(
     token: &str,
     account_set_id: Uuid,
     context: &Context,
-    currency_used: Option<CurrencyConfig>,
 ) -> Result<(), Error> {
     let name = contact
         .get("name")
@@ -222,14 +217,11 @@ pub(crate) async fn create_alias_from_contact_data(
         .and_then(|v| v.as_str())
         .ok_or_else(|| Error::not_found("email in contact data"))?;
 
-    let currency_code = currency_used.map_or(ALIAS_DEFAULT_CURRENCY.to_string(), |c| c.code);
-
     let alias = Alias {
         account_set_id: account_set_id.as_bytes().to_vec(),
         alias_type: alias::Type::Email.into(),
         handle: email.into(),
         display_name: name.into(),
-        code: currency_code,
         operator: ALIAS_DEFAULT_OPERATOR.to_string(),
     };
     let mut request = tonic::Request::new(alias);

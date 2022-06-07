@@ -14,13 +14,15 @@ const Ledger$json = const {
   '2': const [
     const {'1': 'operator', '3': 1, '4': 1, '5': 9, '10': 'operator'},
     const {'1': 'url', '3': 2, '4': 1, '5': 9, '10': 'url'},
-    const {'1': 'code', '3': 4, '4': 1, '5': 9, '10': 'code'},
-    const {'1': 'decimals', '3': 5, '4': 1, '5': 5, '10': 'decimals'},
+  ],
+  '9': const [
+    const {'1': 4, '2': 5},
+    const {'1': 5, '2': 6},
   ],
 };
 
 /// Descriptor for `Ledger`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List ledgerDescriptor = $convert.base64Decode('CgZMZWRnZXISGgoIb3BlcmF0b3IYASABKAlSCG9wZXJhdG9yEhAKA3VybBgCIAEoCVIDdXJsEhIKBGNvZGUYBCABKAlSBGNvZGUSGgoIZGVjaW1hbHMYBSABKAVSCGRlY2ltYWxz');
+final $typed_data.Uint8List ledgerDescriptor = $convert.base64Decode('CgZMZWRnZXISGgoIb3BlcmF0b3IYASABKAlSCG9wZXJhdG9yEhAKA3VybBgCIAEoCVIDdXJsSgQIBBAFSgQIBRAG');
 @$core.Deprecated('Use listLedgersResponseDescriptor instead')
 const ListLedgersResponse$json = const {
   '1': 'ListLedgersResponse',
@@ -39,10 +41,12 @@ const Alias$json = const {
     const {'1': 'display_name', '3': 2, '4': 1, '5': 9, '10': 'displayName'},
     const {'1': 'account_set_id', '3': 5, '4': 1, '5': 12, '10': 'accountSetId'},
     const {'1': 'operator', '3': 8, '4': 1, '5': 9, '10': 'operator'},
-    const {'1': 'code', '3': 9, '4': 1, '5': 9, '10': 'code'},
     const {'1': 'alias_type', '3': 10, '4': 1, '5': 14, '6': '.m10.directory.Alias.Type', '10': 'aliasType'},
   ],
   '4': const [Alias_Type$json],
+  '9': const [
+    const {'1': 9, '2': 10},
+  ],
 };
 
 @$core.Deprecated('Use aliasDescriptor instead')
@@ -56,7 +60,7 @@ const Alias_Type$json = const {
 };
 
 /// Descriptor for `Alias`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List aliasDescriptor = $convert.base64Decode('CgVBbGlhcxIWCgZoYW5kbGUYASABKAlSBmhhbmRsZRIhCgxkaXNwbGF5X25hbWUYAiABKAlSC2Rpc3BsYXlOYW1lEiQKDmFjY291bnRfc2V0X2lkGAUgASgMUgxhY2NvdW50U2V0SWQSGgoIb3BlcmF0b3IYCCABKAlSCG9wZXJhdG9yEhIKBGNvZGUYCSABKAlSBGNvZGUSOAoKYWxpYXNfdHlwZRgKIAEoDjIZLm0xMC5kaXJlY3RvcnkuQWxpYXMuVHlwZVIJYWxpYXNUeXBlIigKBFR5cGUSCgoGSEFORExFEAASCQoFRU1BSUwQARIJCgVQSE9ORRAC');
+final $typed_data.Uint8List aliasDescriptor = $convert.base64Decode('CgVBbGlhcxIWCgZoYW5kbGUYASABKAlSBmhhbmRsZRIhCgxkaXNwbGF5X25hbWUYAiABKAlSC2Rpc3BsYXlOYW1lEiQKDmFjY291bnRfc2V0X2lkGAUgASgMUgxhY2NvdW50U2V0SWQSGgoIb3BlcmF0b3IYCCABKAlSCG9wZXJhdG9yEjgKCmFsaWFzX3R5cGUYCiABKA4yGS5tMTAuZGlyZWN0b3J5LkFsaWFzLlR5cGVSCWFsaWFzVHlwZSIoCgRUeXBlEgoKBkhBTkRMRRAAEgkKBUVNQUlMEAESCQoFUEhPTkUQAkoECAkQCg==');
 @$core.Deprecated('Use checkAliasRequestDescriptor instead')
 const CheckAliasRequest$json = const {
   '1': 'CheckAliasRequest',
@@ -117,12 +121,9 @@ final $typed_data.Uint8List objectUrlResponseDescriptor = $convert.base64Decode(
 const CreateImageUrlRequest$json = const {
   '1': 'CreateImageUrlRequest',
   '2': const [
-    const {'1': 'mime_type', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'mimeType', '17': true},
-  ],
-  '8': const [
-    const {'1': '_mime_type'},
+    const {'1': 'mime_type', '3': 1, '4': 1, '5': 9, '10': 'mimeType'},
   ],
 };
 
 /// Descriptor for `CreateImageUrlRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createImageUrlRequestDescriptor = $convert.base64Decode('ChVDcmVhdGVJbWFnZVVybFJlcXVlc3QSIAoJbWltZV90eXBlGAEgASgJSABSCG1pbWVUeXBliAEBQgwKCl9taW1lX3R5cGU=');
+final $typed_data.Uint8List createImageUrlRequestDescriptor = $convert.base64Decode('ChVDcmVhdGVJbWFnZVVybFJlcXVlc3QSGwoJbWltZV90eXBlGAEgASgJUghtaW1lVHlwZQ==');

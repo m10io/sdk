@@ -1,6 +1,6 @@
 {
     "name": "m10-sdk",
-  "version": "0.20.5",
+  "version": "0.21.0",
     "description": "M10 SDK",
     "repository": {
         "type": "git",

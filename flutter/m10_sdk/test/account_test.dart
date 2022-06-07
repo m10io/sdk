@@ -13,7 +13,7 @@ void main() {
 
       final account = await alice.getAccount(
         id: accountId,
-        instrument: instrument,
+        operator: operator,
       );
 
       expect(account.id, accountId);
@@ -22,7 +22,7 @@ void main() {
     test('it should get an existing account', () async {
       final AccountDoc account = await alice.getAccount(
         id: accountId,
-        instrument: instrument,
+        operator: operator,
       );
 
       expect(account.id, accountId);
@@ -33,7 +33,7 @@ void main() {
       final profileImageUrl = "https://fake.m10.net/images/alice";
       await bankAdmin.updateAccount(
         id: accountId,
-        instrument: instrument,
+        operator: operator,
         publicName: publicName,
         profileImageUrl: profileImageUrl,
       );
@@ -42,7 +42,7 @@ void main() {
 
       final AccountDoc account = await alice.getAccount(
         id: accountId,
-        instrument: instrument,
+        operator: operator,
       );
 
       expect(account.publicName, publicName);

@@ -35,9 +35,7 @@ service DirectoryService {
 message Ledger {
   string operator = 1;         // "m10"
   string url = 2;              // "https://usd.m10.net"
-  // TODO: remove `code` from directory
-  string code = 4;             // "USD", "TSLA", "DASH", etc supports official and unofficial ISO 4217 Codes https://en.wikipedia.org/wiki/ISO_4217#Active_codes
-  int32  decimals = 5;         // 2
+  reserved 4, 5;
 }
 
 message ListLedgersResponse {
@@ -50,8 +48,7 @@ message Alias {
   string display_name = 2;     // "Jon Jones"
   bytes account_set_id = 5;
   string operator = 8;
-  // TODO: remove `code` from directory
-  string code = 9;
+  reserved 9;
   Type alias_type = 10;
   enum Type {
     HANDLE = 0;

@@ -17,8 +17,6 @@ class Ledger extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'Ledger', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.directory'), createEmptyInstance: create)
     ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'operator')
     ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'url')
-    ..aOS(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'code')
-    ..a<$core.int>(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'decimals', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -26,8 +24,6 @@ class Ledger extends $pb.GeneratedMessage {
   factory Ledger({
     $core.String? operator,
     $core.String? url,
-    $core.String? code,
-    $core.int? decimals,
   }) {
     final _result = create();
     if (operator != null) {
@@ -35,12 +31,6 @@ class Ledger extends $pb.GeneratedMessage {
     }
     if (url != null) {
       _result.url = url;
-    }
-    if (code != null) {
-      _result.code = code;
-    }
-    if (decimals != null) {
-      _result.decimals = decimals;
     }
     return _result;
   }
@@ -82,24 +72,6 @@ class Ledger extends $pb.GeneratedMessage {
   $core.bool hasUrl() => $_has(1);
   @$pb.TagNumber(2)
   void clearUrl() => clearField(2);
-
-  @$pb.TagNumber(4)
-  $core.String get code => $_getSZ(2);
-  @$pb.TagNumber(4)
-  set code($core.String v) { $_setString(2, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasCode() => $_has(2);
-  @$pb.TagNumber(4)
-  void clearCode() => clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.int get decimals => $_getIZ(3);
-  @$pb.TagNumber(5)
-  set decimals($core.int v) { $_setSignedInt32(3, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasDecimals() => $_has(3);
-  @$pb.TagNumber(5)
-  void clearDecimals() => clearField(5);
 }
 
 class ListLedgersResponse extends $pb.GeneratedMessage {
@@ -149,7 +121,6 @@ class Alias extends $pb.GeneratedMessage {
     ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'displayName')
     ..a<$core.List<$core.int>>(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'accountSetId', $pb.PbFieldType.OY)
     ..aOS(8, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'operator')
-    ..aOS(9, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'code')
     ..e<Alias_Type>(10, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'aliasType', $pb.PbFieldType.OE, defaultOrMaker: Alias_Type.HANDLE, valueOf: Alias_Type.valueOf, enumValues: Alias_Type.values)
     ..hasRequiredFields = false
   ;
@@ -160,7 +131,6 @@ class Alias extends $pb.GeneratedMessage {
     $core.String? displayName,
     $core.List<$core.int>? accountSetId,
     $core.String? operator,
-    $core.String? code,
     Alias_Type? aliasType,
   }) {
     final _result = create();
@@ -175,9 +145,6 @@ class Alias extends $pb.GeneratedMessage {
     }
     if (operator != null) {
       _result.operator = operator;
-    }
-    if (code != null) {
-      _result.code = code;
     }
     if (aliasType != null) {
       _result.aliasType = aliasType;
@@ -241,21 +208,12 @@ class Alias extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   void clearOperator() => clearField(8);
 
-  @$pb.TagNumber(9)
-  $core.String get code => $_getSZ(4);
-  @$pb.TagNumber(9)
-  set code($core.String v) { $_setString(4, v); }
-  @$pb.TagNumber(9)
-  $core.bool hasCode() => $_has(4);
-  @$pb.TagNumber(9)
-  void clearCode() => clearField(9);
-
   @$pb.TagNumber(10)
-  Alias_Type get aliasType => $_getN(5);
+  Alias_Type get aliasType => $_getN(4);
   @$pb.TagNumber(10)
   set aliasType(Alias_Type v) { setField(10, v); }
   @$pb.TagNumber(10)
-  $core.bool hasAliasType() => $_has(5);
+  $core.bool hasAliasType() => $_has(4);
   @$pb.TagNumber(10)
   void clearAliasType() => clearField(10);
 }

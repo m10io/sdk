@@ -52,21 +52,21 @@ class AccountDoc extends _Document<Account> {
   String get publicName => _model.publicName;
   String get profileImageUrl => _model.profileImageUrl;
   int get balance => _indexedAccount?.balance.toInt() ?? 0;
+  String? get instrument => _indexedAccount?.instrument.code;
+  int? get decimalPlaces => _indexedAccount?.instrument.decimalPlaces;
   int get issuedBalance => _indexedAccount?.issuance.issuedBalance.toInt() ?? 0;
 }
 
 class AccountSetDoc extends _Document<AccountSet> {
-  String _instrument;
-  AccountSetDoc(AccountSet model, this._instrument) : super(model);
+  AccountSetDoc(AccountSet model) : super(model);
 
   String get id => Uuid.unparse(_model.id);
   String get owner => base64.encode(_model.owner);
-  String get instrument => _instrument;
   List<AccountRefDoc> get accounts =>
       _model.accounts.map((accountRef) => AccountRefDoc(accountRef)).toList();
 
   @override
-  String toString() => 'AccountSet $id $owner $instrument accounts=$accounts';
+  String toString() => 'AccountSet $id $owner accounts=$accounts';
 }
 
 class RoleBindingDoc extends _Document<RoleBinding> {
@@ -81,19 +81,19 @@ class RoleBindingDoc extends _Document<RoleBinding> {
 }
 
 class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
-  TransferDoc(FinalizedTransfer model, this.instrument) : super(model);
+  TransferDoc(FinalizedTransfer model, this.operator) : super(model);
 
   factory TransferDoc.fromJson(Map<String, dynamic> json) {
     final model = FinalizedTransfer.fromJson(json['model'] as String);
-    final instrument = json['instrument'] as String;
-    return TransferDoc(model, instrument);
+    final operator = json['operator'] as String;
+    return TransferDoc(model, operator);
   }
 
   Map<String, dynamic> toJson() {
-    return {'model': _model.writeToJson(), 'instrument': instrument};
+    return {'model': _model.writeToJson(), 'operator': operator};
   }
 
-  final String instrument;
+  final String operator;
 
   List<TransferStepDoc> get steps =>
       _model.transferSteps.map((step) => TransferStepDoc(step)).toList();
@@ -110,7 +110,7 @@ class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
       );
 
   @override
-  List<Object?> get props => [model.writeToJson(), instrument];
+  List<Object?> get props => [model.writeToJson(), operator];
 }
 
 class TransferStepDoc extends _Document<TransferStep> {
@@ -189,6 +189,8 @@ class EnhancedTransferStepDoc extends _Document<TransferStep>
   String get fromAccountId => hex.encode(_model.fromAccountId);
   String get toAccountId => hex.encode(_model.toAccountId);
   int get amount => _model.amount.toInt();
+  String get instrument => _from.code;
+  int get decimalPlaces => _from.decimalPlaces;
   List<Any> get metadata => _model.metadata;
 
   String get senderName => _from.publicName;
@@ -310,15 +312,15 @@ class PaymentRequestDoc {
 
   Future<void> populateAccountInfo({
     required M10Sdk sdk,
-    required String instrument,
+    required String operator,
   }) async {
     fromAccount = await sdk.getAccountInfo(
       id: fromAccountId,
-      instrument: instrument,
+      operator: operator,
     );
     toAccount = await sdk.getAccountInfo(
       id: toAccountId,
-      instrument: instrument,
+      operator: operator,
     );
   }
 }
@@ -466,7 +468,6 @@ class AliasDoc {
 
   Alias_Type get aliasType => _alias.aliasType;
   String get operator => _alias.operator;
-  String get code => _alias.code;
 }
 
 extension ContractExt on Contract {
@@ -588,7 +589,6 @@ class AccountRefDoc extends _Document<AccountRef> {
     return AccountRefDoc(accountRef);
   }
 
-  String get instrument => _model.ledgerId.split('.').first.toUpperCase();
   String get ledgerId => _model.ledgerId;
   String get accountId => hex.encode(_model.accountId);
 
@@ -615,29 +615,13 @@ extension ParseAccountRef on String {
 }
 
 extension LedgerExt on Ledger {
-  String get id => '${code.toLowerCase()}.$operator';
+  String get id => '$operator';
   String get host => Uri.parse(url).host;
 
   Map<String, dynamic> asMap() => {
-        'code': code,
-        'decimals': decimals,
         'operator': operator,
         'url': Uri.parse(url),
       };
-}
-
-extension LedgerListExt on List<Ledger> {
-  String findId({
-    required String instrument,
-  }) {
-    final ledger = firstWhere(
-      (it) => it.code.toLowerCase() == instrument.toLowerCase(),
-      orElse: () => throw ArgumentError(
-        'No ledger matching instrument ${instrument}',
-      ),
-    );
-    return ledger.id;
-  }
 }
 
 extension AccountInfoExt on AccountInfo {

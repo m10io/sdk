@@ -21,7 +21,7 @@ void main() {
         fromAccountId: account,
         targetAccountId: targetAccount,
         payload: "This is a test action".codeUnits,
-        instrument: instrument,
+        operator: operator,
       );
 
       expect(transactionId.txId > 0, true);
@@ -35,12 +35,12 @@ void main() {
         fromAccountId: account,
         targetAccountId: targetAccount,
         payload: payload,
-        instrument: instrument,
+        operator: operator,
       );
 
       final action = await bankAdmin.getAction(
         txId: response.txId,
-        instrument: instrument,
+        operator: operator,
       );
 
       expect(action.fromAccountId, account);
@@ -57,7 +57,7 @@ void main() {
         fromAccountId: account,
         targetAccountId: targetAccount,
         payload: [1],
-        instrument: instrument,
+        operator: operator,
       );
 
       final second = await bankAdmin.invokeAction(
@@ -65,11 +65,11 @@ void main() {
         fromAccountId: account,
         targetAccountId: targetAccount,
         payload: [2],
-        instrument: instrument,
+        operator: operator,
       );
 
       final actions = await bankAdmin.listActions(
-          instrument: instrument,
+          operator: operator,
           name: name,
           accountId: account,
           minTxId: first.txId,
@@ -93,7 +93,7 @@ void main() {
         fromAccountId: account,
         targetAccountId: targetAccount,
         payload: [1],
-        instrument: instrument,
+        operator: operator,
       );
 
       final second = await bankAdmin.invokeAction(
@@ -101,14 +101,14 @@ void main() {
         fromAccountId: account,
         targetAccountId: targetAccount,
         payload: [2],
-        instrument: instrument,
+        operator: operator,
       );
 
       bool didFail = false;
       try {
         await alice.getAction(
           txId: first.txId,
-          instrument: instrument,
+          operator: operator,
         );
       } catch (e) {
         didFail = true;
@@ -116,7 +116,7 @@ void main() {
       expect(didFail, true, reason: "Retrieving action did not fail");
 
       final actions = await alice.listActions(
-          instrument: instrument,
+          operator: operator,
           name: "not-a-request",
           accountId: account,
           minTxId: first.txId,
@@ -127,7 +127,7 @@ void main() {
 
     test('it should cancel a request', () async {
       final requestResponse = await bankAdmin.request(
-          instrument: instrument,
+          operator: operator,
           transferRequest: CreateTransfer(
             transferSteps: [
               TransferStep(
@@ -138,19 +138,19 @@ void main() {
           ));
       expect(requestResponse.hasError, false);
 
-      final requestAction = await bob.getAction(
-          txId: requestResponse.txId, instrument: instrument);
+      final requestAction =
+          await bob.getAction(txId: requestResponse.txId, operator: operator);
       expect(requestAction.name, M10Actions.requestActionName);
 
       final cancelResponse = await bob.cancel(
-          instrument: instrument,
+          operator: operator,
           fromAccountId: targetAccount,
           targetAccountId: account,
           contextId: requestAction.contextId!);
       expect(cancelResponse.hasError, false);
 
       final cancelAction = await bankAdmin.getAction(
-          txId: cancelResponse.txId, instrument: instrument);
+          txId: cancelResponse.txId, operator: operator);
       expect(cancelAction.name, M10Actions.requestActionName);
       final cancelPayload = PaymentRequest.fromBuffer(cancelAction.payload);
       expect(
@@ -169,7 +169,7 @@ void main() {
             metadata: [Metadata.memo("First")])
       ]);
       final first = await bankAdmin.request(
-          instrument: instrument, transferRequest: request1);
+          operator: operator, transferRequest: request1);
 
       final request2 = CreateTransfer(transferSteps: [
         TransferStep(
@@ -179,7 +179,7 @@ void main() {
             metadata: [Metadata.memo("Second")])
       ]);
       final second = await bankAdmin.request(
-          instrument: instrument, transferRequest: request2);
+          operator: operator, transferRequest: request2);
 
       final request3 = CreateTransfer(transferSteps: [
         TransferStep(
@@ -189,10 +189,10 @@ void main() {
             metadata: [Metadata.memo("Third")])
       ]);
       final third = await bankAdmin.request(
-          instrument: instrument, transferRequest: request3);
+          operator: operator, transferRequest: request3);
 
       await bankAdmin.cancel(
-          instrument: instrument,
+          operator: operator,
           fromAccountId: account,
           targetAccountId: targetAccount,
           contextId: second.contextId!);
@@ -202,13 +202,13 @@ void main() {
         toAccountId: targetAccount,
         amount: 2600,
         memo: "Funds",
-        instrument: instrument,
+        operator: operator,
         contextId: third.contextId!,
       );
       sleep(Duration(seconds: 2));
 
       final List<PaymentRequestDoc> requests = await bankAdmin.listRequests(
-          instrument: instrument,
+          operator: operator,
           accountId: account,
           minTxId: first.txId,
           maxTxId: completion.txId,

@@ -10,14 +10,14 @@ void main() {
 
     test('it should observe a successful transfer', () async {
       final stream = await bankAdmin
-          .observeTransfers(instrument: instrument, accounts: [account]);
+          .observeTransfers(operator: operator, accounts: [account]);
 
       final transaction = await bankAdmin.createTransfer(
         fromAccountId: account,
         toAccountId: targetAccount,
         amount: 100,
         memo: "observation test",
-        instrument: instrument,
+        operator: operator,
       );
 
       await stream.timeout(new Duration(seconds: 10), onTimeout: (sink) {
@@ -32,7 +32,7 @@ void main() {
           await Utility.createAccount(bankAdmin, publicName: "Dennis V1");
 
       final stream = await bankAdmin.observeResources(
-          instrument: instrument,
+          operator: operator,
           collection: "accounts",
           expression: "|id, doc| id == account",
           variables: {
@@ -40,7 +40,7 @@ void main() {
           });
 
       final updateTxnId = await bankAdmin.updateAccount(
-          id: dennisAccountId, instrument: instrument, publicName: "Dennis V2");
+          id: dennisAccountId, operator: operator, publicName: "Dennis V2");
 
       final operations = await stream.timeout(new Duration(seconds: 10),
           onTimeout: (sink) {

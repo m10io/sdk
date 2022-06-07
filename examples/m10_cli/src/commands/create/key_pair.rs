@@ -39,8 +39,8 @@ impl CreateKeyPairOptions {
         match self.format {
             BinFormat::IntBytes => println!("{:?}", buf),
             BinFormat::HexBytes => println!("{:02x?}", buf),
-            BinFormat::HexString => println!("{:?}", hex::encode(buf)),
-            BinFormat::Base64 => println!("{:?}", base64::encode(buf)),
+            BinFormat::HexString => println!("{}", hex::encode(buf)),
+            BinFormat::Base64 => println!("{}", base64::encode(buf)),
             _ => {
                 return Err(anyhow::anyhow!("unsuported format"));
             }

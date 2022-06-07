@@ -36,7 +36,7 @@ async fn create(
         .and_then(|v| v.as_str())
         .ok_or_else(|| Error::not_found("name in contact data"))?;
     // Create AccountSet on ledger
-    let account_set_id = create_account_set(vec![], &context, None).await?;
+    let account_set_id = create_account_set(vec![], &context).await?;
 
     // Create RBAC role for contact
     let role_id = rbac::create_contact_rbac_role(name, account_set_id, vec![], &context).await?;
@@ -56,7 +56,6 @@ async fn create(
         &current_user.token,
         account_set_id,
         &context,
-        None,
     )
     .await?;
 

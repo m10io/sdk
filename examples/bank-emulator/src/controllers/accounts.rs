@@ -68,10 +68,6 @@ async fn create(
         .unwrap_or_else(|| context.config.currencies.keys().cloned().collect());
     let mut ledger_accounts = vec![];
 
-    // TEMP: We are currently only creating one asset per account, so we can take the last
-    // currency used as the default to create the AccountSet and ledger account.
-    // Can be removed once currency info is added directly to the ledger account.
-    let mut currency_used = None;
     for a in assets {
         if let Some(config) = context.config.currencies.get(&a) {
             if !config.test {
@@ -82,14 +78,12 @@ async fn create(
                 asset.tenant = req.tenant.clone();
                 asset.insert(&mut txn).await?;
                 ledger_accounts.push(asset.ledger_account_id);
-                currency_used = Some(config.clone());
             }
         }
     }
 
     // Create AccountSet on ledger
-    let account_set_id =
-        create_account_set(ledger_accounts.to_vec(), &context, currency_used.clone()).await?;
+    let account_set_id = create_account_set(ledger_accounts.to_vec(), &context).await?;
 
     // Create RBAC role for contact
     let role_id = create_contact_rbac_role(name, account_set_id, ledger_accounts, &context).await?;
@@ -115,7 +109,6 @@ async fn create(
         &current_user.token,
         account_set_id,
         &context,
-        currency_used.clone(),
     )
     .await?;
 

@@ -2,7 +2,7 @@ use crate::commands::top_level_cmds::Format;
 use crate::{collections::*, context::Context};
 use clap::Parser;
 use m10_sdk::prost::Message;
-use m10_sdk::{sdk, Pack, Signer};
+use m10_sdk::{sdk, Signer};
 use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -37,6 +37,8 @@ pub(super) struct GetStoreItemOptions {
 pub(super) enum GetSubCommands {
     /// Get an account record by id
     Account(GetStoreItemOptions),
+    /// Get an account info record by id
+    AccountInfo(GetStoreItemOptions),
     /// Get an account set record by id
     AccountSet(GetStoreItemOptions),
     /// Get an action by tx id
@@ -74,6 +76,17 @@ impl GetSubCommands {
                     .await?;
                 let doc = context.m10_client.get_account(request).await?;
                 print_document::<_, accounts::Account>(doc, options.format)
+            }
+            GetSubCommands::AccountInfo(options) => {
+                let mut context = Context::new(config).await?;
+                let request = context
+                    .admin
+                    .sign_request(sdk::GetAccountRequest {
+                        id: options.id.as_bytes().to_vec(),
+                    })
+                    .await?;
+                let doc = context.m10_client.get_account_info(request).await?;
+                print_document::<_, accounts::AccountInfo>(doc, options.format)
             }
             GetSubCommands::AccountSet(options) => {
                 let mut context = Context::new(config).await?;
@@ -149,7 +162,7 @@ where
 
 fn print_document<D, I>(document: D, format: Format) -> anyhow::Result<()>
 where
-    D: Message + Pack + Default,
+    D: Message + Default,
     I: TryFrom<D, Error = anyhow::Error> + Serialize,
 {
     let printable = I::try_from(document)?;

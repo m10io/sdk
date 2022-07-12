@@ -102,6 +102,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .field_attribute(
                 "metadata",
                 "#[serde_as(as = \"Vec<crate::AnySerDeCompat>\")]",
+            )
+            .type_attribute(
+                ".m10.sdk.TransactionMetrics",
+                "#[derive(serde::Serialize, serde::Deserialize)]",
             );
     }
 

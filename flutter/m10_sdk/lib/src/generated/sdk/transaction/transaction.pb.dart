@@ -12,6 +12,7 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../document.pb.dart' as $0;
 import '../../google/protobuf/any.pb.dart' as $1;
+import '../../google/protobuf/empty.pb.dart' as $2;
 
 import 'transaction.pbenum.dart';
 
@@ -1689,27 +1690,34 @@ class InvokeAction extends $pb.GeneratedMessage {
 
 enum Target_Target {
   accountId, 
+  anyAccount, 
   notSet
 }
 
 class Target extends $pb.GeneratedMessage {
   static const $core.Map<$core.int, Target_Target> _Target_TargetByTag = {
     1 : Target_Target.accountId,
+    2 : Target_Target.anyAccount,
     0 : Target_Target.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'Target', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk.transaction'), createEmptyInstance: create)
-    ..oo(0, [1])
+    ..oo(0, [1, 2])
     ..a<$core.List<$core.int>>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'accountId', $pb.PbFieldType.OY)
+    ..aOM<$2.Empty>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'anyAccount', subBuilder: $2.Empty.create)
     ..hasRequiredFields = false
   ;
 
   Target._() : super();
   factory Target({
     $core.List<$core.int>? accountId,
+    $2.Empty? anyAccount,
   }) {
     final _result = create();
     if (accountId != null) {
       _result.accountId = accountId;
+    }
+    if (anyAccount != null) {
+      _result.anyAccount = anyAccount;
     }
     return _result;
   }
@@ -1745,6 +1753,17 @@ class Target extends $pb.GeneratedMessage {
   $core.bool hasAccountId() => $_has(0);
   @$pb.TagNumber(1)
   void clearAccountId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $2.Empty get anyAccount => $_getN(1);
+  @$pb.TagNumber(2)
+  set anyAccount($2.Empty v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAnyAccount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAnyAccount() => clearField(2);
+  @$pb.TagNumber(2)
+  $2.Empty ensureAnyAccount() => $_ensure(1);
 }
 
 class Action extends $pb.GeneratedMessage {

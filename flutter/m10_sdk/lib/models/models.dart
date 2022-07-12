@@ -39,11 +39,17 @@ class AccountDoc extends _Document<Account> {
 
   factory AccountDoc.fromJson(Map<String, dynamic> json) {
     final model = Account.fromJson(json['model'] as String);
-    return AccountDoc(model);
+    final indexedAccount = IndexedAccount.fromJson(
+      json['indexedAccount'] as String,
+    );
+    return AccountDoc.fromModel(model, indexedAccount);
   }
 
   Map<String, dynamic> toJson() {
-    return {'model': _model.writeToJson()};
+    return {
+      'model': _model.writeToJson(),
+      'indexedAccount': _indexedAccount?.writeToJson(),
+    };
   }
 
   String get owner => base64.encode(_model.owner);
@@ -452,6 +458,7 @@ class AliasDoc {
   AliasDoc(Alias alias) : _alias = alias;
 
   final Alias _alias;
+  Alias get model => _alias;
   String get handle => _alias.handle;
   String get displayName =>
       _alias.displayName.isNotEmpty ? _alias.displayName : handle;
@@ -602,6 +609,19 @@ class AccountRefDoc extends _Document<AccountRef> {
 
   @override
   String toString() => '${_model.ledgerId}/${hex.encode(_model.accountId)}';
+}
+
+class TransactionMetricsDoc extends _Document<TransactionMetrics> {
+  TransactionMetricsDoc(TransactionMetrics model) : super(model);
+
+  factory TransactionMetricsDoc.fromModel(TransactionMetrics model) {
+    return TransactionMetricsDoc(model);
+  }
+
+  int get transferVolume => model.transferVolume.toInt();
+  int get transferCount => model.transferCount.toInt();
+  int get transferErrors => model.transferErrors.toInt();
+  int get accountsCreated => model.accountsCreated.toInt();
 }
 
 extension ParseAccountRef on String {

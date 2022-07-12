@@ -52,6 +52,25 @@ async fn get_asset(
     Ok(Json(asset))
 }
 
+#[get("{id}/bank_account")]
+async fn get_bank_account(
+    instrument: Path<String>,
+    context: Data<Context>,
+) -> Result<Json<Asset>, Error> {
+    // get bank issuance account
+    let currency = context
+        .config
+        .currencies
+        .get(&*instrument)
+        .ok_or_else(|| Error::not_found("currency configuration"))?;
+    let ledger_account_id = currency.ledger_account_id(&context).await?.to_vec();
+
+    Ok(Json(Asset {
+        ledger_account_id,
+        ..Default::default()
+    }))
+}
+
 #[get("{id}/payments")]
 async fn list_payments(
     instrument: Path<String>,
@@ -182,6 +201,7 @@ pub fn scope() -> Scope {
     actix_web::web::scope("assets")
         .service(list_assets)
         .service(get_asset)
+        .service(get_bank_account)
         .service(list_payments)
         .service(get_payment)
         .service(create_notification_preferences)

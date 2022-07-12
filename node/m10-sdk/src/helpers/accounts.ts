@@ -1,3 +1,5 @@
+import * as uuid from "uuid";
+
 import { m10 } from "../../protobufs";
 import type { LedgerClient } from "../client";
 import * as collections from "../collections";
@@ -93,4 +95,50 @@ export async function createAccount(
     utils.checkTransactionResponse(transactionResponse);
 
     return accountId;
+}
+
+/**
+ * Create a bank that is represents a collection of accounts that represent a bank. Has things like short name as well.
+ *
+ * @param client
+ * @param signer
+ * @param owner
+ * @param shortName
+ * @param displayName
+ * @param accounts
+ * @param id
+ * @returns
+ */
+export async function createBank(
+    client: LedgerClient,
+    signer: utils.CryptoSigner,
+    owner: utils.AccountId,
+    shortName: string,
+    displayName: string,
+    accounts: m10.sdk.model.IBankAccountRef[],
+    id?: string,
+): Promise<m10.sdk.model.IBank> {
+
+    utils.validate(owner, "id", utils.isValidAccountId);
+
+    const bank: m10.sdk.model.IBank = {
+        id: utils.getUint8ArrayFromAccountId(id ? id : uuid.v4()),
+        owner: utils.getUint8ArrayFromAccountId(owner),
+        shortName,
+        displayName,
+        accounts,
+    };
+
+    const bankPayload = new m10.sdk.model.Bank(bank);
+    const transactionData = collections.getCreateTransactionDataFromDocument(
+        m10.sdk.model.Bank.encode(bankPayload).finish(),
+        collections.Collection.Bank,
+    );
+
+    const transactionRequestPayload = client.transactionRequest(transactionData);
+    const transactionResponse = await client.createTransaction(signer, transactionRequestPayload);
+
+    utils.checkTransactionResponse(transactionResponse);
+
+    return bank;
 }

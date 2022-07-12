@@ -7,6 +7,7 @@
 
 import 'dart:core' as $core;
 
+import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'api.pb.dart' as $0;
@@ -426,5 +427,253 @@ class PaymentRequest extends $pb.GeneratedMessage {
   $core.bool hasStatus() => $_has(1);
   @$pb.TagNumber(2)
   void clearStatus() => clearField(2);
+}
+
+class QuoteRequest extends $pb.GeneratedMessage {
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'QuoteRequest', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk.metadata'), createEmptyInstance: create)
+    ..aOM<AccountCurrency>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'base', subBuilder: AccountCurrency.create)
+    ..aOM<AccountCurrency>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'target', subBuilder: AccountCurrency.create)
+    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'memo')
+    ..hasRequiredFields = false
+  ;
+
+  QuoteRequest._() : super();
+  factory QuoteRequest({
+    AccountCurrency? base,
+    AccountCurrency? target,
+    $core.String? memo,
+  }) {
+    final _result = create();
+    if (base != null) {
+      _result.base = base;
+    }
+    if (target != null) {
+      _result.target = target;
+    }
+    if (memo != null) {
+      _result.memo = memo;
+    }
+    return _result;
+  }
+  factory QuoteRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory QuoteRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  QuoteRequest clone() => QuoteRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  QuoteRequest copyWith(void Function(QuoteRequest) updates) => super.copyWith((message) => updates(message as QuoteRequest)) as QuoteRequest; // ignore: deprecated_member_use
+  $pb.BuilderInfo get info_ => _i;
+  @$core.pragma('dart2js:noInline')
+  static QuoteRequest create() => QuoteRequest._();
+  QuoteRequest createEmptyInstance() => create();
+  static $pb.PbList<QuoteRequest> createRepeated() => $pb.PbList<QuoteRequest>();
+  @$core.pragma('dart2js:noInline')
+  static QuoteRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<QuoteRequest>(create);
+  static QuoteRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  AccountCurrency get base => $_getN(0);
+  @$pb.TagNumber(1)
+  set base(AccountCurrency v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBase() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBase() => clearField(1);
+  @$pb.TagNumber(1)
+  AccountCurrency ensureBase() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  AccountCurrency get target => $_getN(1);
+  @$pb.TagNumber(2)
+  set target(AccountCurrency v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTarget() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTarget() => clearField(2);
+  @$pb.TagNumber(2)
+  AccountCurrency ensureTarget() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.String get memo => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set memo($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMemo() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMemo() => clearField(3);
+}
+
+class AccountCurrency extends $pb.GeneratedMessage {
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'AccountCurrency', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk.metadata'), createEmptyInstance: create)
+    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'operator')
+    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'currency')
+    ..a<$core.List<$core.int>>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'accountId', $pb.PbFieldType.OY)
+    ..a<$fixnum.Int64>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'amount', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  AccountCurrency._() : super();
+  factory AccountCurrency({
+    $core.String? operator,
+    $core.String? currency,
+    $core.List<$core.int>? accountId,
+    $fixnum.Int64? amount,
+  }) {
+    final _result = create();
+    if (operator != null) {
+      _result.operator = operator;
+    }
+    if (currency != null) {
+      _result.currency = currency;
+    }
+    if (accountId != null) {
+      _result.accountId = accountId;
+    }
+    if (amount != null) {
+      _result.amount = amount;
+    }
+    return _result;
+  }
+  factory AccountCurrency.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AccountCurrency.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AccountCurrency clone() => AccountCurrency()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AccountCurrency copyWith(void Function(AccountCurrency) updates) => super.copyWith((message) => updates(message as AccountCurrency)) as AccountCurrency; // ignore: deprecated_member_use
+  $pb.BuilderInfo get info_ => _i;
+  @$core.pragma('dart2js:noInline')
+  static AccountCurrency create() => AccountCurrency._();
+  AccountCurrency createEmptyInstance() => create();
+  static $pb.PbList<AccountCurrency> createRepeated() => $pb.PbList<AccountCurrency>();
+  @$core.pragma('dart2js:noInline')
+  static AccountCurrency getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AccountCurrency>(create);
+  static AccountCurrency? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get operator => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set operator($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOperator() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOperator() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get currency => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set currency($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCurrency() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCurrency() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get accountId => $_getN(2);
+  @$pb.TagNumber(3)
+  set accountId($core.List<$core.int> v) { $_setBytes(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAccountId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAccountId() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get amount => $_getI64(3);
+  @$pb.TagNumber(4)
+  set amount($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAmount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmount() => clearField(4);
+}
+
+enum QuoteEvent_Event {
+  request, 
+  proposal, 
+  notSet
+}
+
+class QuoteEvent extends $pb.GeneratedMessage {
+  static const $core.Map<$core.int, QuoteEvent_Event> _QuoteEvent_EventByTag = {
+    1 : QuoteEvent_Event.request,
+    2 : QuoteEvent_Event.proposal,
+    0 : QuoteEvent_Event.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'QuoteEvent', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk.metadata'), createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<QuoteRequest>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'request', subBuilder: QuoteRequest.create)
+    ..aOM<Contract>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'proposal', subBuilder: Contract.create)
+    ..hasRequiredFields = false
+  ;
+
+  QuoteEvent._() : super();
+  factory QuoteEvent({
+    QuoteRequest? request,
+    Contract? proposal,
+  }) {
+    final _result = create();
+    if (request != null) {
+      _result.request = request;
+    }
+    if (proposal != null) {
+      _result.proposal = proposal;
+    }
+    return _result;
+  }
+  factory QuoteEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory QuoteEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  QuoteEvent clone() => QuoteEvent()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  QuoteEvent copyWith(void Function(QuoteEvent) updates) => super.copyWith((message) => updates(message as QuoteEvent)) as QuoteEvent; // ignore: deprecated_member_use
+  $pb.BuilderInfo get info_ => _i;
+  @$core.pragma('dart2js:noInline')
+  static QuoteEvent create() => QuoteEvent._();
+  QuoteEvent createEmptyInstance() => create();
+  static $pb.PbList<QuoteEvent> createRepeated() => $pb.PbList<QuoteEvent>();
+  @$core.pragma('dart2js:noInline')
+  static QuoteEvent getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<QuoteEvent>(create);
+  static QuoteEvent? _defaultInstance;
+
+  QuoteEvent_Event whichEvent() => _QuoteEvent_EventByTag[$_whichOneof(0)]!;
+  void clearEvent() => clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  QuoteRequest get request => $_getN(0);
+  @$pb.TagNumber(1)
+  set request(QuoteRequest v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasRequest() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequest() => clearField(1);
+  @$pb.TagNumber(1)
+  QuoteRequest ensureRequest() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  Contract get proposal => $_getN(1);
+  @$pb.TagNumber(2)
+  set proposal(Contract v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasProposal() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProposal() => clearField(2);
+  @$pb.TagNumber(2)
+  Contract ensureProposal() => $_ensure(1);
 }
 

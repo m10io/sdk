@@ -25,6 +25,11 @@ pub(crate) fn public_key() -> String {
     base64::encode(peer_public_key_bytes)
 }
 
+pub(crate) fn key_pair() -> m10_sdk::Ed25519 {
+    let key_pair = m10_sdk::Ed25519::new_key_pair(None).unwrap();
+    key_pair
+}
+
 pub async fn admin_jwt() -> String {
     ADMIN_JWT
         .get_or_init(|| async {
@@ -211,4 +216,12 @@ impl FallibleRequest for Response {
         }
         assert_eq!(status, expected_status);
     }
+}
+
+pub fn account_balance(account: &Account) -> i64 {
+    assert!(account.bank_reference.is_some(), "missing bank reference");
+    let br = account.bank_reference.as_ref().unwrap();
+    let balance = br.get("balance");
+    assert!(balance.is_some(), "missing balance");
+    balance.unwrap().as_i64().unwrap()
 }

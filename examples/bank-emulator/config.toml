@@ -13,11 +13,11 @@ audience = "https://api.m10.net"
 
 [bank]
 type = "Emulator"
-currencies = [{currency = "USD", account_name = "holding-usd"}]
+currencies = [{currency = "USD", account_name = "holding-usd", pre_fund_range = {start = 50000, end = 300000}}]
 checking_account_start = 500000000
 
 [currencies.usd]
-ledger_account_name = "Bank Emulator USD"
+ledger_account_name = "M10 Bank USD"
 code = "usd"
 asset = false
 

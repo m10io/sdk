@@ -1,11 +1,12 @@
 use m10_rds_pool::{bb8, RdsManager};
+use rand::{thread_rng, Rng};
 use serde_json::Value;
 use sqlx::Connection;
 use uuid::Uuid;
 
 use crate::{bank::Bank, config::BankEmulatorConfig, error::Error, models::ContactType};
 
-use self::model::{bank_accounts::*, bank_contacts::*};
+use self::model::{bank_accounts::*, bank_contacts::*, bank_transfers::*};
 
 mod model;
 
@@ -14,6 +15,7 @@ pub(crate) struct BankEmulator {
     checking_account_range: i32,
     holding_account: BankAccount,
     currency: String,
+    pre_fund_range: std::ops::Range<u64>,
     db_pool: bb8::Pool<RdsManager>,
 }
 
@@ -37,6 +39,7 @@ impl BankEmulator {
             checking_account_range: config.checking_account_start,
             holding_account,
             currency: currency_conf.currency.clone(),
+            pre_fund_range: currency_conf.pre_fund_range.clone(),
             db_pool,
         })
     }
@@ -46,8 +49,9 @@ impl BankEmulator {
 impl Bank for BankEmulator {
     type Contact = BankContact;
     type Account = BankAccount;
+    type Transfer = BankTransfer;
 
-    async fn create_account(&self, display_name: &str) -> Result<Value, Error> {
+    async fn create_account(&mut self, display_name: &str) -> Result<Value, Error> {
         let conn = self.db_pool.get().await?;
         let account = BankAccount::new(
             self.checking_account_range,
@@ -56,7 +60,33 @@ impl Bank for BankEmulator {
             conn,
         )
         .await?;
+        let mut conn = self.db_pool.get().await?;
+        let range = self.pre_fund_range.clone();
+        let fund: u64 = {
+            let mut rng = thread_rng();
+            rng.gen_range(range)
+        };
+        let mut txn = conn.begin().await?;
+        let txn_id = self
+            .holding_account
+            .deposit_into(account.id, fund as i64, "start balance", None, &mut txn)
+            .await?;
+        self.holding_account
+            .settle_deposit(txn_id, &mut txn)
+            .await?;
+        txn.commit().await?;
+        let account = BankAccount::find_by_id(account.id)
+            .fetch_one(&mut *conn)
+            .await?;
         Ok(account.into())
+    }
+
+    fn account_number(&self) -> i32 {
+        self.holding_account.account_number
+    }
+
+    fn currency(&self) -> &str {
+        &self.currency
     }
 
     async fn create_contact(
@@ -217,8 +247,8 @@ impl Bank for BankEmulator {
             .holding_account
             .deposit_for_contact(contact_id, amount.try_into()?, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
     }
 
@@ -230,21 +260,26 @@ impl Bank for BankEmulator {
             .holding_account
             .withdraw_for_contact(contact_id, amount.try_into()?, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
     }
 
-    async fn account_deposit(&mut self, amount: u64, account_ref: &Value) -> Result<Uuid, Error> {
+    async fn account_deposit(
+        &mut self,
+        amount: u64,
+        account_ref: &Value,
+        reference: &str,
+    ) -> Result<Uuid, Error> {
         let account_id = BankAccount::try_id_from(account_ref)?;
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_into(account_id, amount.try_into()?, None, &mut txn)
+            .deposit_into(account_id, amount.try_into()?, reference, None, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
     }
 
@@ -256,13 +291,21 @@ impl Bank for BankEmulator {
             .holding_account
             .withdraw_from(account_id, amount.try_into()?, None, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
     }
 
     async fn transfer(&self) -> Result<Value, Error> {
         unimplemented!()
+    }
+
+    async fn transfers_by_reference(&self, reference: &str) -> Result<Vec<Self::Transfer>, Error> {
+        let mut conn = self.db_pool.get().await?;
+        let transfers = BankTransfer::find_by_reference(reference)
+            .fetch_all(&mut *conn)
+            .await?;
+        Ok(transfers)
     }
 
     async fn fund(&mut self, amount: u64, contact_ref: &Value) -> Result<Uuid, Error> {
@@ -276,24 +319,29 @@ impl Bank for BankEmulator {
         self.holding_account
             .settle_deposit(txn_id, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
     }
 
-    async fn fund_account(&mut self, amount: u64, account_ref: &Value) -> Result<Uuid, Error> {
+    async fn fund_account(
+        &mut self,
+        amount: u64,
+        account_ref: &Value,
+        reference: &str,
+    ) -> Result<Uuid, Error> {
         let account_id = BankAccount::try_id_from(account_ref)?;
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_into(account_id, amount.try_into()?, None, &mut txn)
+            .deposit_into(account_id, amount.try_into()?, reference, None, &mut txn)
             .await?;
         self.holding_account
             .settle_deposit(txn_id, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
     }
 
@@ -304,8 +352,8 @@ impl Bank for BankEmulator {
             .holding_account
             .settle_deposit(txn_id, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(amount.try_into()?)
     }
 
@@ -316,8 +364,8 @@ impl Bank for BankEmulator {
             .holding_account
             .settle_withdraw(txn_id, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(amount.try_into()?)
     }
 
@@ -328,8 +376,8 @@ impl Bank for BankEmulator {
             .holding_account
             .reverse_deposit(txn_id, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(amount.try_into()?)
     }
 
@@ -340,8 +388,8 @@ impl Bank for BankEmulator {
             .holding_account
             .reverse_withdraw(txn_id, &mut txn)
             .await?;
-        self.holding_account.refresh(&mut txn).await?;
         txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
         Ok(amount.try_into()?)
     }
 

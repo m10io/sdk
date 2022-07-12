@@ -1,14 +1,14 @@
 import { expect } from "chai";
 import { beforeEach,describe, it } from "mocha";
 
-import type { m10 } from "../../protobufs";
+import { m10 } from "../../protobufs";
 import { LedgerClient } from "../../src/client";
 import { accounts, roleBindings, transfers } from "../../src/helpers";
-import { CryptoSigner } from "../../src/utils";
+import { CryptoSigner, getPublicKeyFromUint8Array, getUint8ArrayFromAccountId } from "../../src/utils";
 
 const INCREASED_TEST_TIMEOUT: number = 12000;
 
-describe.skip("Hybrid CBDC Bootstrap", () => {
+describe("Hybrid CBDC Bootstrap", () => {
     let operatorSigner: CryptoSigner;
     let bankAdminSigner: CryptoSigner;
     let cbdcSigner: CryptoSigner;
@@ -42,6 +42,9 @@ describe.skip("Hybrid CBDC Bootstrap", () => {
         m1BankName = "Test M1 Bank";
         instrumentCode = "XYZ";
         instrumentDesc = "XYZ Currency";
+
+        /* eslint-disable no-debugger, no-console */
+        console.log("Operator key account", getPublicKeyFromUint8Array(operatorSigner.getPublicKey()));
     });
 
     it("Create m0 currency", async () => {
@@ -101,6 +104,21 @@ describe.skip("Hybrid CBDC Bootstrap", () => {
 
         /* eslint-disable no-debugger, no-console */
         console.log("TX ID: ", tx.txId);
+    }).timeout(INCREASED_TEST_TIMEOUT);
+
+    it("Create bank object from m1 bank accounts", async () => {
+        /* eslint-disable no-debugger, no-console */
+        console.log("CREATING BANK");
+
+        const bankAccounts: m10.sdk.model.IBankAccountRef[] = [ {
+            accountId: getUint8ArrayFromAccountId(createdM1Account),
+            accountType: m10.sdk.model.BankAccountRef.BankAccountType.CBDC,
+        } ];
+
+        const bank = await accounts.createBank(ledgerClient, operatorSigner, createdM1Account, "BNKX", "XYZ Bank", bankAccounts);
+
+        /* eslint-disable no-debugger, no-console */
+        console.log("TX ID: ", bank);
     }).timeout(INCREASED_TEST_TIMEOUT);
 
 });

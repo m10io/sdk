@@ -45,11 +45,9 @@ impl AccountIdExt for sdk::Target {
     fn involves_account(&self, id: AccountId) -> bool {
         self.target
             .as_ref()
-            .map(|t| {
-                match t {
-                    sdk::target::Target::AccountId(to_id) => to_id.involves_account(id),
-                    // target::Target::AnyAccount(()) => true,
-                }
+            .map(|t| match t {
+                sdk::target::Target::AccountId(to_id) => to_id.involves_account(id),
+                sdk::target::Target::AnyAccount(()) => true,
             })
             .unwrap_or(false)
     }

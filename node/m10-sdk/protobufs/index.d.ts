@@ -377,6 +377,34 @@ export namespace m10 {
              * @returns Promise
              */
             public observeResources(request: m10.sdk.IRequestEnvelope): Promise<m10.sdk.FinalizedTransactions>;
+
+            /**
+             * Calls ObserveMetrics.
+             * @param request RequestEnvelope message or plain object
+             * @param callback Node-style callback called with the error, if any, and TransactionMetrics
+             */
+            public observeMetrics(request: m10.sdk.IRequestEnvelope, callback: m10.sdk.M10QueryService.ObserveMetricsCallback): void;
+
+            /**
+             * Calls ObserveMetrics.
+             * @param request RequestEnvelope message or plain object
+             * @returns Promise
+             */
+            public observeMetrics(request: m10.sdk.IRequestEnvelope): Promise<m10.sdk.TransactionMetrics>;
+
+            /**
+             * Calls ListBanks.
+             * @param request RequestEnvelope message or plain object
+             * @param callback Node-style callback called with the error, if any, and ListBanksResponse
+             */
+            public listBanks(request: m10.sdk.IRequestEnvelope, callback: m10.sdk.M10QueryService.ListBanksCallback): void;
+
+            /**
+             * Calls ListBanks.
+             * @param request RequestEnvelope message or plain object
+             * @returns Promise
+             */
+            public listBanks(request: m10.sdk.IRequestEnvelope): Promise<m10.sdk.ListBanksResponse>;
         }
 
         namespace M10QueryService {
@@ -534,6 +562,20 @@ export namespace m10 {
              * @param [response] FinalizedTransactions
              */
             type ObserveResourcesCallback = (error: (Error|null), response?: m10.sdk.FinalizedTransactions) => void;
+
+            /**
+             * Callback as used by {@link m10.sdk.M10QueryService#observeMetrics}.
+             * @param error Error, if any
+             * @param [response] TransactionMetrics
+             */
+            type ObserveMetricsCallback = (error: (Error|null), response?: m10.sdk.TransactionMetrics) => void;
+
+            /**
+             * Callback as used by {@link m10.sdk.M10QueryService#listBanks}.
+             * @param error Error, if any
+             * @param [response] ListBanksResponse
+             */
+            type ListBanksCallback = (error: (Error|null), response?: m10.sdk.ListBanksResponse) => void;
         }
 
         /** Properties of a RequestEnvelope. */
@@ -2957,6 +2999,294 @@ export namespace m10 {
             public toJSON(): { [k: string]: any };
         }
 
+        /** Properties of a TransactionMetrics. */
+        interface ITransactionMetrics {
+
+            /** TransactionMetrics transferVolume */
+            transferVolume?: (number|Long|null);
+
+            /** TransactionMetrics transferCount */
+            transferCount?: (number|Long|null);
+
+            /** TransactionMetrics transferErrors */
+            transferErrors?: (number|Long|null);
+
+            /** TransactionMetrics accountsCreated */
+            accountsCreated?: (number|Long|null);
+        }
+
+        /** Represents a TransactionMetrics. */
+        class TransactionMetrics implements ITransactionMetrics {
+
+            /**
+             * Constructs a new TransactionMetrics.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: m10.sdk.ITransactionMetrics);
+
+            /** TransactionMetrics transferVolume. */
+            public transferVolume: (number|Long);
+
+            /** TransactionMetrics transferCount. */
+            public transferCount: (number|Long);
+
+            /** TransactionMetrics transferErrors. */
+            public transferErrors: (number|Long);
+
+            /** TransactionMetrics accountsCreated. */
+            public accountsCreated: (number|Long);
+
+            /**
+             * Creates a new TransactionMetrics instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns TransactionMetrics instance
+             */
+            public static create(properties?: m10.sdk.ITransactionMetrics): m10.sdk.TransactionMetrics;
+
+            /**
+             * Encodes the specified TransactionMetrics message. Does not implicitly {@link m10.sdk.TransactionMetrics.verify|verify} messages.
+             * @param message TransactionMetrics message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: m10.sdk.ITransactionMetrics, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified TransactionMetrics message, length delimited. Does not implicitly {@link m10.sdk.TransactionMetrics.verify|verify} messages.
+             * @param message TransactionMetrics message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: m10.sdk.ITransactionMetrics, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a TransactionMetrics message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns TransactionMetrics
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.TransactionMetrics;
+
+            /**
+             * Decodes a TransactionMetrics message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns TransactionMetrics
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.TransactionMetrics;
+
+            /**
+             * Verifies a TransactionMetrics message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a TransactionMetrics message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns TransactionMetrics
+             */
+            public static fromObject(object: { [k: string]: any }): m10.sdk.TransactionMetrics;
+
+            /**
+             * Creates a plain object from a TransactionMetrics message. Also converts values to other types if specified.
+             * @param message TransactionMetrics
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: m10.sdk.TransactionMetrics, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this TransactionMetrics to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+        }
+
+        /** Properties of a ListBanksRequest. */
+        interface IListBanksRequest {
+
+            /** ListBanksRequest page */
+            page?: (m10.sdk.IPage|null);
+        }
+
+        /** Represents a ListBanksRequest. */
+        class ListBanksRequest implements IListBanksRequest {
+
+            /**
+             * Constructs a new ListBanksRequest.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: m10.sdk.IListBanksRequest);
+
+            /** ListBanksRequest page. */
+            public page?: (m10.sdk.IPage|null);
+
+            /**
+             * Creates a new ListBanksRequest instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns ListBanksRequest instance
+             */
+            public static create(properties?: m10.sdk.IListBanksRequest): m10.sdk.ListBanksRequest;
+
+            /**
+             * Encodes the specified ListBanksRequest message. Does not implicitly {@link m10.sdk.ListBanksRequest.verify|verify} messages.
+             * @param message ListBanksRequest message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: m10.sdk.IListBanksRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified ListBanksRequest message, length delimited. Does not implicitly {@link m10.sdk.ListBanksRequest.verify|verify} messages.
+             * @param message ListBanksRequest message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: m10.sdk.IListBanksRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a ListBanksRequest message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns ListBanksRequest
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.ListBanksRequest;
+
+            /**
+             * Decodes a ListBanksRequest message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns ListBanksRequest
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.ListBanksRequest;
+
+            /**
+             * Verifies a ListBanksRequest message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a ListBanksRequest message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns ListBanksRequest
+             */
+            public static fromObject(object: { [k: string]: any }): m10.sdk.ListBanksRequest;
+
+            /**
+             * Creates a plain object from a ListBanksRequest message. Also converts values to other types if specified.
+             * @param message ListBanksRequest
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: m10.sdk.ListBanksRequest, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this ListBanksRequest to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+        }
+
+        /** Properties of a ListBanksResponse. */
+        interface IListBanksResponse {
+
+            /** ListBanksResponse banks */
+            banks?: (m10.sdk.model.IBank[]|null);
+        }
+
+        /** Represents a ListBanksResponse. */
+        class ListBanksResponse implements IListBanksResponse {
+
+            /**
+             * Constructs a new ListBanksResponse.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: m10.sdk.IListBanksResponse);
+
+            /** ListBanksResponse banks. */
+            public banks: m10.sdk.model.IBank[];
+
+            /**
+             * Creates a new ListBanksResponse instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns ListBanksResponse instance
+             */
+            public static create(properties?: m10.sdk.IListBanksResponse): m10.sdk.ListBanksResponse;
+
+            /**
+             * Encodes the specified ListBanksResponse message. Does not implicitly {@link m10.sdk.ListBanksResponse.verify|verify} messages.
+             * @param message ListBanksResponse message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: m10.sdk.IListBanksResponse, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified ListBanksResponse message, length delimited. Does not implicitly {@link m10.sdk.ListBanksResponse.verify|verify} messages.
+             * @param message ListBanksResponse message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: m10.sdk.IListBanksResponse, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a ListBanksResponse message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns ListBanksResponse
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.ListBanksResponse;
+
+            /**
+             * Decodes a ListBanksResponse message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns ListBanksResponse
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.ListBanksResponse;
+
+            /**
+             * Verifies a ListBanksResponse message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a ListBanksResponse message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns ListBanksResponse
+             */
+            public static fromObject(object: { [k: string]: any }): m10.sdk.ListBanksResponse;
+
+            /**
+             * Creates a plain object from a ListBanksResponse message. Also converts values to other types if specified.
+             * @param message ListBanksResponse
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: m10.sdk.ListBanksResponse, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this ListBanksResponse to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+        }
+
         /** Properties of a DocumentOperations. */
         interface IDocumentOperations {
 
@@ -4899,6 +5229,315 @@ export namespace m10 {
                     IN_PROGRESS = 3
                 }
             }
+
+            /** Properties of a QuoteRequest. */
+            interface IQuoteRequest {
+
+                /** QuoteRequest base */
+                base?: (m10.sdk.metadata.IAccountCurrency|null);
+
+                /** QuoteRequest target */
+                target?: (m10.sdk.metadata.IAccountCurrency|null);
+
+                /** QuoteRequest memo */
+                memo?: (string|null);
+            }
+
+            /** Represents a QuoteRequest. */
+            class QuoteRequest implements IQuoteRequest {
+
+                /**
+                 * Constructs a new QuoteRequest.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: m10.sdk.metadata.IQuoteRequest);
+
+                /** QuoteRequest base. */
+                public base?: (m10.sdk.metadata.IAccountCurrency|null);
+
+                /** QuoteRequest target. */
+                public target?: (m10.sdk.metadata.IAccountCurrency|null);
+
+                /** QuoteRequest memo. */
+                public memo: string;
+
+                /**
+                 * Creates a new QuoteRequest instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns QuoteRequest instance
+                 */
+                public static create(properties?: m10.sdk.metadata.IQuoteRequest): m10.sdk.metadata.QuoteRequest;
+
+                /**
+                 * Encodes the specified QuoteRequest message. Does not implicitly {@link m10.sdk.metadata.QuoteRequest.verify|verify} messages.
+                 * @param message QuoteRequest message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: m10.sdk.metadata.IQuoteRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified QuoteRequest message, length delimited. Does not implicitly {@link m10.sdk.metadata.QuoteRequest.verify|verify} messages.
+                 * @param message QuoteRequest message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: m10.sdk.metadata.IQuoteRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a QuoteRequest message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns QuoteRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.metadata.QuoteRequest;
+
+                /**
+                 * Decodes a QuoteRequest message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns QuoteRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.metadata.QuoteRequest;
+
+                /**
+                 * Verifies a QuoteRequest message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a QuoteRequest message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns QuoteRequest
+                 */
+                public static fromObject(object: { [k: string]: any }): m10.sdk.metadata.QuoteRequest;
+
+                /**
+                 * Creates a plain object from a QuoteRequest message. Also converts values to other types if specified.
+                 * @param message QuoteRequest
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: m10.sdk.metadata.QuoteRequest, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this QuoteRequest to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+            }
+
+            /** Properties of an AccountCurrency. */
+            interface IAccountCurrency {
+
+                /** AccountCurrency operator */
+                operator?: (string|null);
+
+                /** AccountCurrency currency */
+                currency?: (string|null);
+
+                /** AccountCurrency accountId */
+                accountId?: (Uint8Array|null);
+
+                /** AccountCurrency amount */
+                amount?: (number|Long|null);
+            }
+
+            /** Represents an AccountCurrency. */
+            class AccountCurrency implements IAccountCurrency {
+
+                /**
+                 * Constructs a new AccountCurrency.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: m10.sdk.metadata.IAccountCurrency);
+
+                /** AccountCurrency operator. */
+                public operator: string;
+
+                /** AccountCurrency currency. */
+                public currency: string;
+
+                /** AccountCurrency accountId. */
+                public accountId: Uint8Array;
+
+                /** AccountCurrency amount. */
+                public amount: (number|Long);
+
+                /**
+                 * Creates a new AccountCurrency instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns AccountCurrency instance
+                 */
+                public static create(properties?: m10.sdk.metadata.IAccountCurrency): m10.sdk.metadata.AccountCurrency;
+
+                /**
+                 * Encodes the specified AccountCurrency message. Does not implicitly {@link m10.sdk.metadata.AccountCurrency.verify|verify} messages.
+                 * @param message AccountCurrency message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: m10.sdk.metadata.IAccountCurrency, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified AccountCurrency message, length delimited. Does not implicitly {@link m10.sdk.metadata.AccountCurrency.verify|verify} messages.
+                 * @param message AccountCurrency message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: m10.sdk.metadata.IAccountCurrency, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes an AccountCurrency message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns AccountCurrency
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.metadata.AccountCurrency;
+
+                /**
+                 * Decodes an AccountCurrency message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns AccountCurrency
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.metadata.AccountCurrency;
+
+                /**
+                 * Verifies an AccountCurrency message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates an AccountCurrency message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns AccountCurrency
+                 */
+                public static fromObject(object: { [k: string]: any }): m10.sdk.metadata.AccountCurrency;
+
+                /**
+                 * Creates a plain object from an AccountCurrency message. Also converts values to other types if specified.
+                 * @param message AccountCurrency
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: m10.sdk.metadata.AccountCurrency, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this AccountCurrency to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+            }
+
+            /** Properties of a QuoteEvent. */
+            interface IQuoteEvent {
+
+                /** QuoteEvent request */
+                request?: (m10.sdk.metadata.IQuoteRequest|null);
+
+                /** QuoteEvent proposal */
+                proposal?: (m10.sdk.metadata.IContract|null);
+            }
+
+            /** Represents a QuoteEvent. */
+            class QuoteEvent implements IQuoteEvent {
+
+                /**
+                 * Constructs a new QuoteEvent.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: m10.sdk.metadata.IQuoteEvent);
+
+                /** QuoteEvent request. */
+                public request?: (m10.sdk.metadata.IQuoteRequest|null);
+
+                /** QuoteEvent proposal. */
+                public proposal?: (m10.sdk.metadata.IContract|null);
+
+                /** QuoteEvent event. */
+                public event?: ("request"|"proposal");
+
+                /**
+                 * Creates a new QuoteEvent instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns QuoteEvent instance
+                 */
+                public static create(properties?: m10.sdk.metadata.IQuoteEvent): m10.sdk.metadata.QuoteEvent;
+
+                /**
+                 * Encodes the specified QuoteEvent message. Does not implicitly {@link m10.sdk.metadata.QuoteEvent.verify|verify} messages.
+                 * @param message QuoteEvent message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: m10.sdk.metadata.IQuoteEvent, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified QuoteEvent message, length delimited. Does not implicitly {@link m10.sdk.metadata.QuoteEvent.verify|verify} messages.
+                 * @param message QuoteEvent message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: m10.sdk.metadata.IQuoteEvent, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a QuoteEvent message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns QuoteEvent
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.metadata.QuoteEvent;
+
+                /**
+                 * Decodes a QuoteEvent message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns QuoteEvent
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.metadata.QuoteEvent;
+
+                /**
+                 * Verifies a QuoteEvent message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a QuoteEvent message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns QuoteEvent
+                 */
+                public static fromObject(object: { [k: string]: any }): m10.sdk.metadata.QuoteEvent;
+
+                /**
+                 * Creates a plain object from a QuoteEvent message. Also converts values to other types if specified.
+                 * @param message QuoteEvent
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: m10.sdk.metadata.QuoteEvent, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this QuoteEvent to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+            }
         }
 
         /** Namespace model. */
@@ -5331,6 +5970,225 @@ export namespace m10 {
 
                 /**
                  * Converts this AccountInfo to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+            }
+
+            /** Properties of a BankAccountRef. */
+            interface IBankAccountRef {
+
+                /** BankAccountRef accountId */
+                accountId?: (Uint8Array|null);
+
+                /** BankAccountRef accountType */
+                accountType?: (m10.sdk.model.BankAccountRef.BankAccountType|null);
+            }
+
+            /** Represents a BankAccountRef. */
+            class BankAccountRef implements IBankAccountRef {
+
+                /**
+                 * Constructs a new BankAccountRef.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: m10.sdk.model.IBankAccountRef);
+
+                /** BankAccountRef accountId. */
+                public accountId: Uint8Array;
+
+                /** BankAccountRef accountType. */
+                public accountType: m10.sdk.model.BankAccountRef.BankAccountType;
+
+                /**
+                 * Creates a new BankAccountRef instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns BankAccountRef instance
+                 */
+                public static create(properties?: m10.sdk.model.IBankAccountRef): m10.sdk.model.BankAccountRef;
+
+                /**
+                 * Encodes the specified BankAccountRef message. Does not implicitly {@link m10.sdk.model.BankAccountRef.verify|verify} messages.
+                 * @param message BankAccountRef message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: m10.sdk.model.IBankAccountRef, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified BankAccountRef message, length delimited. Does not implicitly {@link m10.sdk.model.BankAccountRef.verify|verify} messages.
+                 * @param message BankAccountRef message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: m10.sdk.model.IBankAccountRef, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a BankAccountRef message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns BankAccountRef
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.model.BankAccountRef;
+
+                /**
+                 * Decodes a BankAccountRef message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns BankAccountRef
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.model.BankAccountRef;
+
+                /**
+                 * Verifies a BankAccountRef message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a BankAccountRef message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns BankAccountRef
+                 */
+                public static fromObject(object: { [k: string]: any }): m10.sdk.model.BankAccountRef;
+
+                /**
+                 * Creates a plain object from a BankAccountRef message. Also converts values to other types if specified.
+                 * @param message BankAccountRef
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: m10.sdk.model.BankAccountRef, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this BankAccountRef to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+            }
+
+            namespace BankAccountRef {
+
+                /** BankAccountType enum. */
+                enum BankAccountType {
+                    CBDC = 0,
+                    DRM = 1
+                }
+            }
+
+            /** Properties of a Bank. */
+            interface IBank {
+
+                /** Bank id */
+                id?: (Uint8Array|null);
+
+                /** Bank owner */
+                owner?: (Uint8Array|null);
+
+                /** Bank shortName */
+                shortName?: (string|null);
+
+                /** Bank displayName */
+                displayName?: (string|null);
+
+                /** Bank accounts */
+                accounts?: (m10.sdk.model.IBankAccountRef[]|null);
+            }
+
+            /** Represents a Bank. */
+            class Bank implements IBank {
+
+                /**
+                 * Constructs a new Bank.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: m10.sdk.model.IBank);
+
+                /** Bank id. */
+                public id: Uint8Array;
+
+                /** Bank owner. */
+                public owner: Uint8Array;
+
+                /** Bank shortName. */
+                public shortName: string;
+
+                /** Bank displayName. */
+                public displayName: string;
+
+                /** Bank accounts. */
+                public accounts: m10.sdk.model.IBankAccountRef[];
+
+                /**
+                 * Creates a new Bank instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns Bank instance
+                 */
+                public static create(properties?: m10.sdk.model.IBank): m10.sdk.model.Bank;
+
+                /**
+                 * Encodes the specified Bank message. Does not implicitly {@link m10.sdk.model.Bank.verify|verify} messages.
+                 * @param message Bank message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: m10.sdk.model.IBank, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified Bank message, length delimited. Does not implicitly {@link m10.sdk.model.Bank.verify|verify} messages.
+                 * @param message Bank message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: m10.sdk.model.IBank, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a Bank message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns Bank
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): m10.sdk.model.Bank;
+
+                /**
+                 * Decodes a Bank message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns Bank
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): m10.sdk.model.Bank;
+
+                /**
+                 * Verifies a Bank message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a Bank message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns Bank
+                 */
+                public static fromObject(object: { [k: string]: any }): m10.sdk.model.Bank;
+
+                /**
+                 * Creates a plain object from a Bank message. Also converts values to other types if specified.
+                 * @param message Bank
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: m10.sdk.model.Bank, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this Bank to JSON.
                  * @returns JSON object
                  */
                 public toJSON(): { [k: string]: any };
@@ -7933,6 +8791,9 @@ export namespace m10 {
 
                 /** Target accountId */
                 accountId?: (Uint8Array|null);
+
+                /** Target anyAccount */
+                anyAccount?: (google.protobuf.IEmpty|null);
             }
 
             /** Represents a Target. */
@@ -7947,8 +8808,11 @@ export namespace m10 {
                 /** Target accountId. */
                 public accountId?: (Uint8Array|null);
 
+                /** Target anyAccount. */
+                public anyAccount?: (google.protobuf.IEmpty|null);
+
                 /** Target target. */
-                public target?: "accountId";
+                public target?: ("accountId"|"anyAccount");
 
                 /**
                  * Creates a new Target instance using the specified properties.

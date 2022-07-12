@@ -15,6 +15,8 @@ args@{
   target ? null,
   codegenOpts ? null,
   profileOpts ? null,
+  rustcLinkFlags ? null,
+  rustcBuildFlags ? null,
   mkRustCrate,
   rustLib,
   lib,
@@ -105,7 +107,7 @@ in
       mime = rustPackages."registry+https://github.com/rust-lang/crates.io-index".mime."0.3.16" { inherit profileName; };
       percent_encoding = rustPackages."registry+https://github.com/rust-lang/crates.io-index".percent-encoding."2.1.0" { inherit profileName; };
       pin_project_lite = rustPackages."registry+https://github.com/rust-lang/crates.io-index".pin-project-lite."0.2.8" { inherit profileName; };
-      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.4" { inherit profileName; };
+      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.5" { inherit profileName; };
       sha1 = rustPackages."registry+https://github.com/rust-lang/crates.io-index".sha-1."0.10.0" { inherit profileName; };
       smallvec = rustPackages."registry+https://github.com/rust-lang/crates.io-index".smallvec."1.8.0" { inherit profileName; };
       zstd = rustPackages."registry+https://github.com/rust-lang/crates.io-index".zstd."0.10.0+zstd.1.5.2" { inherit profileName; };
@@ -1622,7 +1624,7 @@ in
       hex = rustPackages."registry+https://github.com/rust-lang/crates.io-index".hex."0.4.3" { inherit profileName; };
       m10_bank_emulator = rustPackages."unknown".m10-bank-emulator."0.1.0" { inherit profileName; };
       m10_sdk = rustPackages."unknown".m10-sdk."0.4.0" { inherit profileName; };
-      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.4" { inherit profileName; };
+      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.5" { inherit profileName; };
       reqwest = rustPackages."registry+https://github.com/rust-lang/crates.io-index".reqwest."0.11.9" { inherit profileName; };
       ring = rustPackages."registry+https://github.com/rust-lang/crates.io-index".ring."0.16.20" { inherit profileName; };
       rust_decimal = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rust_decimal."1.21.0" { inherit profileName; };
@@ -1829,6 +1831,7 @@ in
       m10_rds_pool = rustPackages."unknown".m10-rds-pool."0.1.0" { inherit profileName; };
       m10_sdk = rustPackages."unknown".m10-sdk."0.4.0" { inherit profileName; };
       oneline_eyre = rustPackages."registry+https://github.com/rust-lang/crates.io-index".oneline-eyre."0.1.0" { inherit profileName; };
+      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.5" { inherit profileName; };
       reqwest = rustPackages."registry+https://github.com/rust-lang/crates.io-index".reqwest."0.11.9" { inherit profileName; };
       rust_decimal = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rust_decimal."1.21.0" { inherit profileName; };
       serde = rustPackages."registry+https://github.com/rust-lang/crates.io-index".serde."1.0.136" { inherit profileName; };
@@ -2523,27 +2526,25 @@ in
     };
   });
   
-  "registry+https://github.com/rust-lang/crates.io-index".rand."0.8.4" = overridableMkRustCrate (profileName: rec {
+  "registry+https://github.com/rust-lang/crates.io-index".rand."0.8.5" = overridableMkRustCrate (profileName: rec {
     name = "rand";
-    version = "0.8.4";
+    version = "0.8.5";
     registry = "registry+https://github.com/rust-lang/crates.io-index";
-    src = fetchCratesIo { inherit name version; sha256 = "2e7573632e6454cf6b99d7aac4ccca54be06da05aca2ef7423d22d27d4d4bcd8"; };
+    src = fetchCratesIo { inherit name version; sha256 = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"; };
     features = builtins.concatLists [
       [ "alloc" ]
       [ "default" ]
       [ "getrandom" ]
       [ "libc" ]
       [ "rand_chacha" ]
-      [ "rand_hc" ]
       [ "small_rng" ]
       [ "std" ]
       [ "std_rng" ]
     ];
     dependencies = {
       ${ if hostPlatform.isUnix then "libc" else null } = rustPackages."registry+https://github.com/rust-lang/crates.io-index".libc."0.2.117" { inherit profileName; };
-      ${ if !(hostPlatform.parsed.kernel.name == "emscripten") then "rand_chacha" else null } = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand_chacha."0.3.1" { inherit profileName; };
+      rand_chacha = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand_chacha."0.3.1" { inherit profileName; };
       rand_core = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand_core."0.6.3" { inherit profileName; };
-      ${ if hostPlatform.parsed.kernel.name == "emscripten" then "rand_hc" else null } = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand_hc."0.3.1" { inherit profileName; };
     };
   });
   
@@ -2573,16 +2574,6 @@ in
     ];
     dependencies = {
       getrandom = rustPackages."registry+https://github.com/rust-lang/crates.io-index".getrandom."0.2.4" { inherit profileName; };
-    };
-  });
-  
-  "registry+https://github.com/rust-lang/crates.io-index".rand_hc."0.3.1" = overridableMkRustCrate (profileName: rec {
-    name = "rand_hc";
-    version = "0.3.1";
-    registry = "registry+https://github.com/rust-lang/crates.io-index";
-    src = fetchCratesIo { inherit name version; sha256 = "d51e9f596de227fda2ea6c84607f5558e196eeaf43c986b724ba4fb8fdf497e7"; };
-    dependencies = {
-      rand_core = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand_core."0.6.3" { inherit profileName; };
     };
   });
   
@@ -3326,7 +3317,7 @@ in
       once_cell = rustPackages."registry+https://github.com/rust-lang/crates.io-index".once_cell."1.9.0" { inherit profileName; };
       parking_lot = rustPackages."registry+https://github.com/rust-lang/crates.io-index".parking_lot."0.11.2" { inherit profileName; };
       percent_encoding = rustPackages."registry+https://github.com/rust-lang/crates.io-index".percent-encoding."2.1.0" { inherit profileName; };
-      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.4" { inherit profileName; };
+      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.5" { inherit profileName; };
       rustls = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rustls."0.19.1" { inherit profileName; };
       serde = rustPackages."registry+https://github.com/rust-lang/crates.io-index".serde."1.0.136" { inherit profileName; };
       serde_json = rustPackages."registry+https://github.com/rust-lang/crates.io-index".serde_json."1.0.78" { inherit profileName; };
@@ -3822,7 +3813,7 @@ in
       indexmap = rustPackages."registry+https://github.com/rust-lang/crates.io-index".indexmap."1.8.0" { inherit profileName; };
       pin_project = rustPackages."registry+https://github.com/rust-lang/crates.io-index".pin-project."1.0.10" { inherit profileName; };
       pin_project_lite = rustPackages."registry+https://github.com/rust-lang/crates.io-index".pin-project-lite."0.2.8" { inherit profileName; };
-      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.4" { inherit profileName; };
+      rand = rustPackages."registry+https://github.com/rust-lang/crates.io-index".rand."0.8.5" { inherit profileName; };
       slab = rustPackages."registry+https://github.com/rust-lang/crates.io-index".slab."0.4.5" { inherit profileName; };
       tokio = rustPackages."registry+https://github.com/rust-lang/crates.io-index".tokio."1.16.1" { inherit profileName; };
       tokio_stream = rustPackages."registry+https://github.com/rust-lang/crates.io-index".tokio-stream."0.1.8" { inherit profileName; };

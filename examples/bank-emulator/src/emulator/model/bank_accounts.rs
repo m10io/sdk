@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use m10_rds_pool::{bb8::PooledConnection, RdsManager};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::{postgres::PgArguments, query::QueryAs, Connection, Executor, Postgres};
 use uuid::Uuid;
@@ -16,7 +17,8 @@ pub enum BankAccountStatus {
     Closed,
 }
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_account_type")]
 pub enum BankAccountType {
@@ -47,9 +49,10 @@ impl From<BankAccount> for Value {
     fn from(value: BankAccount) -> Self {
         json!({
                 "id": value.id,
-                "number": value.account_number,
+                "account_number": value.account_number,
                 "name": value.display_name,
-                "currency": value.currency,
+                "balance": value.balance,
+                "type": value.account_type,
         })
     }
 }
@@ -120,16 +123,18 @@ impl BankAccount {
         &mut self,
         account: i64,
         amount: i64,
+        reference: &str,
         routing: Option<Value>,
         txn: impl Executor<'_, Database = Postgres>,
     ) -> Result<Uuid, Error> {
         // Sandbox deposit w/o real routing
         // Money is issued from this account
-        let query = sqlx::query_scalar("SELECT deposit($1, $2, $3, $4, 'SBD', $5);")
+        let query = sqlx::query_scalar("SELECT deposit($1, $2, $3, $4, $5, $6);")
             .bind(Uuid::new_v4())
             .bind(self.id)
             .bind(account)
             .bind(amount)
+            .bind(reference)
             .bind(routing);
         let txn_id = query.fetch_one(txn).await?;
         Ok(txn_id)

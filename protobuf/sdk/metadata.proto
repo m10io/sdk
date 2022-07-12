@@ -52,3 +52,26 @@ message PaymentRequest {
   }
   PaymentRequestStatus status = 2;
 }
+
+// A request for quoted FX transfer of [`base`] <-> [`target`]
+// Note: Amount should be provided exclusively for either [`base`] or [`target`]
+message QuoteRequest {
+  AccountCurrency base = 1;
+  AccountCurrency target = 2;
+  string memo = 3;
+}
+
+message AccountCurrency {
+  string operator = 1;
+  string currency = 2;
+  // M10 ledger account ID
+  bytes account_id = 3;
+  uint64 amount = 4;
+}
+
+message QuoteEvent {
+  oneof event {
+    QuoteRequest request = 1;
+    Contract proposal = 2;
+  } 
+}

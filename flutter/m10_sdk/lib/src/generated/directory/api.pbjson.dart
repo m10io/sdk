@@ -121,9 +121,12 @@ final $typed_data.Uint8List objectUrlResponseDescriptor = $convert.base64Decode(
 const CreateImageUrlRequest$json = const {
   '1': 'CreateImageUrlRequest',
   '2': const [
-    const {'1': 'mime_type', '3': 1, '4': 1, '5': 9, '10': 'mimeType'},
+    const {'1': 'mime_type', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'mimeType', '17': true},
+  ],
+  '8': const [
+    const {'1': '_mime_type'},
   ],
 };
 
 /// Descriptor for `CreateImageUrlRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createImageUrlRequestDescriptor = $convert.base64Decode('ChVDcmVhdGVJbWFnZVVybFJlcXVlc3QSGwoJbWltZV90eXBlGAEgASgJUghtaW1lVHlwZQ==');
+final $typed_data.Uint8List createImageUrlRequestDescriptor = $convert.base64Decode('ChVDcmVhdGVJbWFnZVVybFJlcXVlc3QSIAoJbWltZV90eXBlGAEgASgJSABSCG1pbWVUeXBliAEBQgwKCl9taW1lX3R5cGU=');

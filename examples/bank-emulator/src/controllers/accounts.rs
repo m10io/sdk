@@ -3,7 +3,9 @@ use actix_web::{
     web::{Data, Json, Path, Query},
     HttpResponse, Scope,
 };
-use m10_protos::sdk::{CreateTransfer, Deposit, TransferStep, Withdraw};
+use m10_protos::sdk::{
+    transaction, CreateTransfer, Deposit, GetTransferRequest, TransferStep, Withdraw,
+};
 use m10_sdk::{sdk::SetFreezeState, LedgerClient, Metadata, Signer};
 use serde_json::{json, Value};
 use sqlx::Acquire;
@@ -16,13 +18,42 @@ use crate::{
     context::Context,
     error::Error,
     models::{
-        Account, AccountAuth, AccountStatus, AmountRequest, Asset, AssetAuth, Contact,
-        CreateAccountRequest, ListResponse, NotificationPreferences, NotificationPreferencesAuth,
-        Page, Payment, PaymentQuery,
+        Account, AccountAuth, AccountStatus, AmountRequest, Asset, AssetAuth, BankTransfer,
+        Contact, CreateAccountRequest, LedgerAccountQuery, ListResponse, NotificationPreferences,
+        NotificationPreferencesAuth, Page, Payment, PaymentQuery, RedeemRequest,
     },
     rbac::create_contact_rbac_role,
     utils::{self, *},
 };
+
+async fn mirror_transfer(
+    from_account_id: Vec<u8>,
+    to_account_id: Vec<u8>,
+    amount: u64,
+    context: &Context,
+) -> Result<u64, Error> {
+    // create transaction
+    let deposit_metadata = Deposit::default().any();
+    let payload = LedgerClient::transaction_request(
+        m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
+            transfer_steps: vec![TransferStep {
+                from_account_id,
+                to_account_id,
+                amount,
+                metadata: vec![deposit_metadata],
+            }],
+        }),
+        vec![],
+    );
+    let signed_request = context.signer.sign_request(payload).await?;
+    let mut ledger = context.ledger.clone();
+    let txn = ledger
+        .create_transaction(signed_request)
+        .await?
+        .tx_error()?;
+    info!("Deposit mirrored on ledger: {}", txn.tx_id);
+    Ok(txn.tx_id)
+}
 
 #[post("")]
 async fn create(
@@ -42,7 +73,8 @@ async fn create(
         .get("profile_image_url")
         .and_then(|v| v.as_str());
 
-    let account_ref = context.bank.create_account(name).await?;
+    let mut bank = context.bank.clone();
+    let account_ref = bank.create_account(name).await?;
     let contact_ref = context
         .bank
         .create_contact(
@@ -166,10 +198,14 @@ async fn get(
     let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
     let query = Account::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
-    let account = query
+    let mut account = query
         .fetch_optional(&mut *conn)
         .await?
         .ok_or_else(|| Error::not_found("account"))?;
+    if let Some(account_ref) = &account.bank_reference {
+        let bank_account = context.bank.get_account(account_ref).await?;
+        account.bank_reference = Some(bank_account.into());
+    }
     Ok(Json(account))
 }
 
@@ -338,13 +374,234 @@ async fn deposit(
     let bank_txn = if let Some(account_ref) = account.bank_reference.as_ref() {
         let mut bank = context.bank.clone();
         let txn_id = bank
-            .account_deposit(request.amount_in_cents, account_ref)
+            .account_deposit(request.amount_in_cents, account_ref, "customer deposit")
             .await?;
         Some(txn_id)
     } else {
         None
     };
     Ok(Json(json!({ "bank_tx": bank_txn })))
+}
+
+#[post("{id}/request_funds")]
+async fn convert_into(
+    id: Path<i64>,
+    ledger_account_id: Query<LedgerAccountQuery>,
+    request: Json<AmountRequest>,
+    current_user: User,
+    context: Data<Context>,
+) -> Result<Json<BankTransfer>, Error> {
+    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let query = Account::find_by_id_scoped(*id, scope)?;
+    let mut conn = context.db_pool.get().await?;
+    let account = query
+        .fetch_optional(&mut *conn)
+        .await?
+        .ok_or_else(|| Error::not_found("account"))?;
+
+    let instrument = context.bank.currency().to_lowercase();
+
+    // get bank issuance account
+    let currency = context
+        .config
+        .currencies
+        .get(&instrument)
+        .ok_or_else(|| Error::not_found("currency configuration"))?;
+    let from_account = currency.ledger_account_id(&context).await?.to_vec();
+
+    // take customer ledger account from query param or asset
+    let to_account = if let Some(id) = &ledger_account_id.ledger_account_id {
+        hex::decode(id)?
+    } else {
+        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+        let query = Asset::find_by_account_id_instrument_scoped(*id, &instrument, scope)?;
+        let asset = query
+            .fetch_optional(&mut *conn)
+            .await?
+            .ok_or_else(Error::unauthorized)?;
+        asset.ledger_account_id
+    };
+
+    // Withdraw money from linked bank account
+    let bank_account = account
+        .bank_reference
+        .ok_or_else(|| Error::not_found("bank account"))?;
+    let bank_account_number = crate::bank::try_account_number_from(&bank_account)?;
+    let mut bank = context.bank.clone();
+    let bank_txn = bank
+        .account_withdraw(request.amount_in_cents, &bank_account)
+        .await?;
+
+    let transfer =
+        match mirror_transfer(from_account, to_account, request.amount_in_cents, &context).await {
+            Ok(_) => {
+                let amount = bank.settle_withdraw(bank_txn).await?;
+                BankTransfer {
+                    id: bank_txn,
+                    from_account: bank_account_number,
+                    to_account: bank.account_number(),
+                    amount: Some(amount),
+                    status: 0,
+                    error: None,
+                }
+            }
+            Err(err) => {
+                bank.reverse_withdraw(bank_txn).await?;
+                BankTransfer {
+                    id: bank_txn,
+                    from_account: bank_account_number,
+                    to_account: bank.account_number(),
+                    amount: None,
+                    status: 1,
+                    error: Some(err.to_string()),
+                }
+            }
+        };
+    Ok(Json(transfer))
+}
+
+#[post("{id}/redeem_direct")]
+async fn convert_direct_from(
+    id: Path<i64>,
+    ledger_account_id: Query<LedgerAccountQuery>,
+    request: Json<AmountRequest>,
+    current_user: User,
+    context: Data<Context>,
+) -> Result<Json<BankTransfer>, Error> {
+    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let query = Account::find_by_id_scoped(*id, scope)?;
+    let mut conn = context.db_pool.get().await?;
+    let account = query
+        .fetch_optional(&mut *conn)
+        .await?
+        .ok_or_else(|| Error::not_found("account"))?;
+
+    let instrument = context.bank.currency().to_lowercase();
+
+    // get bank issuance account
+    let currency = context
+        .config
+        .currencies
+        .get(&instrument)
+        .ok_or_else(|| Error::not_found("currency configuration"))?;
+    let to_account = currency.ledger_account_id(&context).await?.to_vec();
+
+    // take customer ledger account from query param or asset
+    let from_account = if let Some(id) = &ledger_account_id.ledger_account_id {
+        hex::decode(id)?
+    } else {
+        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+        let query = Asset::find_by_account_id_instrument_scoped(*id, &instrument, scope)?;
+        let asset = query
+            .fetch_optional(&mut *conn)
+            .await?
+            .ok_or_else(Error::unauthorized)?;
+        asset.ledger_account_id
+    };
+
+    // Deposit money from bank reserve account
+    let bank_account = account
+        .bank_reference
+        .ok_or_else(|| Error::not_found("bank account"))?;
+    let bank_account_number = crate::bank::try_account_number_from(&bank_account)?;
+
+    let ledger_txn =
+        mirror_transfer(from_account, to_account, request.amount_in_cents, &context).await?;
+    let mut bank = context.bank.clone();
+    let bank_txn = bank
+        .account_deposit(
+            request.amount_in_cents,
+            &bank_account,
+            &format!("ledger: {}", ledger_txn),
+        )
+        .await?;
+
+    let amount = bank.settle_deposit(bank_txn).await?;
+    let transfer = BankTransfer {
+        id: bank_txn,
+        from_account: bank.account_number(),
+        to_account: bank_account_number,
+        amount: Some(amount),
+        status: 0,
+        error: None,
+    };
+    Ok(Json(transfer))
+}
+
+#[post("{id}/redeem")]
+async fn convert_from(
+    id: Path<i64>,
+    request: Json<RedeemRequest>,
+    current_user: User,
+    context: Data<Context>,
+) -> Result<Json<BankTransfer>, Error> {
+    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let query = Account::find_by_id_scoped(*id, scope)?;
+    let mut conn = context.db_pool.get().await?;
+    let account = query
+        .fetch_optional(&mut *conn)
+        .await?
+        .ok_or_else(|| Error::not_found("account"))?;
+
+    let instrument = context.bank.currency().to_lowercase();
+
+    // get bank issuance account
+    let currency = context
+        .config
+        .currencies
+        .get(&instrument)
+        .ok_or_else(|| Error::not_found("currency configuration"))?;
+    let to_account_id = currency.ledger_account_id(&context).await?.to_vec();
+
+    let ledger_txn = (*request).txn_id;
+    // get transaction from ledger
+    let request = context
+        .signer
+        .sign_request(GetTransferRequest { tx_id: ledger_txn })
+        .await?;
+    let transfer = context.ledger.clone().get_transfer(request).await?;
+
+    if transfer.state != transaction::finalized_transfer::TransferState::Accepted as i32 {
+        return Err(Error::internal_msg("Transfer not accepted (state)"));
+    }
+
+    // find transfer step that has bank reserve account as target
+    let TransferStep { amount, .. } = transfer
+        .transfer_steps
+        .into_iter()
+        .find(|s| s.to_account_id == to_account_id)
+        .ok_or_else(|| Error::internal_msg("Transfer not accepted (target account"))?;
+
+    let mut bank = context.bank.clone();
+    let reference = format!("ledger: {}", ledger_txn);
+
+    // Check that ledger transfer hasn't been used yet
+    let transfers = bank.transfers_by_reference(&reference).await?;
+    if !transfers.is_empty() {
+        return Err(Error::internal_msg("transaction already used"));
+    }
+
+    // Deposit money from bank reserve account
+    let bank_account = account
+        .bank_reference
+        .ok_or_else(|| Error::not_found("bank account"))?;
+    let bank_account_number = crate::bank::try_account_number_from(&bank_account)?;
+
+    let bank_txn = bank
+        .account_deposit(amount, &bank_account, &reference)
+        .await?;
+
+    let amount = bank.settle_deposit(bank_txn).await?;
+    let transfer = BankTransfer {
+        id: bank_txn,
+        from_account: bank.account_number(),
+        to_account: bank_account_number,
+        amount: Some(amount),
+        status: 0,
+        error: None,
+    };
+
+    Ok(Json(transfer))
 }
 
 #[post("{id}/sandbox/fund")]
@@ -363,7 +620,7 @@ async fn fund(
         .ok_or_else(|| Error::not_found("account"))?;
     if let Some(account_ref) = account.bank_reference.as_ref() {
         let mut bank = context.bank.clone();
-        bank.fund_account(request.amount_in_cents, account_ref)
+        bank.fund_account(request.amount_in_cents, account_ref, "sandbox fund")
             .await?;
     }
     if let Some(instrument) = request.currency.as_ref() {
@@ -586,6 +843,9 @@ pub fn scope() -> Scope {
         .service(get_payment)
         .service(unfreeze_asset)
         .service(list_notification_preferences)
+        .service(convert_into)
+        .service(convert_direct_from)
+        .service(convert_from)
         .service(deposit)
         .service(fund)
         .service(open)

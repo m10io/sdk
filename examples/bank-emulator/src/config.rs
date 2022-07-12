@@ -138,6 +138,8 @@ pub struct BankEmulatorConfig {
 pub struct EmulatorHoldingAccount {
     pub currency: String,
     pub account_name: String,
+    #[serde(default)]
+    pub pre_fund_range: std::ops::Range<u64>,
 }
 
 impl Config {

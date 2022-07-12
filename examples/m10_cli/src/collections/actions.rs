@@ -40,6 +40,7 @@ impl TryFrom<sdk::Action> for Action {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Target {
     AccountId(AccountId),
+    AnyAccount,
 }
 
 impl TryFrom<sdk::Target> for Target {
@@ -54,6 +55,7 @@ impl TryFrom<sdk::Target> for Target {
                 sdk::target::Target::AccountId(id) => {
                     Target::AccountId(AccountId::try_from_be_slice(&id)?)
                 }
+                sdk::target::Target::AnyAccount(()) => Target::AnyAccount,
             },
         )
     }

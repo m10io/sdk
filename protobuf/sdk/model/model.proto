@@ -31,3 +31,20 @@ message AccountInfo {
   string code = 5;
   uint32 decimal_places = 6;
 }
+
+message BankAccountRef {
+  enum BankAccountType {
+    CBDC = 0;
+    DRM = 1;
+  }
+  bytes account_id = 1;
+  BankAccountType account_type = 2;
+}
+
+message Bank {
+  bytes id = 1;
+  bytes owner = 2;
+  string short_name = 3;
+  string display_name = 4;
+  repeated BankAccountRef accounts = 5;
+}

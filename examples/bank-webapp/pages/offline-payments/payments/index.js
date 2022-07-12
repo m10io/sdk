@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Page from 'components/page'
 import Link, { LINK_THEME_BLUE } from 'components/link'
 import Table from 'components/table'
+import StatusIcon, { STATUS_ICON_TYPE_PENDING } from 'components/status-icon'
 import IconDollarSign from 'icons/icon-dollar-sign'
 import iconRightArrowBlack from 'assets/icons/icon-arrow-right-black.svg'
 import routes from 'routes'
@@ -44,10 +45,28 @@ const makeColumns = ({ payments, isSmallViewport }) => {
       ),
     },
     {
-      Header: 'Date/Time',
-      accessor: 'created_at',
-      Cell: ({ cell: { row: { original: { created_at } } } }) => (
-        moment(created_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
+      Header: 'Uploaded',
+      accessor: 'uploaded_at',
+      Cell: ({ cell: { row: { original: { uploaded_at } } } }) => (
+        moment(uploaded_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
+      ),
+    },
+    {
+      Header: 'Debited',
+      accessor: 'debited_at',
+      Cell: ({ cell: { row: { original: { debited_at } } } }) => (
+        debited_at
+          ? moment(debited_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
+          : <StatusIcon type={STATUS_ICON_TYPE_PENDING} />
+      ),
+    },
+    {
+      Header: 'Credited',
+      accessor: 'credited_at',
+      Cell: ({ cell: { row: { original: { credited_at } } } }) => (
+        credited_at
+          ? moment(credited_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
+          : <StatusIcon type={STATUS_ICON_TYPE_PENDING} />
       ),
     },
     {

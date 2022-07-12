@@ -28,6 +28,11 @@ export async function updateRoleBinding(
     const transactionRequestPayload = client.transactionRequest(transactionData);
     const response = await client.createTransaction(signer, transactionRequestPayload);
 
+    // TODO: throw an error if any exists here to the caller
+    // error structure is here, we basically are seeing if the transaction envelope failed
+    // but do not know if the updates were not applied
+    // https://github.com/m10io/mono/blob/6930cba50ccc3dbd9feca082d0c612bea682fac6/shared/nodejs/m10-sdk/protobufs/index.d.ts#L6063
+
     utils.checkTransactionResponse(response);
 }
 

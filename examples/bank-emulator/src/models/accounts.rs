@@ -73,10 +73,22 @@ impl From<CreateAccountRequest> for Account {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct LedgerAccountQuery {
+    pub ledger_account_id: Option<String>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct AmountRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<String>,
+
+    pub amount_in_cents: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RedeemRequest {
+    pub txn_id: u64,
 
     pub amount_in_cents: u64,
 }
@@ -320,4 +332,14 @@ impl AuthModel for AccountAuth {
     fn auth_scope(&self, verb: Verb, user: &User) -> AuthScope {
         user.query_scope(&"accounts".into(), verb)
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BankTransfer {
+    pub id: uuid::Uuid,
+    pub from_account: i32,
+    pub to_account: i32,
+    pub amount: Option<u64>,
+    pub status: i32,
+    pub error: Option<String>,
 }

@@ -11,6 +11,7 @@ use std::{
 
 mod accounts;
 mod actions;
+mod metrics;
 mod transfers;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
@@ -54,6 +55,8 @@ pub(super) enum ObserveSubcommands {
     Actions(ObserveActionOptions),
     #[clap(about = "Observe account updates involves the provided account ids")]
     Accounts(ObserveAccountOptions),
+    #[clap(about = "Observe transaction metrics involving the provided account ids")]
+    Metrics(ObserveAccountOptions),
 }
 
 impl ObserveSubcommands {
@@ -80,6 +83,15 @@ impl ObserveSubcommands {
             }
             ObserveSubcommands::Accounts(options) => {
                 accounts::observe(
+                    &options.ids,
+                    options.starting_from.map(|tx_id| sdk::TxId { tx_id }),
+                    options.format,
+                    config,
+                )
+                .await
+            }
+            ObserveSubcommands::Metrics(options) => {
+                metrics::observe(
                     &options.ids,
                     options.starting_from.map(|tx_id| sdk::TxId { tx_id }),
                     options.format,

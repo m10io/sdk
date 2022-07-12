@@ -26,6 +26,7 @@ export enum Collection {
     AccountSet = "account-sets",
     RoleBinding = "role-bindings",
     Role = "roles",
+    Bank = "banks",
 }
 
 /**

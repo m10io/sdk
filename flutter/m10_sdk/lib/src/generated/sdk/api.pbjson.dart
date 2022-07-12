@@ -305,3 +305,16 @@ const ChainInfo$json = const {
 
 /// Descriptor for `ChainInfo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List chainInfoDescriptor = $convert.base64Decode('CglDaGFpbkluZm8SIQoMYmxvY2tfaGVpZ2h0GAEgASgEUgtibG9ja0hlaWdodA==');
+@$core.Deprecated('Use transactionMetricsDescriptor instead')
+const TransactionMetrics$json = const {
+  '1': 'TransactionMetrics',
+  '2': const [
+    const {'1': 'transfer_volume', '3': 1, '4': 1, '5': 4, '10': 'transferVolume'},
+    const {'1': 'transfer_count', '3': 2, '4': 1, '5': 4, '10': 'transferCount'},
+    const {'1': 'transfer_errors', '3': 3, '4': 1, '5': 4, '10': 'transferErrors'},
+    const {'1': 'accounts_created', '3': 4, '4': 1, '5': 4, '10': 'accountsCreated'},
+  ],
+};
+
+/// Descriptor for `TransactionMetrics`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionMetricsDescriptor = $convert.base64Decode('ChJUcmFuc2FjdGlvbk1ldHJpY3MSJwoPdHJhbnNmZXJfdm9sdW1lGAEgASgEUg50cmFuc2ZlclZvbHVtZRIlCg50cmFuc2Zlcl9jb3VudBgCIAEoBFINdHJhbnNmZXJDb3VudBInCg90cmFuc2Zlcl9lcnJvcnMYAyABKARSDnRyYW5zZmVyRXJyb3JzEikKEGFjY291bnRzX2NyZWF0ZWQYBCABKARSD2FjY291bnRzQ3JlYXRlZA==');

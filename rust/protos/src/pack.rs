@@ -24,6 +24,7 @@ pub enum Collection {
     AccountSets,
     RoleBindings,
     Roles,
+    Banks,
 }
 
 impl Deref for Collection {
@@ -35,6 +36,7 @@ impl Deref for Collection {
             Collection::AccountSets => "account-sets",
             Collection::RoleBindings => "role-bindings",
             Collection::Roles => "roles",
+            Collection::Banks => "banks",
         }
     }
 }
@@ -60,6 +62,7 @@ impl FromStr for Collection {
             "account-sets" => Ok(Collection::AccountSets),
             "role-bindings" => Ok(Collection::RoleBindings),
             "roles" => Ok(Collection::Roles),
+            "banks" => Ok(Collection::Banks),
             _unsupported => Err(UnsupportedCollection()),
         }
     }

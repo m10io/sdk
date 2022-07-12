@@ -1577,3 +1577,92 @@ class ChainInfo extends $pb.GeneratedMessage {
   void clearBlockHeight() => clearField(1);
 }
 
+class TransactionMetrics extends $pb.GeneratedMessage {
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'TransactionMetrics', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk'), createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'transferVolume', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'transferCount', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'transferErrors', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'accountsCreated', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  TransactionMetrics._() : super();
+  factory TransactionMetrics({
+    $fixnum.Int64? transferVolume,
+    $fixnum.Int64? transferCount,
+    $fixnum.Int64? transferErrors,
+    $fixnum.Int64? accountsCreated,
+  }) {
+    final _result = create();
+    if (transferVolume != null) {
+      _result.transferVolume = transferVolume;
+    }
+    if (transferCount != null) {
+      _result.transferCount = transferCount;
+    }
+    if (transferErrors != null) {
+      _result.transferErrors = transferErrors;
+    }
+    if (accountsCreated != null) {
+      _result.accountsCreated = accountsCreated;
+    }
+    return _result;
+  }
+  factory TransactionMetrics.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TransactionMetrics.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TransactionMetrics clone() => TransactionMetrics()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TransactionMetrics copyWith(void Function(TransactionMetrics) updates) => super.copyWith((message) => updates(message as TransactionMetrics)) as TransactionMetrics; // ignore: deprecated_member_use
+  $pb.BuilderInfo get info_ => _i;
+  @$core.pragma('dart2js:noInline')
+  static TransactionMetrics create() => TransactionMetrics._();
+  TransactionMetrics createEmptyInstance() => create();
+  static $pb.PbList<TransactionMetrics> createRepeated() => $pb.PbList<TransactionMetrics>();
+  @$core.pragma('dart2js:noInline')
+  static TransactionMetrics getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionMetrics>(create);
+  static TransactionMetrics? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get transferVolume => $_getI64(0);
+  @$pb.TagNumber(1)
+  set transferVolume($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTransferVolume() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTransferVolume() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get transferCount => $_getI64(1);
+  @$pb.TagNumber(2)
+  set transferCount($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTransferCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTransferCount() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get transferErrors => $_getI64(2);
+  @$pb.TagNumber(3)
+  set transferErrors($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTransferErrors() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTransferErrors() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get accountsCreated => $_getI64(3);
+  @$pb.TagNumber(4)
+  set accountsCreated($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAccountsCreated() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAccountsCreated() => clearField(4);
+}
+

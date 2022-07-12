@@ -28,4 +28,14 @@ fn ledger_addr() -> String {
 }
 
 #[cfg(test)]
+fn ledger_client() -> m10_sdk::LedgerClient {
+    m10_sdk::LedgerClient::new(
+        tonic::transport::Channel::from_shared(ledger_addr())
+            .unwrap()
+            .connect_lazy()
+            .unwrap(),
+    )
+}
+
+#[cfg(test)]
 mod tests {}

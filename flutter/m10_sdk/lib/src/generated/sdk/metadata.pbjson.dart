@@ -111,3 +111,42 @@ const PaymentRequest_PaymentRequestStatus$json = const {
 
 /// Descriptor for `PaymentRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List paymentRequestDescriptor = $convert.base64Decode('Cg5QYXltZW50UmVxdWVzdBI/Cgh0cmFuc2ZlchgBIAEoCzIjLm0xMC5zZGsudHJhbnNhY3Rpb24uQ3JlYXRlVHJhbnNmZXJSCHRyYW5zZmVyEk0KBnN0YXR1cxgCIAEoDjI1Lm0xMC5zZGsubWV0YWRhdGEuUGF5bWVudFJlcXVlc3QuUGF5bWVudFJlcXVlc3RTdGF0dXNSBnN0YXR1cyJQChRQYXltZW50UmVxdWVzdFN0YXR1cxILCgdQRU5ESU5HEAASDAoIREVDTElORUQQARIMCghDQU5DRUxFRBACEg8KC0lOX1BST0dSRVNTEAM=');
+@$core.Deprecated('Use quoteRequestDescriptor instead')
+const QuoteRequest$json = const {
+  '1': 'QuoteRequest',
+  '2': const [
+    const {'1': 'base', '3': 1, '4': 1, '5': 11, '6': '.m10.sdk.metadata.AccountCurrency', '10': 'base'},
+    const {'1': 'target', '3': 2, '4': 1, '5': 11, '6': '.m10.sdk.metadata.AccountCurrency', '10': 'target'},
+    const {'1': 'memo', '3': 3, '4': 1, '5': 9, '10': 'memo'},
+  ],
+};
+
+/// Descriptor for `QuoteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List quoteRequestDescriptor = $convert.base64Decode('CgxRdW90ZVJlcXVlc3QSNQoEYmFzZRgBIAEoCzIhLm0xMC5zZGsubWV0YWRhdGEuQWNjb3VudEN1cnJlbmN5UgRiYXNlEjkKBnRhcmdldBgCIAEoCzIhLm0xMC5zZGsubWV0YWRhdGEuQWNjb3VudEN1cnJlbmN5UgZ0YXJnZXQSEgoEbWVtbxgDIAEoCVIEbWVtbw==');
+@$core.Deprecated('Use accountCurrencyDescriptor instead')
+const AccountCurrency$json = const {
+  '1': 'AccountCurrency',
+  '2': const [
+    const {'1': 'operator', '3': 1, '4': 1, '5': 9, '10': 'operator'},
+    const {'1': 'currency', '3': 2, '4': 1, '5': 9, '10': 'currency'},
+    const {'1': 'account_id', '3': 3, '4': 1, '5': 12, '10': 'accountId'},
+    const {'1': 'amount', '3': 4, '4': 1, '5': 4, '10': 'amount'},
+  ],
+};
+
+/// Descriptor for `AccountCurrency`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List accountCurrencyDescriptor = $convert.base64Decode('Cg9BY2NvdW50Q3VycmVuY3kSGgoIb3BlcmF0b3IYASABKAlSCG9wZXJhdG9yEhoKCGN1cnJlbmN5GAIgASgJUghjdXJyZW5jeRIdCgphY2NvdW50X2lkGAMgASgMUglhY2NvdW50SWQSFgoGYW1vdW50GAQgASgEUgZhbW91bnQ=');
+@$core.Deprecated('Use quoteEventDescriptor instead')
+const QuoteEvent$json = const {
+  '1': 'QuoteEvent',
+  '2': const [
+    const {'1': 'request', '3': 1, '4': 1, '5': 11, '6': '.m10.sdk.metadata.QuoteRequest', '9': 0, '10': 'request'},
+    const {'1': 'proposal', '3': 2, '4': 1, '5': 11, '6': '.m10.sdk.metadata.Contract', '9': 0, '10': 'proposal'},
+  ],
+  '8': const [
+    const {'1': 'event'},
+  ],
+};
+
+/// Descriptor for `QuoteEvent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List quoteEventDescriptor = $convert.base64Decode('CgpRdW90ZUV2ZW50EjoKB3JlcXVlc3QYASABKAsyHi5tMTAuc2RrLm1ldGFkYXRhLlF1b3RlUmVxdWVzdEgAUgdyZXF1ZXN0EjgKCHByb3Bvc2FsGAIgASgLMhoubTEwLnNkay5tZXRhZGF0YS5Db250cmFjdEgAUghwcm9wb3NhbEIHCgVldmVudA==');

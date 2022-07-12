@@ -8,12 +8,14 @@ import { InfoRow } from 'components/info-card'
 import { useApi } from 'utils/hooks'
 import IconDollarSign from 'assets/icons/icon-book-open'
 import routes from 'routes'
+import formatMoney from 'utils/format-money'
 import getConfig from 'next/config'
 const { publicRuntimeConfig } = getConfig()
 const CURRENCY = publicRuntimeConfig.bankAsset
 
+const parseDate = date => date == null ? 'Pending' : moment(date, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
+
 const OfflinePaymentCard = ({ data = {} }) => {
-  const createdAt = moment(data?.created_at, 'YYYY-MM-DD hh:mm:ss').format('MMM Do YYYY, h:mm:ss a')
   return (
     <Card title={'Payment'} iconComponent={<IconDollarSign color={'#000000'} />}>
       <InfoRow title={'Sender'} value={(
@@ -26,8 +28,10 @@ const OfflinePaymentCard = ({ data = {} }) => {
           {data.to_display_name}
         </Link>
       )} />
-      <InfoRow title={'Amount'} value={`${data.amount} ${data.currency}`} />
-      <InfoRow title={'Date Created'} value={createdAt} />
+      <InfoRow title={'Amount'} value={`${formatMoney(data.amount)} ${data.currency}`} />
+      <InfoRow title={'Date uploaded'} value={parseDate(data?.uploaded_at)} />
+      <InfoRow title={'Debit date'} value={parseDate(data?.debited_at)} />
+      <InfoRow title={'Credit date'} value={parseDate(data?.credited_at)} />
       <InfoRow title={'ID'} value={data.id} />
     </Card>
   )

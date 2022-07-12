@@ -1,4 +1,5 @@
 use m10_bank_emulator::models::*;
+use m10_sdk::{sdk, LedgerClient, Signer};
 use serde_json::json;
 use serde_json::Value;
 
@@ -138,6 +139,198 @@ async fn accounts_wire_routes() {
         .expect("settle withdraw response")
         .assert_success()
         .await;
+
+    // fund ledger account from bank account
+    println!("fund ledger account from bank account");
+
+    let balance_before = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+
+    let transfer = client
+        .post(format!(
+            "{}/api/v1/accounts/{}/request_funds",
+            base_url(),
+            account.id
+        ))
+        .bearer_auth(&jwt)
+        .json(&AmountRequest {
+            amount_in_cents: 10000,
+            currency: Some("usd".into()),
+        })
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<BankTransfer>()
+        .await;
+    println!("transfer {:?}", transfer);
+    assert_eq!(transfer.status, 0);
+    assert_eq!(transfer.amount, Some(10000));
+
+    let balance_after = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+    println!("balance after transfer: {}", balance_after);
+    assert_eq!(balance_after + 10000, balance_before);
+
+    // fund invalid ledger account from bank account
+    println!("fund invalid ledger account from bank account");
+    let transfer = client
+        .post(format!(
+        "{}/api/v1/accounts/{}/request_funds?ledger_account_id=03800000000000001f0000000000000a",
+        base_url(),
+        account.id
+    ))
+        .bearer_auth(&jwt)
+        .json(&AmountRequest {
+            amount_in_cents: 50000,
+            currency: Some("usd".into()),
+        })
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<BankTransfer>()
+        .await;
+    println!("transfer {:?}", transfer);
+    assert_eq!(transfer.status, 1);
+    assert!(transfer.error.is_some());
+
+    // Redeem with transaction
+    let key_pair = key_pair();
+
+    let public_key = key_pair.public_key().as_ref();
+    client
+        .put(format!("{}/api/v1/keys", base_url()))
+        .bearer_auth(&jwt)
+        .body(base64::encode(public_key))
+        .send()
+        .await
+        .unwrap()
+        .assert_success()
+        .await;
+
+    let asset = client
+        .get(format!("{}/api/v1/assets/usd", base_url()))
+        .bearer_auth(&jwt)
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<Asset>()
+        .await;
+    println!("asset: {:?}", asset);
+    let bank_asset = client
+        .get(format!("{}/api/v1/assets/usd/bank_account", base_url()))
+        .bearer_auth(&jwt)
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<Asset>()
+        .await;
+    println!("bank asset: {:?}", bank_asset);
+
+    let req = LedgerClient::transaction_request(
+        sdk::CreateTransfer {
+            transfer_steps: vec![sdk::TransferStep {
+                amount: 2200,
+                from_account_id: asset.ledger_account_id,
+                to_account_id: bank_asset.ledger_account_id,
+                metadata: vec![],
+            }],
+        },
+        vec![],
+    );
+    let mut ledger = crate::ledger_client();
+
+    let txn_id = ledger
+        .create_transaction(key_pair.sign_request(req).await.unwrap())
+        .await
+        .unwrap()
+        .tx_error()
+        .unwrap()
+        .tx_id;
+
+    let balance_before = balance_after;
+    let transfer = client
+        .post(format!(
+            "{}/api/v1/accounts/{}/redeem",
+            base_url(),
+            account.id
+        ))
+        .bearer_auth(&jwt)
+        .json(&RedeemRequest {
+            txn_id,
+            amount_in_cents: 2200,
+        })
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<BankTransfer>()
+        .await;
+    println!("transfer {:?}", transfer);
+    assert_eq!(transfer.status, 0);
+    assert_eq!(transfer.amount, Some(2200));
+
+    let balance_after = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+    println!("balance after transfer: {}", balance_after);
+    assert_eq!(balance_after - 2200, balance_before);
+
+    // Redeem direct
+    let balance_before = balance_after;
+    let transfer = client
+        .post(format!(
+            "{}/api/v1/accounts/{}/redeem_direct",
+            base_url(),
+            account.id
+        ))
+        .bearer_auth(&jwt)
+        .json(&RedeemRequest {
+            txn_id,
+            amount_in_cents: 3300,
+        })
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<BankTransfer>()
+        .await;
+    println!("transfer {:?}", transfer);
+    assert_eq!(transfer.status, 0);
+    assert_eq!(transfer.amount, Some(3300));
+
+    let balance_after = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+    println!("balance after transfer: {}", balance_after);
+    assert_eq!(balance_after - 3300, balance_before);
 }
 
 #[tokio::test]
@@ -261,6 +454,10 @@ async fn accounts_crud() {
         .unwrap()
         .assert_json::<Account>()
         .await;
+
+    // Check that traditional account was created and funded
+    let balance = account_balance(&account);
+    assert!(balance > 0, "account not funded");
 
     // get account by id
     let a = client

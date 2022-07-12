@@ -5,6 +5,7 @@ import 'package:convert/convert.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:m10_sdk/metadata.dart';
+import 'package:m10_sdk/src/generated/google/protobuf/empty.pb.dart';
 import 'package:m10_sdk/src/generated/sdk/document.pb.dart';
 import 'package:m10_sdk/src/generated/directory/api.pb.dart' as directory;
 import 'package:protobuf/protobuf.dart';
@@ -490,14 +491,25 @@ class M10Sdk {
     required String operator,
     required String name,
     required String fromAccountId,
-    required String targetAccountId,
+    String? targetAccountId,
+    bool targetAll = false,
     List<int> payload = const [],
     String? contextId,
   }) async {
+    final Target target;
+    if (targetAccountId != null) {
+      target = Target(accountId: hex.decode(targetAccountId));
+    } else if (targetAll) {
+      target = Target(anyAccount: Empty());
+    } else {
+      throw "Missing action target";
+    }
+    ;
+
     InvokeAction action = InvokeAction(
         name: name,
         fromAccount: hex.decode(fromAccountId),
-        target: Target(accountId: hex.decode(targetAccountId)),
+        target: target,
         payload: payload);
 
     final request =
@@ -647,6 +659,24 @@ class M10Sdk {
     return stream.map((transactions) => transactions.transactions
         .map((result) => ResourceResultDoc.fromModel(result))
         .toList());
+  }
+
+  Future<Stream<TransactionMetricsDoc>> observeMetrics({
+    required String operator,
+    required List<String> accounts,
+    Int64? startingFrom,
+  }) async {
+    ObserveAccountsRequest request = ObserveAccountsRequest();
+    request.involvedAccounts.addAll(accounts.map((a) => hex.decode(a)));
+
+    if (startingFrom != null) {
+      request.startingFrom = TxId()..txId = startingFrom;
+    }
+
+    final envelop = await requestEnvelope(request: request);
+    final stream =
+        await getServiceClient(operator).query.observeMetrics(envelop);
+    return stream.map((result) => TransactionMetricsDoc.fromModel(result));
   }
 
   // Creates a builder object for a Ledger Contract

@@ -308,6 +308,7 @@ const Target$json = const {
   '1': 'Target',
   '2': const [
     const {'1': 'account_id', '3': 1, '4': 1, '5': 12, '9': 0, '10': 'accountId'},
+    const {'1': 'any_account', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Empty', '9': 0, '10': 'anyAccount'},
   ],
   '8': const [
     const {'1': 'target'},
@@ -315,7 +316,7 @@ const Target$json = const {
 };
 
 /// Descriptor for `Target`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List targetDescriptor = $convert.base64Decode('CgZUYXJnZXQSHwoKYWNjb3VudF9pZBgBIAEoDEgAUglhY2NvdW50SWRCCAoGdGFyZ2V0');
+final $typed_data.Uint8List targetDescriptor = $convert.base64Decode('CgZUYXJnZXQSHwoKYWNjb3VudF9pZBgBIAEoDEgAUglhY2NvdW50SWQSOQoLYW55X2FjY291bnQYAiABKAsyFi5nb29nbGUucHJvdG9idWYuRW1wdHlIAFIKYW55QWNjb3VudEIICgZ0YXJnZXQ=');
 @$core.Deprecated('Use actionDescriptor instead')
 const Action$json = const {
   '1': 'Action',

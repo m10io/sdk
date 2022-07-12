@@ -9,6 +9,7 @@ use m10_protos::{
 
 pub mod account_sets;
 pub mod accounts;
+pub mod banks;
 pub mod role_bindings;
 pub mod roles;
 

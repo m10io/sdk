@@ -393,6 +393,22 @@ export class LedgerClient {
         return [ service, startObserver ];
     }
 
+    public getObserveMetrics(
+        signer: utils.CryptoSigner,
+        properties: m10.sdk.IObserveAccountsRequest,
+    ): [ m10.sdk.M10QueryService, () => void ] {
+
+        const request = new m10.sdk.ObserveAccountsRequest(properties);
+        const payload = m10.sdk.ObserveAccountsRequest.encode(request).finish();
+
+        const envelope = new m10.sdk.RequestEnvelope({ payload, signature: signer.getSignature(payload) });
+
+        const service = this.getQueryServiceStream();
+        const startObserver = (): void => { service.observeMetrics(envelope); };
+
+        return [ service, startObserver ];
+    }
+
     // -------------------------------------------------------------------------
     // EnhancedTransfers
     // -------------------------------------------------------------------------

@@ -309,6 +309,17 @@ impl LedgerClient {
             .map(tonic::Response::into_inner)
     }
 
+    pub async fn observe_metrics(
+        &self,
+        request: SignedRequest<sdk::ObserveAccountsRequest>,
+    ) -> Result<impl Stream<Item = Result<sdk::TransactionMetrics, Status>>, Status> {
+        self.query_client
+            .clone()
+            .observe_metrics(Request::new(request.into()))
+            .await
+            .map(tonic::Response::into_inner)
+    }
+
     pub async fn enhance_transfers(
         &self,
         transfers: Vec<sdk::FinalizedTransfer>,

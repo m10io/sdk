@@ -180,6 +180,12 @@ class M10QueryServiceClient extends $grpc.Client {
           ($0.RequestEnvelope value) => value.writeToBuffer(),
           ($core.List<$core.int> value) =>
               $0.FinalizedTransactions.fromBuffer(value));
+  static final _$observeMetrics =
+      $grpc.ClientMethod<$0.RequestEnvelope, $0.TransactionMetrics>(
+          '/m10.sdk.M10QueryService/ObserveMetrics',
+          ($0.RequestEnvelope value) => value.writeToBuffer(),
+          ($core.List<$core.int> value) =>
+              $0.TransactionMetrics.fromBuffer(value));
 
   M10QueryServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -317,6 +323,14 @@ class M10QueryServiceClient extends $grpc.Client {
       {$grpc.CallOptions? options}) {
     return $createStreamingCall(
         _$observeResources, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  $grpc.ResponseStream<$0.TransactionMetrics> observeMetrics(
+      $0.RequestEnvelope request,
+      {$grpc.CallOptions? options}) {
+    return $createStreamingCall(
+        _$observeMetrics, $async.Stream.fromIterable([request]),
         options: options);
   }
 }
@@ -494,6 +508,13 @@ abstract class M10QueryServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.RequestEnvelope.fromBuffer(value),
             ($0.FinalizedTransactions value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RequestEnvelope, $0.TransactionMetrics>(
+        'ObserveMetrics',
+        observeMetrics_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.RequestEnvelope.fromBuffer(value),
+        ($0.TransactionMetrics value) => value.writeToBuffer()));
   }
 
   $async.Future<$1.FinalizedTransfer> getTransfer_Pre(
@@ -610,6 +631,12 @@ abstract class M10QueryServiceBase extends $grpc.Service {
     yield* observeResources(call, await request);
   }
 
+  $async.Stream<$0.TransactionMetrics> observeMetrics_Pre(
+      $grpc.ServiceCall call,
+      $async.Future<$0.RequestEnvelope> request) async* {
+    yield* observeMetrics(call, await request);
+  }
+
   $async.Future<$1.FinalizedTransfer> getTransfer(
       $grpc.ServiceCall call, $0.RequestEnvelope request);
   $async.Future<$1.FinalizedTransfers> listTransfers(
@@ -653,5 +680,7 @@ abstract class M10QueryServiceBase extends $grpc.Service {
   $async.Future<$0.ListRolesResponse> listRoles(
       $grpc.ServiceCall call, $0.RequestEnvelope request);
   $async.Stream<$0.FinalizedTransactions> observeResources(
+      $grpc.ServiceCall call, $0.RequestEnvelope request);
+  $async.Stream<$0.TransactionMetrics> observeMetrics(
       $grpc.ServiceCall call, $0.RequestEnvelope request);
 }

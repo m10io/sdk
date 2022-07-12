@@ -11,7 +11,9 @@ pub mod contract;
 #[cfg(feature = "image")]
 pub mod image;
 #[cfg(feature = "service")]
-mod transfer_ext;
+pub mod transaction_ext;
+#[cfg(feature = "service")]
+pub mod transfer_ext;
 
 #[cfg(feature = "collections")]
 pub use collections::DocumentUpdate;
@@ -42,3 +44,6 @@ pub use image::ImageClient;
 
 #[cfg(feature = "service")]
 pub use client::LedgerClient;
+
+#[cfg(feature = "service")]
+pub use transaction_ext::TransactionExt;

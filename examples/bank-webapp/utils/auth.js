@@ -55,8 +55,8 @@ export const determineHomeRouteByUser = user => {
   else return routes.WELCOME_PAGE
 }
 
-const ADMIN_ROLE = 'omega-admin'
-const TEST_ADMIN_ROLE = 'omega-test-admin'
+const ADMIN_ROLE = 'iron-admin'
+const TEST_ADMIN_ROLE = 'iron-test-admin'
 
 export const isAuthorizedAdmin = (roles = []) => roles.includes(ADMIN_ROLE) || roles.includes(TEST_ADMIN_ROLE)
 // TODO: determine business-owner specific role (i.e. user coming from diapay app to register business)

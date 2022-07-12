@@ -853,6 +853,72 @@ $root.m10 = (function() {
              * @variation 2
              */
 
+            /**
+             * Callback as used by {@link m10.sdk.M10QueryService#observeMetrics}.
+             * @memberof m10.sdk.M10QueryService
+             * @typedef ObserveMetricsCallback
+             * @type {function}
+             * @param {Error|null} error Error, if any
+             * @param {m10.sdk.TransactionMetrics} [response] TransactionMetrics
+             */
+
+            /**
+             * Calls ObserveMetrics.
+             * @function observeMetrics
+             * @memberof m10.sdk.M10QueryService
+             * @instance
+             * @param {m10.sdk.IRequestEnvelope} request RequestEnvelope message or plain object
+             * @param {m10.sdk.M10QueryService.ObserveMetricsCallback} callback Node-style callback called with the error, if any, and TransactionMetrics
+             * @returns {undefined}
+             * @variation 1
+             */
+            Object.defineProperty(M10QueryService.prototype.observeMetrics = function observeMetrics(request, callback) {
+                return this.rpcCall(observeMetrics, $root.m10.sdk.RequestEnvelope, $root.m10.sdk.TransactionMetrics, request, callback);
+            }, "name", { value: "ObserveMetrics" });
+
+            /**
+             * Calls ObserveMetrics.
+             * @function observeMetrics
+             * @memberof m10.sdk.M10QueryService
+             * @instance
+             * @param {m10.sdk.IRequestEnvelope} request RequestEnvelope message or plain object
+             * @returns {Promise<m10.sdk.TransactionMetrics>} Promise
+             * @variation 2
+             */
+
+            /**
+             * Callback as used by {@link m10.sdk.M10QueryService#listBanks}.
+             * @memberof m10.sdk.M10QueryService
+             * @typedef ListBanksCallback
+             * @type {function}
+             * @param {Error|null} error Error, if any
+             * @param {m10.sdk.ListBanksResponse} [response] ListBanksResponse
+             */
+
+            /**
+             * Calls ListBanks.
+             * @function listBanks
+             * @memberof m10.sdk.M10QueryService
+             * @instance
+             * @param {m10.sdk.IRequestEnvelope} request RequestEnvelope message or plain object
+             * @param {m10.sdk.M10QueryService.ListBanksCallback} callback Node-style callback called with the error, if any, and ListBanksResponse
+             * @returns {undefined}
+             * @variation 1
+             */
+            Object.defineProperty(M10QueryService.prototype.listBanks = function listBanks(request, callback) {
+                return this.rpcCall(listBanks, $root.m10.sdk.RequestEnvelope, $root.m10.sdk.ListBanksResponse, request, callback);
+            }, "name", { value: "ListBanks" });
+
+            /**
+             * Calls ListBanks.
+             * @function listBanks
+             * @memberof m10.sdk.M10QueryService
+             * @instance
+             * @param {m10.sdk.IRequestEnvelope} request RequestEnvelope message or plain object
+             * @returns {Promise<m10.sdk.ListBanksResponse>} Promise
+             * @variation 2
+             */
+
             return M10QueryService;
         })();
 
@@ -6656,6 +6722,716 @@ $root.m10 = (function() {
             return ChainInfo;
         })();
 
+        sdk.TransactionMetrics = (function() {
+
+            /**
+             * Properties of a TransactionMetrics.
+             * @memberof m10.sdk
+             * @interface ITransactionMetrics
+             * @property {number|Long|null} [transferVolume] TransactionMetrics transferVolume
+             * @property {number|Long|null} [transferCount] TransactionMetrics transferCount
+             * @property {number|Long|null} [transferErrors] TransactionMetrics transferErrors
+             * @property {number|Long|null} [accountsCreated] TransactionMetrics accountsCreated
+             */
+
+            /**
+             * Constructs a new TransactionMetrics.
+             * @memberof m10.sdk
+             * @classdesc Represents a TransactionMetrics.
+             * @implements ITransactionMetrics
+             * @constructor
+             * @param {m10.sdk.ITransactionMetrics=} [properties] Properties to set
+             */
+            function TransactionMetrics(properties) {
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * TransactionMetrics transferVolume.
+             * @member {number|Long} transferVolume
+             * @memberof m10.sdk.TransactionMetrics
+             * @instance
+             */
+            TransactionMetrics.prototype.transferVolume = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+            /**
+             * TransactionMetrics transferCount.
+             * @member {number|Long} transferCount
+             * @memberof m10.sdk.TransactionMetrics
+             * @instance
+             */
+            TransactionMetrics.prototype.transferCount = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+            /**
+             * TransactionMetrics transferErrors.
+             * @member {number|Long} transferErrors
+             * @memberof m10.sdk.TransactionMetrics
+             * @instance
+             */
+            TransactionMetrics.prototype.transferErrors = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+            /**
+             * TransactionMetrics accountsCreated.
+             * @member {number|Long} accountsCreated
+             * @memberof m10.sdk.TransactionMetrics
+             * @instance
+             */
+            TransactionMetrics.prototype.accountsCreated = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+            /**
+             * Creates a new TransactionMetrics instance using the specified properties.
+             * @function create
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {m10.sdk.ITransactionMetrics=} [properties] Properties to set
+             * @returns {m10.sdk.TransactionMetrics} TransactionMetrics instance
+             */
+            TransactionMetrics.create = function create(properties) {
+                return new TransactionMetrics(properties);
+            };
+
+            /**
+             * Encodes the specified TransactionMetrics message. Does not implicitly {@link m10.sdk.TransactionMetrics.verify|verify} messages.
+             * @function encode
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {m10.sdk.ITransactionMetrics} message TransactionMetrics message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            TransactionMetrics.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                if (message.transferVolume != null && Object.hasOwnProperty.call(message, "transferVolume"))
+                    writer.uint32(/* id 1, wireType 0 =*/8).uint64(message.transferVolume);
+                if (message.transferCount != null && Object.hasOwnProperty.call(message, "transferCount"))
+                    writer.uint32(/* id 2, wireType 0 =*/16).uint64(message.transferCount);
+                if (message.transferErrors != null && Object.hasOwnProperty.call(message, "transferErrors"))
+                    writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.transferErrors);
+                if (message.accountsCreated != null && Object.hasOwnProperty.call(message, "accountsCreated"))
+                    writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.accountsCreated);
+                return writer;
+            };
+
+            /**
+             * Encodes the specified TransactionMetrics message, length delimited. Does not implicitly {@link m10.sdk.TransactionMetrics.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {m10.sdk.ITransactionMetrics} message TransactionMetrics message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            TransactionMetrics.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes a TransactionMetrics message from the specified reader or buffer.
+             * @function decode
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {m10.sdk.TransactionMetrics} TransactionMetrics
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            TransactionMetrics.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.TransactionMetrics();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    case 1:
+                        message.transferVolume = reader.uint64();
+                        break;
+                    case 2:
+                        message.transferCount = reader.uint64();
+                        break;
+                    case 3:
+                        message.transferErrors = reader.uint64();
+                        break;
+                    case 4:
+                        message.accountsCreated = reader.uint64();
+                        break;
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes a TransactionMetrics message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {m10.sdk.TransactionMetrics} TransactionMetrics
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            TransactionMetrics.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies a TransactionMetrics message.
+             * @function verify
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            TransactionMetrics.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                if (message.transferVolume != null && message.hasOwnProperty("transferVolume"))
+                    if (!$util.isInteger(message.transferVolume) && !(message.transferVolume && $util.isInteger(message.transferVolume.low) && $util.isInteger(message.transferVolume.high)))
+                        return "transferVolume: integer|Long expected";
+                if (message.transferCount != null && message.hasOwnProperty("transferCount"))
+                    if (!$util.isInteger(message.transferCount) && !(message.transferCount && $util.isInteger(message.transferCount.low) && $util.isInteger(message.transferCount.high)))
+                        return "transferCount: integer|Long expected";
+                if (message.transferErrors != null && message.hasOwnProperty("transferErrors"))
+                    if (!$util.isInteger(message.transferErrors) && !(message.transferErrors && $util.isInteger(message.transferErrors.low) && $util.isInteger(message.transferErrors.high)))
+                        return "transferErrors: integer|Long expected";
+                if (message.accountsCreated != null && message.hasOwnProperty("accountsCreated"))
+                    if (!$util.isInteger(message.accountsCreated) && !(message.accountsCreated && $util.isInteger(message.accountsCreated.low) && $util.isInteger(message.accountsCreated.high)))
+                        return "accountsCreated: integer|Long expected";
+                return null;
+            };
+
+            /**
+             * Creates a TransactionMetrics message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {m10.sdk.TransactionMetrics} TransactionMetrics
+             */
+            TransactionMetrics.fromObject = function fromObject(object) {
+                if (object instanceof $root.m10.sdk.TransactionMetrics)
+                    return object;
+                var message = new $root.m10.sdk.TransactionMetrics();
+                if (object.transferVolume != null)
+                    if ($util.Long)
+                        (message.transferVolume = $util.Long.fromValue(object.transferVolume)).unsigned = true;
+                    else if (typeof object.transferVolume === "string")
+                        message.transferVolume = parseInt(object.transferVolume, 10);
+                    else if (typeof object.transferVolume === "number")
+                        message.transferVolume = object.transferVolume;
+                    else if (typeof object.transferVolume === "object")
+                        message.transferVolume = new $util.LongBits(object.transferVolume.low >>> 0, object.transferVolume.high >>> 0).toNumber(true);
+                if (object.transferCount != null)
+                    if ($util.Long)
+                        (message.transferCount = $util.Long.fromValue(object.transferCount)).unsigned = true;
+                    else if (typeof object.transferCount === "string")
+                        message.transferCount = parseInt(object.transferCount, 10);
+                    else if (typeof object.transferCount === "number")
+                        message.transferCount = object.transferCount;
+                    else if (typeof object.transferCount === "object")
+                        message.transferCount = new $util.LongBits(object.transferCount.low >>> 0, object.transferCount.high >>> 0).toNumber(true);
+                if (object.transferErrors != null)
+                    if ($util.Long)
+                        (message.transferErrors = $util.Long.fromValue(object.transferErrors)).unsigned = true;
+                    else if (typeof object.transferErrors === "string")
+                        message.transferErrors = parseInt(object.transferErrors, 10);
+                    else if (typeof object.transferErrors === "number")
+                        message.transferErrors = object.transferErrors;
+                    else if (typeof object.transferErrors === "object")
+                        message.transferErrors = new $util.LongBits(object.transferErrors.low >>> 0, object.transferErrors.high >>> 0).toNumber(true);
+                if (object.accountsCreated != null)
+                    if ($util.Long)
+                        (message.accountsCreated = $util.Long.fromValue(object.accountsCreated)).unsigned = true;
+                    else if (typeof object.accountsCreated === "string")
+                        message.accountsCreated = parseInt(object.accountsCreated, 10);
+                    else if (typeof object.accountsCreated === "number")
+                        message.accountsCreated = object.accountsCreated;
+                    else if (typeof object.accountsCreated === "object")
+                        message.accountsCreated = new $util.LongBits(object.accountsCreated.low >>> 0, object.accountsCreated.high >>> 0).toNumber(true);
+                return message;
+            };
+
+            /**
+             * Creates a plain object from a TransactionMetrics message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof m10.sdk.TransactionMetrics
+             * @static
+             * @param {m10.sdk.TransactionMetrics} message TransactionMetrics
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            TransactionMetrics.toObject = function toObject(message, options) {
+                if (!options)
+                    options = {};
+                var object = {};
+                if (options.defaults) {
+                    if ($util.Long) {
+                        var long = new $util.Long(0, 0, true);
+                        object.transferVolume = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.transferVolume = options.longs === String ? "0" : 0;
+                    if ($util.Long) {
+                        var long = new $util.Long(0, 0, true);
+                        object.transferCount = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.transferCount = options.longs === String ? "0" : 0;
+                    if ($util.Long) {
+                        var long = new $util.Long(0, 0, true);
+                        object.transferErrors = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.transferErrors = options.longs === String ? "0" : 0;
+                    if ($util.Long) {
+                        var long = new $util.Long(0, 0, true);
+                        object.accountsCreated = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.accountsCreated = options.longs === String ? "0" : 0;
+                }
+                if (message.transferVolume != null && message.hasOwnProperty("transferVolume"))
+                    if (typeof message.transferVolume === "number")
+                        object.transferVolume = options.longs === String ? String(message.transferVolume) : message.transferVolume;
+                    else
+                        object.transferVolume = options.longs === String ? $util.Long.prototype.toString.call(message.transferVolume) : options.longs === Number ? new $util.LongBits(message.transferVolume.low >>> 0, message.transferVolume.high >>> 0).toNumber(true) : message.transferVolume;
+                if (message.transferCount != null && message.hasOwnProperty("transferCount"))
+                    if (typeof message.transferCount === "number")
+                        object.transferCount = options.longs === String ? String(message.transferCount) : message.transferCount;
+                    else
+                        object.transferCount = options.longs === String ? $util.Long.prototype.toString.call(message.transferCount) : options.longs === Number ? new $util.LongBits(message.transferCount.low >>> 0, message.transferCount.high >>> 0).toNumber(true) : message.transferCount;
+                if (message.transferErrors != null && message.hasOwnProperty("transferErrors"))
+                    if (typeof message.transferErrors === "number")
+                        object.transferErrors = options.longs === String ? String(message.transferErrors) : message.transferErrors;
+                    else
+                        object.transferErrors = options.longs === String ? $util.Long.prototype.toString.call(message.transferErrors) : options.longs === Number ? new $util.LongBits(message.transferErrors.low >>> 0, message.transferErrors.high >>> 0).toNumber(true) : message.transferErrors;
+                if (message.accountsCreated != null && message.hasOwnProperty("accountsCreated"))
+                    if (typeof message.accountsCreated === "number")
+                        object.accountsCreated = options.longs === String ? String(message.accountsCreated) : message.accountsCreated;
+                    else
+                        object.accountsCreated = options.longs === String ? $util.Long.prototype.toString.call(message.accountsCreated) : options.longs === Number ? new $util.LongBits(message.accountsCreated.low >>> 0, message.accountsCreated.high >>> 0).toNumber(true) : message.accountsCreated;
+                return object;
+            };
+
+            /**
+             * Converts this TransactionMetrics to JSON.
+             * @function toJSON
+             * @memberof m10.sdk.TransactionMetrics
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            TransactionMetrics.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            return TransactionMetrics;
+        })();
+
+        sdk.ListBanksRequest = (function() {
+
+            /**
+             * Properties of a ListBanksRequest.
+             * @memberof m10.sdk
+             * @interface IListBanksRequest
+             * @property {m10.sdk.IPage|null} [page] ListBanksRequest page
+             */
+
+            /**
+             * Constructs a new ListBanksRequest.
+             * @memberof m10.sdk
+             * @classdesc Represents a ListBanksRequest.
+             * @implements IListBanksRequest
+             * @constructor
+             * @param {m10.sdk.IListBanksRequest=} [properties] Properties to set
+             */
+            function ListBanksRequest(properties) {
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * ListBanksRequest page.
+             * @member {m10.sdk.IPage|null|undefined} page
+             * @memberof m10.sdk.ListBanksRequest
+             * @instance
+             */
+            ListBanksRequest.prototype.page = null;
+
+            /**
+             * Creates a new ListBanksRequest instance using the specified properties.
+             * @function create
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {m10.sdk.IListBanksRequest=} [properties] Properties to set
+             * @returns {m10.sdk.ListBanksRequest} ListBanksRequest instance
+             */
+            ListBanksRequest.create = function create(properties) {
+                return new ListBanksRequest(properties);
+            };
+
+            /**
+             * Encodes the specified ListBanksRequest message. Does not implicitly {@link m10.sdk.ListBanksRequest.verify|verify} messages.
+             * @function encode
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {m10.sdk.IListBanksRequest} message ListBanksRequest message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            ListBanksRequest.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                if (message.page != null && Object.hasOwnProperty.call(message, "page"))
+                    $root.m10.sdk.Page.encode(message.page, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                return writer;
+            };
+
+            /**
+             * Encodes the specified ListBanksRequest message, length delimited. Does not implicitly {@link m10.sdk.ListBanksRequest.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {m10.sdk.IListBanksRequest} message ListBanksRequest message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            ListBanksRequest.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes a ListBanksRequest message from the specified reader or buffer.
+             * @function decode
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {m10.sdk.ListBanksRequest} ListBanksRequest
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            ListBanksRequest.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.ListBanksRequest();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    case 1:
+                        message.page = $root.m10.sdk.Page.decode(reader, reader.uint32());
+                        break;
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes a ListBanksRequest message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {m10.sdk.ListBanksRequest} ListBanksRequest
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            ListBanksRequest.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies a ListBanksRequest message.
+             * @function verify
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            ListBanksRequest.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                if (message.page != null && message.hasOwnProperty("page")) {
+                    var error = $root.m10.sdk.Page.verify(message.page);
+                    if (error)
+                        return "page." + error;
+                }
+                return null;
+            };
+
+            /**
+             * Creates a ListBanksRequest message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {m10.sdk.ListBanksRequest} ListBanksRequest
+             */
+            ListBanksRequest.fromObject = function fromObject(object) {
+                if (object instanceof $root.m10.sdk.ListBanksRequest)
+                    return object;
+                var message = new $root.m10.sdk.ListBanksRequest();
+                if (object.page != null) {
+                    if (typeof object.page !== "object")
+                        throw TypeError(".m10.sdk.ListBanksRequest.page: object expected");
+                    message.page = $root.m10.sdk.Page.fromObject(object.page);
+                }
+                return message;
+            };
+
+            /**
+             * Creates a plain object from a ListBanksRequest message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof m10.sdk.ListBanksRequest
+             * @static
+             * @param {m10.sdk.ListBanksRequest} message ListBanksRequest
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            ListBanksRequest.toObject = function toObject(message, options) {
+                if (!options)
+                    options = {};
+                var object = {};
+                if (options.defaults)
+                    object.page = null;
+                if (message.page != null && message.hasOwnProperty("page"))
+                    object.page = $root.m10.sdk.Page.toObject(message.page, options);
+                return object;
+            };
+
+            /**
+             * Converts this ListBanksRequest to JSON.
+             * @function toJSON
+             * @memberof m10.sdk.ListBanksRequest
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            ListBanksRequest.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            return ListBanksRequest;
+        })();
+
+        sdk.ListBanksResponse = (function() {
+
+            /**
+             * Properties of a ListBanksResponse.
+             * @memberof m10.sdk
+             * @interface IListBanksResponse
+             * @property {Array.<m10.sdk.model.IBank>|null} [banks] ListBanksResponse banks
+             */
+
+            /**
+             * Constructs a new ListBanksResponse.
+             * @memberof m10.sdk
+             * @classdesc Represents a ListBanksResponse.
+             * @implements IListBanksResponse
+             * @constructor
+             * @param {m10.sdk.IListBanksResponse=} [properties] Properties to set
+             */
+            function ListBanksResponse(properties) {
+                this.banks = [];
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * ListBanksResponse banks.
+             * @member {Array.<m10.sdk.model.IBank>} banks
+             * @memberof m10.sdk.ListBanksResponse
+             * @instance
+             */
+            ListBanksResponse.prototype.banks = $util.emptyArray;
+
+            /**
+             * Creates a new ListBanksResponse instance using the specified properties.
+             * @function create
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {m10.sdk.IListBanksResponse=} [properties] Properties to set
+             * @returns {m10.sdk.ListBanksResponse} ListBanksResponse instance
+             */
+            ListBanksResponse.create = function create(properties) {
+                return new ListBanksResponse(properties);
+            };
+
+            /**
+             * Encodes the specified ListBanksResponse message. Does not implicitly {@link m10.sdk.ListBanksResponse.verify|verify} messages.
+             * @function encode
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {m10.sdk.IListBanksResponse} message ListBanksResponse message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            ListBanksResponse.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                if (message.banks != null && message.banks.length)
+                    for (var i = 0; i < message.banks.length; ++i)
+                        $root.m10.sdk.model.Bank.encode(message.banks[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                return writer;
+            };
+
+            /**
+             * Encodes the specified ListBanksResponse message, length delimited. Does not implicitly {@link m10.sdk.ListBanksResponse.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {m10.sdk.IListBanksResponse} message ListBanksResponse message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            ListBanksResponse.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes a ListBanksResponse message from the specified reader or buffer.
+             * @function decode
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {m10.sdk.ListBanksResponse} ListBanksResponse
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            ListBanksResponse.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.ListBanksResponse();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    case 1:
+                        if (!(message.banks && message.banks.length))
+                            message.banks = [];
+                        message.banks.push($root.m10.sdk.model.Bank.decode(reader, reader.uint32()));
+                        break;
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes a ListBanksResponse message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {m10.sdk.ListBanksResponse} ListBanksResponse
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            ListBanksResponse.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies a ListBanksResponse message.
+             * @function verify
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            ListBanksResponse.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                if (message.banks != null && message.hasOwnProperty("banks")) {
+                    if (!Array.isArray(message.banks))
+                        return "banks: array expected";
+                    for (var i = 0; i < message.banks.length; ++i) {
+                        var error = $root.m10.sdk.model.Bank.verify(message.banks[i]);
+                        if (error)
+                            return "banks." + error;
+                    }
+                }
+                return null;
+            };
+
+            /**
+             * Creates a ListBanksResponse message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {m10.sdk.ListBanksResponse} ListBanksResponse
+             */
+            ListBanksResponse.fromObject = function fromObject(object) {
+                if (object instanceof $root.m10.sdk.ListBanksResponse)
+                    return object;
+                var message = new $root.m10.sdk.ListBanksResponse();
+                if (object.banks) {
+                    if (!Array.isArray(object.banks))
+                        throw TypeError(".m10.sdk.ListBanksResponse.banks: array expected");
+                    message.banks = [];
+                    for (var i = 0; i < object.banks.length; ++i) {
+                        if (typeof object.banks[i] !== "object")
+                            throw TypeError(".m10.sdk.ListBanksResponse.banks: object expected");
+                        message.banks[i] = $root.m10.sdk.model.Bank.fromObject(object.banks[i]);
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Creates a plain object from a ListBanksResponse message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof m10.sdk.ListBanksResponse
+             * @static
+             * @param {m10.sdk.ListBanksResponse} message ListBanksResponse
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            ListBanksResponse.toObject = function toObject(message, options) {
+                if (!options)
+                    options = {};
+                var object = {};
+                if (options.arrays || options.defaults)
+                    object.banks = [];
+                if (message.banks && message.banks.length) {
+                    object.banks = [];
+                    for (var j = 0; j < message.banks.length; ++j)
+                        object.banks[j] = $root.m10.sdk.model.Bank.toObject(message.banks[j], options);
+                }
+                return object;
+            };
+
+            /**
+             * Converts this ListBanksResponse to JSON.
+             * @function toJSON
+             * @memberof m10.sdk.ListBanksResponse
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            ListBanksResponse.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            return ListBanksResponse;
+        })();
+
         sdk.DocumentOperations = (function() {
 
             /**
@@ -11409,6 +12185,770 @@ $root.m10 = (function() {
                 return PaymentRequest;
             })();
 
+            metadata.QuoteRequest = (function() {
+
+                /**
+                 * Properties of a QuoteRequest.
+                 * @memberof m10.sdk.metadata
+                 * @interface IQuoteRequest
+                 * @property {m10.sdk.metadata.IAccountCurrency|null} [base] QuoteRequest base
+                 * @property {m10.sdk.metadata.IAccountCurrency|null} [target] QuoteRequest target
+                 * @property {string|null} [memo] QuoteRequest memo
+                 */
+
+                /**
+                 * Constructs a new QuoteRequest.
+                 * @memberof m10.sdk.metadata
+                 * @classdesc Represents a QuoteRequest.
+                 * @implements IQuoteRequest
+                 * @constructor
+                 * @param {m10.sdk.metadata.IQuoteRequest=} [properties] Properties to set
+                 */
+                function QuoteRequest(properties) {
+                    if (properties)
+                        for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null)
+                                this[keys[i]] = properties[keys[i]];
+                }
+
+                /**
+                 * QuoteRequest base.
+                 * @member {m10.sdk.metadata.IAccountCurrency|null|undefined} base
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @instance
+                 */
+                QuoteRequest.prototype.base = null;
+
+                /**
+                 * QuoteRequest target.
+                 * @member {m10.sdk.metadata.IAccountCurrency|null|undefined} target
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @instance
+                 */
+                QuoteRequest.prototype.target = null;
+
+                /**
+                 * QuoteRequest memo.
+                 * @member {string} memo
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @instance
+                 */
+                QuoteRequest.prototype.memo = "";
+
+                /**
+                 * Creates a new QuoteRequest instance using the specified properties.
+                 * @function create
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {m10.sdk.metadata.IQuoteRequest=} [properties] Properties to set
+                 * @returns {m10.sdk.metadata.QuoteRequest} QuoteRequest instance
+                 */
+                QuoteRequest.create = function create(properties) {
+                    return new QuoteRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified QuoteRequest message. Does not implicitly {@link m10.sdk.metadata.QuoteRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {m10.sdk.metadata.IQuoteRequest} message QuoteRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                QuoteRequest.encode = function encode(message, writer) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (message.base != null && Object.hasOwnProperty.call(message, "base"))
+                        $root.m10.sdk.metadata.AccountCurrency.encode(message.base, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                    if (message.target != null && Object.hasOwnProperty.call(message, "target"))
+                        $root.m10.sdk.metadata.AccountCurrency.encode(message.target, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                    if (message.memo != null && Object.hasOwnProperty.call(message, "memo"))
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.memo);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified QuoteRequest message, length delimited. Does not implicitly {@link m10.sdk.metadata.QuoteRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {m10.sdk.metadata.IQuoteRequest} message QuoteRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                QuoteRequest.encodeDelimited = function encodeDelimited(message, writer) {
+                    return this.encode(message, writer).ldelim();
+                };
+
+                /**
+                 * Decodes a QuoteRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {m10.sdk.metadata.QuoteRequest} QuoteRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                QuoteRequest.decode = function decode(reader, length) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.metadata.QuoteRequest();
+                    while (reader.pos < end) {
+                        var tag = reader.uint32();
+                        switch (tag >>> 3) {
+                        case 1:
+                            message.base = $root.m10.sdk.metadata.AccountCurrency.decode(reader, reader.uint32());
+                            break;
+                        case 2:
+                            message.target = $root.m10.sdk.metadata.AccountCurrency.decode(reader, reader.uint32());
+                            break;
+                        case 3:
+                            message.memo = reader.string();
+                            break;
+                        default:
+                            reader.skipType(tag & 7);
+                            break;
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Decodes a QuoteRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {m10.sdk.metadata.QuoteRequest} QuoteRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                QuoteRequest.decodeDelimited = function decodeDelimited(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a QuoteRequest message.
+                 * @function verify
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                QuoteRequest.verify = function verify(message) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (message.base != null && message.hasOwnProperty("base")) {
+                        var error = $root.m10.sdk.metadata.AccountCurrency.verify(message.base);
+                        if (error)
+                            return "base." + error;
+                    }
+                    if (message.target != null && message.hasOwnProperty("target")) {
+                        var error = $root.m10.sdk.metadata.AccountCurrency.verify(message.target);
+                        if (error)
+                            return "target." + error;
+                    }
+                    if (message.memo != null && message.hasOwnProperty("memo"))
+                        if (!$util.isString(message.memo))
+                            return "memo: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a QuoteRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {m10.sdk.metadata.QuoteRequest} QuoteRequest
+                 */
+                QuoteRequest.fromObject = function fromObject(object) {
+                    if (object instanceof $root.m10.sdk.metadata.QuoteRequest)
+                        return object;
+                    var message = new $root.m10.sdk.metadata.QuoteRequest();
+                    if (object.base != null) {
+                        if (typeof object.base !== "object")
+                            throw TypeError(".m10.sdk.metadata.QuoteRequest.base: object expected");
+                        message.base = $root.m10.sdk.metadata.AccountCurrency.fromObject(object.base);
+                    }
+                    if (object.target != null) {
+                        if (typeof object.target !== "object")
+                            throw TypeError(".m10.sdk.metadata.QuoteRequest.target: object expected");
+                        message.target = $root.m10.sdk.metadata.AccountCurrency.fromObject(object.target);
+                    }
+                    if (object.memo != null)
+                        message.memo = String(object.memo);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a QuoteRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @static
+                 * @param {m10.sdk.metadata.QuoteRequest} message QuoteRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                QuoteRequest.toObject = function toObject(message, options) {
+                    if (!options)
+                        options = {};
+                    var object = {};
+                    if (options.defaults) {
+                        object.base = null;
+                        object.target = null;
+                        object.memo = "";
+                    }
+                    if (message.base != null && message.hasOwnProperty("base"))
+                        object.base = $root.m10.sdk.metadata.AccountCurrency.toObject(message.base, options);
+                    if (message.target != null && message.hasOwnProperty("target"))
+                        object.target = $root.m10.sdk.metadata.AccountCurrency.toObject(message.target, options);
+                    if (message.memo != null && message.hasOwnProperty("memo"))
+                        object.memo = message.memo;
+                    return object;
+                };
+
+                /**
+                 * Converts this QuoteRequest to JSON.
+                 * @function toJSON
+                 * @memberof m10.sdk.metadata.QuoteRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                QuoteRequest.prototype.toJSON = function toJSON() {
+                    return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                return QuoteRequest;
+            })();
+
+            metadata.AccountCurrency = (function() {
+
+                /**
+                 * Properties of an AccountCurrency.
+                 * @memberof m10.sdk.metadata
+                 * @interface IAccountCurrency
+                 * @property {string|null} [operator] AccountCurrency operator
+                 * @property {string|null} [currency] AccountCurrency currency
+                 * @property {Uint8Array|null} [accountId] AccountCurrency accountId
+                 * @property {number|Long|null} [amount] AccountCurrency amount
+                 */
+
+                /**
+                 * Constructs a new AccountCurrency.
+                 * @memberof m10.sdk.metadata
+                 * @classdesc Represents an AccountCurrency.
+                 * @implements IAccountCurrency
+                 * @constructor
+                 * @param {m10.sdk.metadata.IAccountCurrency=} [properties] Properties to set
+                 */
+                function AccountCurrency(properties) {
+                    if (properties)
+                        for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null)
+                                this[keys[i]] = properties[keys[i]];
+                }
+
+                /**
+                 * AccountCurrency operator.
+                 * @member {string} operator
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @instance
+                 */
+                AccountCurrency.prototype.operator = "";
+
+                /**
+                 * AccountCurrency currency.
+                 * @member {string} currency
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @instance
+                 */
+                AccountCurrency.prototype.currency = "";
+
+                /**
+                 * AccountCurrency accountId.
+                 * @member {Uint8Array} accountId
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @instance
+                 */
+                AccountCurrency.prototype.accountId = $util.newBuffer([]);
+
+                /**
+                 * AccountCurrency amount.
+                 * @member {number|Long} amount
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @instance
+                 */
+                AccountCurrency.prototype.amount = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * Creates a new AccountCurrency instance using the specified properties.
+                 * @function create
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {m10.sdk.metadata.IAccountCurrency=} [properties] Properties to set
+                 * @returns {m10.sdk.metadata.AccountCurrency} AccountCurrency instance
+                 */
+                AccountCurrency.create = function create(properties) {
+                    return new AccountCurrency(properties);
+                };
+
+                /**
+                 * Encodes the specified AccountCurrency message. Does not implicitly {@link m10.sdk.metadata.AccountCurrency.verify|verify} messages.
+                 * @function encode
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {m10.sdk.metadata.IAccountCurrency} message AccountCurrency message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccountCurrency.encode = function encode(message, writer) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (message.operator != null && Object.hasOwnProperty.call(message, "operator"))
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.operator);
+                    if (message.currency != null && Object.hasOwnProperty.call(message, "currency"))
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.currency);
+                    if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                        writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.accountId);
+                    if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                        writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.amount);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AccountCurrency message, length delimited. Does not implicitly {@link m10.sdk.metadata.AccountCurrency.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {m10.sdk.metadata.IAccountCurrency} message AccountCurrency message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccountCurrency.encodeDelimited = function encodeDelimited(message, writer) {
+                    return this.encode(message, writer).ldelim();
+                };
+
+                /**
+                 * Decodes an AccountCurrency message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {m10.sdk.metadata.AccountCurrency} AccountCurrency
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccountCurrency.decode = function decode(reader, length) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.metadata.AccountCurrency();
+                    while (reader.pos < end) {
+                        var tag = reader.uint32();
+                        switch (tag >>> 3) {
+                        case 1:
+                            message.operator = reader.string();
+                            break;
+                        case 2:
+                            message.currency = reader.string();
+                            break;
+                        case 3:
+                            message.accountId = reader.bytes();
+                            break;
+                        case 4:
+                            message.amount = reader.uint64();
+                            break;
+                        default:
+                            reader.skipType(tag & 7);
+                            break;
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Decodes an AccountCurrency message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {m10.sdk.metadata.AccountCurrency} AccountCurrency
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccountCurrency.decodeDelimited = function decodeDelimited(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AccountCurrency message.
+                 * @function verify
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AccountCurrency.verify = function verify(message) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (message.operator != null && message.hasOwnProperty("operator"))
+                        if (!$util.isString(message.operator))
+                            return "operator: string expected";
+                    if (message.currency != null && message.hasOwnProperty("currency"))
+                        if (!$util.isString(message.currency))
+                            return "currency: string expected";
+                    if (message.accountId != null && message.hasOwnProperty("accountId"))
+                        if (!(message.accountId && typeof message.accountId.length === "number" || $util.isString(message.accountId)))
+                            return "accountId: buffer expected";
+                    if (message.amount != null && message.hasOwnProperty("amount"))
+                        if (!$util.isInteger(message.amount) && !(message.amount && $util.isInteger(message.amount.low) && $util.isInteger(message.amount.high)))
+                            return "amount: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an AccountCurrency message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {m10.sdk.metadata.AccountCurrency} AccountCurrency
+                 */
+                AccountCurrency.fromObject = function fromObject(object) {
+                    if (object instanceof $root.m10.sdk.metadata.AccountCurrency)
+                        return object;
+                    var message = new $root.m10.sdk.metadata.AccountCurrency();
+                    if (object.operator != null)
+                        message.operator = String(object.operator);
+                    if (object.currency != null)
+                        message.currency = String(object.currency);
+                    if (object.accountId != null)
+                        if (typeof object.accountId === "string")
+                            $util.base64.decode(object.accountId, message.accountId = $util.newBuffer($util.base64.length(object.accountId)), 0);
+                        else if (object.accountId.length)
+                            message.accountId = object.accountId;
+                    if (object.amount != null)
+                        if ($util.Long)
+                            (message.amount = $util.Long.fromValue(object.amount)).unsigned = true;
+                        else if (typeof object.amount === "string")
+                            message.amount = parseInt(object.amount, 10);
+                        else if (typeof object.amount === "number")
+                            message.amount = object.amount;
+                        else if (typeof object.amount === "object")
+                            message.amount = new $util.LongBits(object.amount.low >>> 0, object.amount.high >>> 0).toNumber(true);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AccountCurrency message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @static
+                 * @param {m10.sdk.metadata.AccountCurrency} message AccountCurrency
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AccountCurrency.toObject = function toObject(message, options) {
+                    if (!options)
+                        options = {};
+                    var object = {};
+                    if (options.defaults) {
+                        object.operator = "";
+                        object.currency = "";
+                        if (options.bytes === String)
+                            object.accountId = "";
+                        else {
+                            object.accountId = [];
+                            if (options.bytes !== Array)
+                                object.accountId = $util.newBuffer(object.accountId);
+                        }
+                        if ($util.Long) {
+                            var long = new $util.Long(0, 0, true);
+                            object.amount = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                        } else
+                            object.amount = options.longs === String ? "0" : 0;
+                    }
+                    if (message.operator != null && message.hasOwnProperty("operator"))
+                        object.operator = message.operator;
+                    if (message.currency != null && message.hasOwnProperty("currency"))
+                        object.currency = message.currency;
+                    if (message.accountId != null && message.hasOwnProperty("accountId"))
+                        object.accountId = options.bytes === String ? $util.base64.encode(message.accountId, 0, message.accountId.length) : options.bytes === Array ? Array.prototype.slice.call(message.accountId) : message.accountId;
+                    if (message.amount != null && message.hasOwnProperty("amount"))
+                        if (typeof message.amount === "number")
+                            object.amount = options.longs === String ? String(message.amount) : message.amount;
+                        else
+                            object.amount = options.longs === String ? $util.Long.prototype.toString.call(message.amount) : options.longs === Number ? new $util.LongBits(message.amount.low >>> 0, message.amount.high >>> 0).toNumber(true) : message.amount;
+                    return object;
+                };
+
+                /**
+                 * Converts this AccountCurrency to JSON.
+                 * @function toJSON
+                 * @memberof m10.sdk.metadata.AccountCurrency
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AccountCurrency.prototype.toJSON = function toJSON() {
+                    return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                return AccountCurrency;
+            })();
+
+            metadata.QuoteEvent = (function() {
+
+                /**
+                 * Properties of a QuoteEvent.
+                 * @memberof m10.sdk.metadata
+                 * @interface IQuoteEvent
+                 * @property {m10.sdk.metadata.IQuoteRequest|null} [request] QuoteEvent request
+                 * @property {m10.sdk.metadata.IContract|null} [proposal] QuoteEvent proposal
+                 */
+
+                /**
+                 * Constructs a new QuoteEvent.
+                 * @memberof m10.sdk.metadata
+                 * @classdesc Represents a QuoteEvent.
+                 * @implements IQuoteEvent
+                 * @constructor
+                 * @param {m10.sdk.metadata.IQuoteEvent=} [properties] Properties to set
+                 */
+                function QuoteEvent(properties) {
+                    if (properties)
+                        for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null)
+                                this[keys[i]] = properties[keys[i]];
+                }
+
+                /**
+                 * QuoteEvent request.
+                 * @member {m10.sdk.metadata.IQuoteRequest|null|undefined} request
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @instance
+                 */
+                QuoteEvent.prototype.request = null;
+
+                /**
+                 * QuoteEvent proposal.
+                 * @member {m10.sdk.metadata.IContract|null|undefined} proposal
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @instance
+                 */
+                QuoteEvent.prototype.proposal = null;
+
+                // OneOf field names bound to virtual getters and setters
+                var $oneOfFields;
+
+                /**
+                 * QuoteEvent event.
+                 * @member {"request"|"proposal"|undefined} event
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @instance
+                 */
+                Object.defineProperty(QuoteEvent.prototype, "event", {
+                    get: $util.oneOfGetter($oneOfFields = ["request", "proposal"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                /**
+                 * Creates a new QuoteEvent instance using the specified properties.
+                 * @function create
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {m10.sdk.metadata.IQuoteEvent=} [properties] Properties to set
+                 * @returns {m10.sdk.metadata.QuoteEvent} QuoteEvent instance
+                 */
+                QuoteEvent.create = function create(properties) {
+                    return new QuoteEvent(properties);
+                };
+
+                /**
+                 * Encodes the specified QuoteEvent message. Does not implicitly {@link m10.sdk.metadata.QuoteEvent.verify|verify} messages.
+                 * @function encode
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {m10.sdk.metadata.IQuoteEvent} message QuoteEvent message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                QuoteEvent.encode = function encode(message, writer) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (message.request != null && Object.hasOwnProperty.call(message, "request"))
+                        $root.m10.sdk.metadata.QuoteRequest.encode(message.request, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                    if (message.proposal != null && Object.hasOwnProperty.call(message, "proposal"))
+                        $root.m10.sdk.metadata.Contract.encode(message.proposal, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified QuoteEvent message, length delimited. Does not implicitly {@link m10.sdk.metadata.QuoteEvent.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {m10.sdk.metadata.IQuoteEvent} message QuoteEvent message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                QuoteEvent.encodeDelimited = function encodeDelimited(message, writer) {
+                    return this.encode(message, writer).ldelim();
+                };
+
+                /**
+                 * Decodes a QuoteEvent message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {m10.sdk.metadata.QuoteEvent} QuoteEvent
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                QuoteEvent.decode = function decode(reader, length) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.metadata.QuoteEvent();
+                    while (reader.pos < end) {
+                        var tag = reader.uint32();
+                        switch (tag >>> 3) {
+                        case 1:
+                            message.request = $root.m10.sdk.metadata.QuoteRequest.decode(reader, reader.uint32());
+                            break;
+                        case 2:
+                            message.proposal = $root.m10.sdk.metadata.Contract.decode(reader, reader.uint32());
+                            break;
+                        default:
+                            reader.skipType(tag & 7);
+                            break;
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Decodes a QuoteEvent message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {m10.sdk.metadata.QuoteEvent} QuoteEvent
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                QuoteEvent.decodeDelimited = function decodeDelimited(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a QuoteEvent message.
+                 * @function verify
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                QuoteEvent.verify = function verify(message) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    var properties = {};
+                    if (message.request != null && message.hasOwnProperty("request")) {
+                        properties.event = 1;
+                        {
+                            var error = $root.m10.sdk.metadata.QuoteRequest.verify(message.request);
+                            if (error)
+                                return "request." + error;
+                        }
+                    }
+                    if (message.proposal != null && message.hasOwnProperty("proposal")) {
+                        if (properties.event === 1)
+                            return "event: multiple values";
+                        properties.event = 1;
+                        {
+                            var error = $root.m10.sdk.metadata.Contract.verify(message.proposal);
+                            if (error)
+                                return "proposal." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a QuoteEvent message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {m10.sdk.metadata.QuoteEvent} QuoteEvent
+                 */
+                QuoteEvent.fromObject = function fromObject(object) {
+                    if (object instanceof $root.m10.sdk.metadata.QuoteEvent)
+                        return object;
+                    var message = new $root.m10.sdk.metadata.QuoteEvent();
+                    if (object.request != null) {
+                        if (typeof object.request !== "object")
+                            throw TypeError(".m10.sdk.metadata.QuoteEvent.request: object expected");
+                        message.request = $root.m10.sdk.metadata.QuoteRequest.fromObject(object.request);
+                    }
+                    if (object.proposal != null) {
+                        if (typeof object.proposal !== "object")
+                            throw TypeError(".m10.sdk.metadata.QuoteEvent.proposal: object expected");
+                        message.proposal = $root.m10.sdk.metadata.Contract.fromObject(object.proposal);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a QuoteEvent message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @static
+                 * @param {m10.sdk.metadata.QuoteEvent} message QuoteEvent
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                QuoteEvent.toObject = function toObject(message, options) {
+                    if (!options)
+                        options = {};
+                    var object = {};
+                    if (message.request != null && message.hasOwnProperty("request")) {
+                        object.request = $root.m10.sdk.metadata.QuoteRequest.toObject(message.request, options);
+                        if (options.oneofs)
+                            object.event = "request";
+                    }
+                    if (message.proposal != null && message.hasOwnProperty("proposal")) {
+                        object.proposal = $root.m10.sdk.metadata.Contract.toObject(message.proposal, options);
+                        if (options.oneofs)
+                            object.event = "proposal";
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this QuoteEvent to JSON.
+                 * @function toJSON
+                 * @memberof m10.sdk.metadata.QuoteEvent
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                QuoteEvent.prototype.toJSON = function toJSON() {
+                    return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                return QuoteEvent;
+            })();
+
             return metadata;
         })();
 
@@ -12520,6 +14060,568 @@ $root.m10 = (function() {
                 };
 
                 return AccountInfo;
+            })();
+
+            model.BankAccountRef = (function() {
+
+                /**
+                 * Properties of a BankAccountRef.
+                 * @memberof m10.sdk.model
+                 * @interface IBankAccountRef
+                 * @property {Uint8Array|null} [accountId] BankAccountRef accountId
+                 * @property {m10.sdk.model.BankAccountRef.BankAccountType|null} [accountType] BankAccountRef accountType
+                 */
+
+                /**
+                 * Constructs a new BankAccountRef.
+                 * @memberof m10.sdk.model
+                 * @classdesc Represents a BankAccountRef.
+                 * @implements IBankAccountRef
+                 * @constructor
+                 * @param {m10.sdk.model.IBankAccountRef=} [properties] Properties to set
+                 */
+                function BankAccountRef(properties) {
+                    if (properties)
+                        for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null)
+                                this[keys[i]] = properties[keys[i]];
+                }
+
+                /**
+                 * BankAccountRef accountId.
+                 * @member {Uint8Array} accountId
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @instance
+                 */
+                BankAccountRef.prototype.accountId = $util.newBuffer([]);
+
+                /**
+                 * BankAccountRef accountType.
+                 * @member {m10.sdk.model.BankAccountRef.BankAccountType} accountType
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @instance
+                 */
+                BankAccountRef.prototype.accountType = 0;
+
+                /**
+                 * Creates a new BankAccountRef instance using the specified properties.
+                 * @function create
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {m10.sdk.model.IBankAccountRef=} [properties] Properties to set
+                 * @returns {m10.sdk.model.BankAccountRef} BankAccountRef instance
+                 */
+                BankAccountRef.create = function create(properties) {
+                    return new BankAccountRef(properties);
+                };
+
+                /**
+                 * Encodes the specified BankAccountRef message. Does not implicitly {@link m10.sdk.model.BankAccountRef.verify|verify} messages.
+                 * @function encode
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {m10.sdk.model.IBankAccountRef} message BankAccountRef message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                BankAccountRef.encode = function encode(message, writer) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                        writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.accountId);
+                    if (message.accountType != null && Object.hasOwnProperty.call(message, "accountType"))
+                        writer.uint32(/* id 2, wireType 0 =*/16).int32(message.accountType);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified BankAccountRef message, length delimited. Does not implicitly {@link m10.sdk.model.BankAccountRef.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {m10.sdk.model.IBankAccountRef} message BankAccountRef message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                BankAccountRef.encodeDelimited = function encodeDelimited(message, writer) {
+                    return this.encode(message, writer).ldelim();
+                };
+
+                /**
+                 * Decodes a BankAccountRef message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {m10.sdk.model.BankAccountRef} BankAccountRef
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                BankAccountRef.decode = function decode(reader, length) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.model.BankAccountRef();
+                    while (reader.pos < end) {
+                        var tag = reader.uint32();
+                        switch (tag >>> 3) {
+                        case 1:
+                            message.accountId = reader.bytes();
+                            break;
+                        case 2:
+                            message.accountType = reader.int32();
+                            break;
+                        default:
+                            reader.skipType(tag & 7);
+                            break;
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Decodes a BankAccountRef message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {m10.sdk.model.BankAccountRef} BankAccountRef
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                BankAccountRef.decodeDelimited = function decodeDelimited(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a BankAccountRef message.
+                 * @function verify
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                BankAccountRef.verify = function verify(message) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (message.accountId != null && message.hasOwnProperty("accountId"))
+                        if (!(message.accountId && typeof message.accountId.length === "number" || $util.isString(message.accountId)))
+                            return "accountId: buffer expected";
+                    if (message.accountType != null && message.hasOwnProperty("accountType"))
+                        switch (message.accountType) {
+                        default:
+                            return "accountType: enum value expected";
+                        case 0:
+                        case 1:
+                            break;
+                        }
+                    return null;
+                };
+
+                /**
+                 * Creates a BankAccountRef message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {m10.sdk.model.BankAccountRef} BankAccountRef
+                 */
+                BankAccountRef.fromObject = function fromObject(object) {
+                    if (object instanceof $root.m10.sdk.model.BankAccountRef)
+                        return object;
+                    var message = new $root.m10.sdk.model.BankAccountRef();
+                    if (object.accountId != null)
+                        if (typeof object.accountId === "string")
+                            $util.base64.decode(object.accountId, message.accountId = $util.newBuffer($util.base64.length(object.accountId)), 0);
+                        else if (object.accountId.length)
+                            message.accountId = object.accountId;
+                    switch (object.accountType) {
+                    case "CBDC":
+                    case 0:
+                        message.accountType = 0;
+                        break;
+                    case "DRM":
+                    case 1:
+                        message.accountType = 1;
+                        break;
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a BankAccountRef message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @static
+                 * @param {m10.sdk.model.BankAccountRef} message BankAccountRef
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                BankAccountRef.toObject = function toObject(message, options) {
+                    if (!options)
+                        options = {};
+                    var object = {};
+                    if (options.defaults) {
+                        if (options.bytes === String)
+                            object.accountId = "";
+                        else {
+                            object.accountId = [];
+                            if (options.bytes !== Array)
+                                object.accountId = $util.newBuffer(object.accountId);
+                        }
+                        object.accountType = options.enums === String ? "CBDC" : 0;
+                    }
+                    if (message.accountId != null && message.hasOwnProperty("accountId"))
+                        object.accountId = options.bytes === String ? $util.base64.encode(message.accountId, 0, message.accountId.length) : options.bytes === Array ? Array.prototype.slice.call(message.accountId) : message.accountId;
+                    if (message.accountType != null && message.hasOwnProperty("accountType"))
+                        object.accountType = options.enums === String ? $root.m10.sdk.model.BankAccountRef.BankAccountType[message.accountType] : message.accountType;
+                    return object;
+                };
+
+                /**
+                 * Converts this BankAccountRef to JSON.
+                 * @function toJSON
+                 * @memberof m10.sdk.model.BankAccountRef
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                BankAccountRef.prototype.toJSON = function toJSON() {
+                    return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * BankAccountType enum.
+                 * @name m10.sdk.model.BankAccountRef.BankAccountType
+                 * @enum {number}
+                 * @property {number} CBDC=0 CBDC value
+                 * @property {number} DRM=1 DRM value
+                 */
+                BankAccountRef.BankAccountType = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "CBDC"] = 0;
+                    values[valuesById[1] = "DRM"] = 1;
+                    return values;
+                })();
+
+                return BankAccountRef;
+            })();
+
+            model.Bank = (function() {
+
+                /**
+                 * Properties of a Bank.
+                 * @memberof m10.sdk.model
+                 * @interface IBank
+                 * @property {Uint8Array|null} [id] Bank id
+                 * @property {Uint8Array|null} [owner] Bank owner
+                 * @property {string|null} [shortName] Bank shortName
+                 * @property {string|null} [displayName] Bank displayName
+                 * @property {Array.<m10.sdk.model.IBankAccountRef>|null} [accounts] Bank accounts
+                 */
+
+                /**
+                 * Constructs a new Bank.
+                 * @memberof m10.sdk.model
+                 * @classdesc Represents a Bank.
+                 * @implements IBank
+                 * @constructor
+                 * @param {m10.sdk.model.IBank=} [properties] Properties to set
+                 */
+                function Bank(properties) {
+                    this.accounts = [];
+                    if (properties)
+                        for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null)
+                                this[keys[i]] = properties[keys[i]];
+                }
+
+                /**
+                 * Bank id.
+                 * @member {Uint8Array} id
+                 * @memberof m10.sdk.model.Bank
+                 * @instance
+                 */
+                Bank.prototype.id = $util.newBuffer([]);
+
+                /**
+                 * Bank owner.
+                 * @member {Uint8Array} owner
+                 * @memberof m10.sdk.model.Bank
+                 * @instance
+                 */
+                Bank.prototype.owner = $util.newBuffer([]);
+
+                /**
+                 * Bank shortName.
+                 * @member {string} shortName
+                 * @memberof m10.sdk.model.Bank
+                 * @instance
+                 */
+                Bank.prototype.shortName = "";
+
+                /**
+                 * Bank displayName.
+                 * @member {string} displayName
+                 * @memberof m10.sdk.model.Bank
+                 * @instance
+                 */
+                Bank.prototype.displayName = "";
+
+                /**
+                 * Bank accounts.
+                 * @member {Array.<m10.sdk.model.IBankAccountRef>} accounts
+                 * @memberof m10.sdk.model.Bank
+                 * @instance
+                 */
+                Bank.prototype.accounts = $util.emptyArray;
+
+                /**
+                 * Creates a new Bank instance using the specified properties.
+                 * @function create
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {m10.sdk.model.IBank=} [properties] Properties to set
+                 * @returns {m10.sdk.model.Bank} Bank instance
+                 */
+                Bank.create = function create(properties) {
+                    return new Bank(properties);
+                };
+
+                /**
+                 * Encodes the specified Bank message. Does not implicitly {@link m10.sdk.model.Bank.verify|verify} messages.
+                 * @function encode
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {m10.sdk.model.IBank} message Bank message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Bank.encode = function encode(message, writer) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                        writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.id);
+                    if (message.owner != null && Object.hasOwnProperty.call(message, "owner"))
+                        writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.owner);
+                    if (message.shortName != null && Object.hasOwnProperty.call(message, "shortName"))
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.shortName);
+                    if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.displayName);
+                    if (message.accounts != null && message.accounts.length)
+                        for (var i = 0; i < message.accounts.length; ++i)
+                            $root.m10.sdk.model.BankAccountRef.encode(message.accounts[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified Bank message, length delimited. Does not implicitly {@link m10.sdk.model.Bank.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {m10.sdk.model.IBank} message Bank message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Bank.encodeDelimited = function encodeDelimited(message, writer) {
+                    return this.encode(message, writer).ldelim();
+                };
+
+                /**
+                 * Decodes a Bank message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {m10.sdk.model.Bank} Bank
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Bank.decode = function decode(reader, length) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    var end = length === undefined ? reader.len : reader.pos + length, message = new $root.m10.sdk.model.Bank();
+                    while (reader.pos < end) {
+                        var tag = reader.uint32();
+                        switch (tag >>> 3) {
+                        case 1:
+                            message.id = reader.bytes();
+                            break;
+                        case 2:
+                            message.owner = reader.bytes();
+                            break;
+                        case 3:
+                            message.shortName = reader.string();
+                            break;
+                        case 4:
+                            message.displayName = reader.string();
+                            break;
+                        case 5:
+                            if (!(message.accounts && message.accounts.length))
+                                message.accounts = [];
+                            message.accounts.push($root.m10.sdk.model.BankAccountRef.decode(reader, reader.uint32()));
+                            break;
+                        default:
+                            reader.skipType(tag & 7);
+                            break;
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Decodes a Bank message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {m10.sdk.model.Bank} Bank
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Bank.decodeDelimited = function decodeDelimited(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a Bank message.
+                 * @function verify
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                Bank.verify = function verify(message) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (message.id != null && message.hasOwnProperty("id"))
+                        if (!(message.id && typeof message.id.length === "number" || $util.isString(message.id)))
+                            return "id: buffer expected";
+                    if (message.owner != null && message.hasOwnProperty("owner"))
+                        if (!(message.owner && typeof message.owner.length === "number" || $util.isString(message.owner)))
+                            return "owner: buffer expected";
+                    if (message.shortName != null && message.hasOwnProperty("shortName"))
+                        if (!$util.isString(message.shortName))
+                            return "shortName: string expected";
+                    if (message.displayName != null && message.hasOwnProperty("displayName"))
+                        if (!$util.isString(message.displayName))
+                            return "displayName: string expected";
+                    if (message.accounts != null && message.hasOwnProperty("accounts")) {
+                        if (!Array.isArray(message.accounts))
+                            return "accounts: array expected";
+                        for (var i = 0; i < message.accounts.length; ++i) {
+                            var error = $root.m10.sdk.model.BankAccountRef.verify(message.accounts[i]);
+                            if (error)
+                                return "accounts." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a Bank message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {m10.sdk.model.Bank} Bank
+                 */
+                Bank.fromObject = function fromObject(object) {
+                    if (object instanceof $root.m10.sdk.model.Bank)
+                        return object;
+                    var message = new $root.m10.sdk.model.Bank();
+                    if (object.id != null)
+                        if (typeof object.id === "string")
+                            $util.base64.decode(object.id, message.id = $util.newBuffer($util.base64.length(object.id)), 0);
+                        else if (object.id.length)
+                            message.id = object.id;
+                    if (object.owner != null)
+                        if (typeof object.owner === "string")
+                            $util.base64.decode(object.owner, message.owner = $util.newBuffer($util.base64.length(object.owner)), 0);
+                        else if (object.owner.length)
+                            message.owner = object.owner;
+                    if (object.shortName != null)
+                        message.shortName = String(object.shortName);
+                    if (object.displayName != null)
+                        message.displayName = String(object.displayName);
+                    if (object.accounts) {
+                        if (!Array.isArray(object.accounts))
+                            throw TypeError(".m10.sdk.model.Bank.accounts: array expected");
+                        message.accounts = [];
+                        for (var i = 0; i < object.accounts.length; ++i) {
+                            if (typeof object.accounts[i] !== "object")
+                                throw TypeError(".m10.sdk.model.Bank.accounts: object expected");
+                            message.accounts[i] = $root.m10.sdk.model.BankAccountRef.fromObject(object.accounts[i]);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a Bank message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof m10.sdk.model.Bank
+                 * @static
+                 * @param {m10.sdk.model.Bank} message Bank
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                Bank.toObject = function toObject(message, options) {
+                    if (!options)
+                        options = {};
+                    var object = {};
+                    if (options.arrays || options.defaults)
+                        object.accounts = [];
+                    if (options.defaults) {
+                        if (options.bytes === String)
+                            object.id = "";
+                        else {
+                            object.id = [];
+                            if (options.bytes !== Array)
+                                object.id = $util.newBuffer(object.id);
+                        }
+                        if (options.bytes === String)
+                            object.owner = "";
+                        else {
+                            object.owner = [];
+                            if (options.bytes !== Array)
+                                object.owner = $util.newBuffer(object.owner);
+                        }
+                        object.shortName = "";
+                        object.displayName = "";
+                    }
+                    if (message.id != null && message.hasOwnProperty("id"))
+                        object.id = options.bytes === String ? $util.base64.encode(message.id, 0, message.id.length) : options.bytes === Array ? Array.prototype.slice.call(message.id) : message.id;
+                    if (message.owner != null && message.hasOwnProperty("owner"))
+                        object.owner = options.bytes === String ? $util.base64.encode(message.owner, 0, message.owner.length) : options.bytes === Array ? Array.prototype.slice.call(message.owner) : message.owner;
+                    if (message.shortName != null && message.hasOwnProperty("shortName"))
+                        object.shortName = message.shortName;
+                    if (message.displayName != null && message.hasOwnProperty("displayName"))
+                        object.displayName = message.displayName;
+                    if (message.accounts && message.accounts.length) {
+                        object.accounts = [];
+                        for (var j = 0; j < message.accounts.length; ++j)
+                            object.accounts[j] = $root.m10.sdk.model.BankAccountRef.toObject(message.accounts[j], options);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this Bank to JSON.
+                 * @function toJSON
+                 * @memberof m10.sdk.model.Bank
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                Bank.prototype.toJSON = function toJSON() {
+                    return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                return Bank;
             })();
 
             return model;
@@ -19447,6 +21549,7 @@ $root.m10 = (function() {
                  * @memberof m10.sdk.transaction
                  * @interface ITarget
                  * @property {Uint8Array|null} [accountId] Target accountId
+                 * @property {google.protobuf.IEmpty|null} [anyAccount] Target anyAccount
                  */
 
                 /**
@@ -19472,17 +21575,25 @@ $root.m10 = (function() {
                  */
                 Target.prototype.accountId = null;
 
+                /**
+                 * Target anyAccount.
+                 * @member {google.protobuf.IEmpty|null|undefined} anyAccount
+                 * @memberof m10.sdk.transaction.Target
+                 * @instance
+                 */
+                Target.prototype.anyAccount = null;
+
                 // OneOf field names bound to virtual getters and setters
                 var $oneOfFields;
 
                 /**
                  * Target target.
-                 * @member {"accountId"|undefined} target
+                 * @member {"accountId"|"anyAccount"|undefined} target
                  * @memberof m10.sdk.transaction.Target
                  * @instance
                  */
                 Object.defineProperty(Target.prototype, "target", {
-                    get: $util.oneOfGetter($oneOfFields = ["accountId"]),
+                    get: $util.oneOfGetter($oneOfFields = ["accountId", "anyAccount"]),
                     set: $util.oneOfSetter($oneOfFields)
                 });
 
@@ -19512,6 +21623,8 @@ $root.m10 = (function() {
                         writer = $Writer.create();
                     if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
                         writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.accountId);
+                    if (message.anyAccount != null && Object.hasOwnProperty.call(message, "anyAccount"))
+                        $root.google.protobuf.Empty.encode(message.anyAccount, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
                     return writer;
                 };
 
@@ -19548,6 +21661,9 @@ $root.m10 = (function() {
                         switch (tag >>> 3) {
                         case 1:
                             message.accountId = reader.bytes();
+                            break;
+                        case 2:
+                            message.anyAccount = $root.google.protobuf.Empty.decode(reader, reader.uint32());
                             break;
                         default:
                             reader.skipType(tag & 7);
@@ -19590,6 +21706,16 @@ $root.m10 = (function() {
                         if (!(message.accountId && typeof message.accountId.length === "number" || $util.isString(message.accountId)))
                             return "accountId: buffer expected";
                     }
+                    if (message.anyAccount != null && message.hasOwnProperty("anyAccount")) {
+                        if (properties.target === 1)
+                            return "target: multiple values";
+                        properties.target = 1;
+                        {
+                            var error = $root.google.protobuf.Empty.verify(message.anyAccount);
+                            if (error)
+                                return "anyAccount." + error;
+                        }
+                    }
                     return null;
                 };
 
@@ -19610,6 +21736,11 @@ $root.m10 = (function() {
                             $util.base64.decode(object.accountId, message.accountId = $util.newBuffer($util.base64.length(object.accountId)), 0);
                         else if (object.accountId.length)
                             message.accountId = object.accountId;
+                    if (object.anyAccount != null) {
+                        if (typeof object.anyAccount !== "object")
+                            throw TypeError(".m10.sdk.transaction.Target.anyAccount: object expected");
+                        message.anyAccount = $root.google.protobuf.Empty.fromObject(object.anyAccount);
+                    }
                     return message;
                 };
 
@@ -19630,6 +21761,11 @@ $root.m10 = (function() {
                         object.accountId = options.bytes === String ? $util.base64.encode(message.accountId, 0, message.accountId.length) : options.bytes === Array ? Array.prototype.slice.call(message.accountId) : message.accountId;
                         if (options.oneofs)
                             object.target = "accountId";
+                    }
+                    if (message.anyAccount != null && message.hasOwnProperty("anyAccount")) {
+                        object.anyAccount = $root.google.protobuf.Empty.toObject(message.anyAccount, options);
+                        if (options.oneofs)
+                            object.target = "anyAccount";
                     }
                     return object;
                 };

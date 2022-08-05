@@ -1,7 +1,7 @@
 use m10_protos::prost::bytes::Bytes;
 use uuid::Uuid;
 
-/// A trait repersenting any type that can be used as a DocumentId
+/// A trait representing any type that can be used as a DocumentId
 pub trait DocumentId {
     fn into_bytes(self) -> Bytes;
     fn into_vec(self) -> Vec<u8>;

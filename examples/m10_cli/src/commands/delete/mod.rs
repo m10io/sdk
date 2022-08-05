@@ -27,6 +27,8 @@ pub(super) enum DeleteSubCommands {
     Role(DeleteStoreItemOptions),
     /// Delete a role binding record
     RoleBinding(DeleteStoreItemOptions),
+    /// Delete a bank record
+    Bank(DeleteStoreItemOptions),
 }
 
 impl DeleteSubCommands {
@@ -44,6 +46,9 @@ impl DeleteSubCommands {
             DeleteSubCommands::RoleBinding(options) => {
                 store_delete::<sdk::RoleBinding>(options.id.clone(), config).await
             }
+            DeleteSubCommands::Bank(options) => {
+                store_delete::<sdk::Bank>(options.id.clone(), config).await
+            }
         }
     }
 
@@ -59,6 +64,7 @@ impl DeleteSubCommands {
             DeleteSubCommands::RoleBinding(options) => {
                 delete_operation::<sdk::RoleBinding>(options.id.clone())
             }
+            DeleteSubCommands::Bank(options) => delete_operation::<sdk::Bank>(options.id.clone()),
         }
     }
 }

@@ -3,10 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 use uuid::Uuid;
 
-use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
-    error::Error,
-};
+use crate::{auth::AuthScope, error::Error};
 
 use super::{Asset, NextPageToken};
 
@@ -338,17 +335,5 @@ impl Contact {
         let customer: Self = query.fetch_one(txn).await?;
         *self = customer;
         Ok(())
-    }
-}
-
-pub struct ContactAuth;
-
-impl AuthModel for ContactAuth {
-    fn is_authorized(&self, verb: Verb, user: &User) -> Result<(), Error> {
-        user.authorize(&"contacts".into(), verb).map(|_| ())
-    }
-
-    fn auth_scope(&self, verb: Verb, user: &User) -> AuthScope {
-        user.query_scope(&"contacts".into(), verb)
     }
 }

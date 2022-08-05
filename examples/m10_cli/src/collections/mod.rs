@@ -4,6 +4,7 @@ use uuid::Uuid;
 pub(crate) mod account_sets;
 pub(crate) mod accounts;
 pub(crate) mod actions;
+pub(crate) mod banks;
 pub(crate) mod contracts;
 pub(crate) mod role_bindings;
 pub(crate) mod roles;
@@ -25,7 +26,7 @@ impl From<PrettyId> for bytes::Bytes {
     }
 }
 
-impl<'a> From<bytes::Bytes> for PrettyId {
+impl From<bytes::Bytes> for PrettyId {
     fn from(b: bytes::Bytes) -> Self {
         if let Ok(u) = Uuid::from_slice(b.as_ref()) {
             PrettyId::Uuid(u)

@@ -6,9 +6,10 @@ directory_addr = "https://develop.m10.net"
 prometheus_port = "27777"
 
 key_pair = "MFMCAQEwBQYDK2VwBCIEIFX1/JTSaE+IV9aM3SWMLhh6Gi8G3+Uu8rfQG4+jmqmfoSMDIQAYsbQ3kBzKG2ijScMH9jnRYg7JUCL+QQkum+Sc1NIPEg=="
+bank_name = "M10 Bank"
 
 [oauth]
-issuer   = "https://dev-m10.us.auth0.com/"
+issuer   = "https://keycloak-develop.m10.net/"
 audience = "https://api.m10.net"
 
 [bank]
@@ -17,8 +18,10 @@ currencies = [{currency = "USD", account_name = "holding-usd", pre_fund_range = 
 checking_account_start = 500000000
 
 [currencies.usd]
-ledger_account_name = "M10 Bank USD"
+ledger_account_name = "M10 Bank D-USD"
+cbdc = {ledger_account_name = "M10 Bank USD", customer_limit = 100000, reserve_balance = 10000000, reserve_threshold = 20}
 code = "usd"
+rtgs = {addr = "http://0.0.0.0:50052", institute_name = "M10 Reserve", reserve_balance = 1000000000, reserve_threshold = 20}
 asset = false
 
 [currencies.ttt]

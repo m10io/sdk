@@ -1,4 +1,4 @@
-use crate::collections::accounts::{AccountCreated, SetFrozen, SetInstrument};
+use crate::collections::accounts::{AccountCreated, SetBalanceLimit, SetFrozen, SetInstrument};
 use crate::collections::actions::Target;
 use crate::collections::transfers::CommitTransfer;
 use crate::collections::transfers::CreateTransfer;
@@ -25,6 +25,7 @@ pub(crate) enum RequestData {
     InitiateTransfer(CreateTransfer),
     CommitTransfer(CommitTransfer),
     SetInstrument(SetInstrument),
+    SetBalanceLimit(SetBalanceLimit),
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -75,6 +76,10 @@ impl TryFrom<sdk::FinalizedTransaction> for Tx {
                 code: instrument.code,
                 decimals: instrument.decimal_places,
                 description: instrument.description,
+            }),
+            Data::SetBalanceLimit(limit) => RequestData::SetBalanceLimit(SetBalanceLimit {
+                account_id: hex::encode(&limit.account_id),
+                balance_limit: limit.balance_limit,
             }),
         };
 

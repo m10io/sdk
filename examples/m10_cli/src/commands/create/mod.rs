@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 mod account_sets;
 mod accounts;
+pub(crate) mod banks;
 mod collection_metadata;
 mod directory_entry;
 mod images;
@@ -27,6 +28,8 @@ pub(super) enum CreateSubCommands {
     AccountSet(account_sets::CreateAccountSetOptions),
     /// Create a new account metadata record on the ledger
     Account(accounts::CreateAccountOptions),
+    /// Create a new bank metadata record on the ledger
+    Bank(banks::CreateBankOptions),
     /// Create a directory entry
     DirectoryEntry(directory_entry::CreateDirEntryOptions),
     /// Create a new account on the ledger
@@ -68,6 +71,7 @@ impl CreateSubCommands {
                 Ok(())
             }
             CreateSubCommands::KeyPair(options) => options.create(),
+            CreateSubCommands::Bank(options) => store_create::<_, sdk::Bank>(options, config).await,
         }
     }
 

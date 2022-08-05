@@ -1,13 +1,14 @@
 use crate::collections::transfers::{AccountInfo, EnhancedTransfer, Transfer};
 use crate::context::Context;
 use crate::utils::print_items;
+use clap::ArgGroup;
 use clap::Parser;
 use m10_sdk::{self, sdk, Signer};
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, fmt::Debug};
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
+#[clap(group = ArgGroup::new("filter").required(true), about)]
 pub(crate) struct FindTransferOptions {
     /// Set minimum tx id
     #[clap(short, long, default_value_t)]
@@ -16,8 +17,11 @@ pub(crate) struct FindTransferOptions {
     #[clap(short = 'x', long)]
     max_tx_id: Option<u64>,
     /// Set account filter
-    #[clap(short, long)]
-    account: String,
+    #[clap(short, long, group = "filter")]
+    account: Option<String>,
+    /// Set contextID filter
+    #[clap(short, long, group = "filter")]
+    context_id: Option<String>,
     /// Set limit
     #[clap(short, long, default_value = "20")]
     limit: u64,
@@ -36,7 +40,13 @@ pub(crate) struct FindTransferOptions {
 impl FindTransferOptions {
     pub(crate) async fn find(&self, config: &crate::Config) -> anyhow::Result<()> {
         let mut context = Context::new(config).await?;
-        let filter = sdk::list_transfer_request::Filter::AccountId(hex::decode(&self.account)?);
+        let filter = if let Some(account) = &self.account {
+            sdk::list_transfer_request::Filter::AccountId(hex::decode(account)?)
+        } else if let Some(context_id) = &self.context_id {
+            sdk::list_transfer_request::Filter::ContextId(hex::decode(context_id)?)
+        } else {
+            anyhow::bail!("Missing account or context_id filter")
+        };
         let max_tx_id = self.max_tx_id.unwrap_or(u64::MAX);
         let request = sdk::ListTransferRequest {
             filter: Some(filter),

@@ -4,10 +4,10 @@ use std::time::Duration;
 use rusoto_credential::{ChainProvider, ProvideAwsCredentials};
 use rusoto_signature::SignedRequest;
 use sqlx_core::connection::Connection;
-use sqlx_core::error::Error;
 use sqlx_core::postgres::{PgConnectOptions, PgConnection};
 
 pub use bb8;
+pub use sqlx_core::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct RdsManager {

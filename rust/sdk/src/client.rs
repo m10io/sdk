@@ -1,454 +1,447 @@
+use crate::account::AccountId;
+use crate::builders::*;
+use crate::error::{M10Error, M10Result};
+use crate::types::*;
+use crate::{DocumentId, LedgerClient};
+use core::clone::Clone;
+use core::convert::{Into, TryFrom};
 use futures_core::Stream;
-use m10_protos::sdk::AccountInfo;
-use m10_protos::sdk::{
-    self, m10_query_service_client::M10QueryServiceClient,
-    m10_tx_service_client::M10TxServiceClient, transaction_data::Data, TransactionData,
-};
-use m10_signing::SignedRequest;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tonic::{Request, Response};
+use futures_util::{StreamExt, TryStreamExt};
+use m10_protos::sdk;
+use m10_signing::{SignedRequest, Signer};
+use std::sync::Arc;
+use uuid::Uuid;
 
-use crate::transfer_ext::EnhancedTransfer;
-use crate::{EnhancedTransferStep, Signer};
-pub use tonic::transport::{Channel, ClientTlsConfig, Endpoint, Uri};
+pub use tonic::transport::Channel;
 
-// Re-export public error
-pub use tonic::Status;
-
-#[derive(Clone)]
-/// A client for the M10 Ledger.
-///
-/// This client allows you to query and transact on the M10 ledger.
-///
-/// # Example
-/// ```no_run
-/// #[tokio::main(flavor = "current_thread")]
-/// async fn main() {
-///   let ledger_url = "https://test.m10.net".to_string();
-///   let mut client = m10_sdk::LedgerClient::new(
-///     tonic::transport::Endpoint::from_shared(ledger_url)
-///       .unwrap()
-///       .connect_lazy()
-///       .unwrap()
-///    );
-///
-///   let block_height = client.block_height().await;
-/// }
-/// ```
-pub struct LedgerClient {
-    tx_client: M10TxServiceClient<Channel>,
-    query_client: M10QueryServiceClient<Channel>,
+pub struct M10Client<S: Signer> {
+    pub client: LedgerClient,
+    signer: Arc<S>,
 }
 
-impl LedgerClient {
-    pub fn new(grpc_channel: Channel) -> Self {
-        let tx_client = M10TxServiceClient::new(grpc_channel.clone());
-        let query_client = M10QueryServiceClient::new(grpc_channel);
+impl<S: Signer> Clone for M10Client<S> {
+    fn clone(&self) -> Self {
         Self {
-            tx_client,
-            query_client,
+            client: self.client.clone(),
+            signer: self.signer.clone(),
+        }
+    }
+}
+
+impl<S: Signer> M10Client<S> {
+    pub fn new(signer: S, channel: Channel) -> Self {
+        Self {
+            signer: Arc::new(signer),
+            client: LedgerClient::new(channel),
         }
     }
 
-    pub fn transaction_request(
-        data: impl Into<Data>,
+    async fn signed_transaction<D: Into<sdk::transaction_data::Data>>(
+        &self,
+        data: D,
         context_id: Vec<u8>,
-    ) -> sdk::TransactionRequestPayload {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_micros() as u64;
-        sdk::TransactionRequestPayload {
-            nonce: fastrand::u64(..),
-            timestamp,
-            context_id,
-            data: Some(TransactionData {
-                data: Some(data.into()),
-            }),
-        }
+    ) -> M10Result<SignedRequest<sdk::TransactionRequestPayload>> {
+        let req = LedgerClient::transaction_request(data.into(), context_id);
+        let signed = self.signer.sign_request(req).await?;
+        Ok(signed)
     }
 
-    pub async fn block_height(&mut self) -> Result<u64, tonic::Status> {
-        let chain_info = self
-            .query_client
-            .get_chain_info(Request::new(()))
+    pub async fn create_account(
+        &self,
+        parent_id: AccountId,
+        issuance: bool,
+        context_id: Vec<u8>,
+    ) -> M10Result<(TxId, AccountId)> {
+        let req = self
+            .signed_transaction(
+                sdk::CreateLedgerAccount {
+                    parent_id: parent_id.to_vec(),
+                    frozen: false,
+                    issuance,
+                    instrument: None,
+                    balance_limit: 0,
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
             .await?
-            .into_inner();
-        Ok(chain_info.block_height)
+            .tx_error()?;
+        let account_id = AccountId::try_from_be_slice(&response.account_created)?;
+        Ok((response.tx_id, account_id))
     }
 
-    pub async fn create_transaction(
-        &mut self,
-        payload: SignedRequest<sdk::TransactionRequestPayload>,
-    ) -> Result<sdk::TransactionResponse, Status> {
-        self.tx_client
-            .create_transaction(Request::new(payload.into()))
-            .await
-            .map(|res| res.into_inner())
+    pub async fn transfer(&self, builder: TransferBuilder, context_id: Vec<u8>) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction::<sdk::CreateTransfer>(builder.into(), context_id)
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
     }
 
-    // Transfers
-    pub async fn get_transfer(
-        &mut self,
-        request: SignedRequest<sdk::GetTransferRequest>,
-    ) -> Result<sdk::FinalizedTransfer, Status> {
-        self.query_client
-            .get_transfer(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
+    pub async fn initiate_transfer(
+        &self,
+        builder: TransferBuilder,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::transaction_data::Data::InitiateTransfer(builder.into()),
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
     }
 
-    pub async fn list_transfers(
-        &mut self,
-        request: SignedRequest<sdk::ListTransferRequest>,
-    ) -> Result<sdk::FinalizedTransfers, Status> {
-        self.query_client
-            .list_transfers(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
+    pub async fn commit_transfer(
+        &self,
+        tx_id: TxId,
+        accept: bool,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::CommitTransfer {
+                    pending_tx_id: tx_id,
+                    new_state: if accept {
+                        sdk::commit_transfer::TransferState::Accepted
+                    } else {
+                        sdk::commit_transfer::TransferState::Rejected
+                    } as i32,
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
     }
 
-    // Actions
-    pub async fn get_action(
-        &mut self,
-        request: SignedRequest<sdk::GetActionRequest>,
-    ) -> Result<sdk::Action, Status> {
-        self.query_client
-            .get_action(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
+    /// Sets the [`Account`] [`frozen`] status.
+    /// Frozen accounts cannot participate in transactions.
+    pub async fn freeze_account(
+        &self,
+        account_id: AccountId,
+        frozen: bool,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::SetFreezeState {
+                    account_id: account_id.to_vec(),
+                    frozen,
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
     }
 
-    pub async fn list_actions(
-        &mut self,
-        request: SignedRequest<sdk::ListActionsRequest>,
-    ) -> Result<sdk::Actions, Status> {
-        self.query_client
-            .list_actions(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
+    pub async fn action(&self, builder: ActionBuilder, context_id: Vec<u8>) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction::<sdk::InvokeAction>(builder.into(), context_id)
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
     }
 
-    pub async fn get_transaction(
-        &mut self,
-        request: SignedRequest<sdk::GetTransactionRequest>,
-    ) -> Result<sdk::FinalizedTransaction, Status> {
-        self.query_client
-            .get_transaction(Request::new(request.into()))
-            .await
-            .map(Response::into_inner)
-    }
-
-    pub async fn list_transactions(
-        &mut self,
-        request: SignedRequest<sdk::ListTransactionsRequest>,
-    ) -> Result<sdk::FinalizedTransactions, Status> {
-        self.query_client
-            .list_transactions(Request::new(request.into()))
-            .await
-            .map(Response::into_inner)
-    }
-
-    pub async fn group_transactions(
-        &mut self,
-        request: SignedRequest<sdk::GroupTransactionsRequest>,
-    ) -> Result<sdk::GroupedFinalizedTransactions, Status> {
-        self.query_client
-            .group_transactions(Request::new(request.into()))
-            .await
-            .map(Response::into_inner)
-    }
-
-    //  Indexed Accounts
-    pub async fn get_indexed_account(
-        &mut self,
-        request: SignedRequest<sdk::GetAccountRequest>,
-    ) -> Result<sdk::IndexedAccount, Status> {
-        self.query_client
-            .get_indexed_account(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    // AccountSets
-    pub async fn get_account_set(
-        &mut self,
-        request: SignedRequest<sdk::GetAccountSetRequest>,
-    ) -> Result<sdk::AccountSet, Status> {
-        self.query_client
-            .get_account_set(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    pub async fn list_account_sets(
-        &mut self,
-        request: SignedRequest<sdk::ListAccountSetsRequest>,
-    ) -> Result<sdk::ListAccountSetsResponse, Status> {
-        self.query_client
-            .list_account_sets(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
+    pub async fn documents(
+        &self,
+        builder: DocumentBuilder,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction::<sdk::DocumentOperations>(builder.into(), context_id)
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
     }
 
     // Accounts
-    pub async fn get_account(
-        &mut self,
-        request: SignedRequest<sdk::GetAccountRequest>,
-    ) -> Result<sdk::Account, Status> {
-        self.query_client
-            .get_account(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
 
-    pub async fn get_account_info(
-        &mut self,
-        request: SignedRequest<sdk::GetAccountRequest>,
-    ) -> Result<sdk::AccountInfo, Status> {
-        self.query_client
-            .get_account_info(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    pub async fn list_accounts(
-        &mut self,
-        request: SignedRequest<sdk::ListAccountsRequest>,
-    ) -> Result<sdk::ListAccountsResponse, Status> {
-        self.query_client
-            .list_accounts(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    // Role Bindings
-    pub async fn get_role_binding(
-        &mut self,
-        request: SignedRequest<sdk::GetRoleBindingRequest>,
-    ) -> Result<sdk::RoleBinding, Status> {
-        self.query_client
-            .get_role_binding(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    pub async fn list_role_bindings(
-        &mut self,
-        request: SignedRequest<sdk::ListRoleBindingsRequest>,
-    ) -> Result<sdk::ListRoleBindingsResponse, Status> {
-        self.query_client
-            .list_role_bindings(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    // Roles
-    pub async fn get_role(
-        &mut self,
-        request: SignedRequest<sdk::GetRoleRequest>,
-    ) -> Result<sdk::Role, Status> {
-        self.query_client
-            .get_role(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    pub async fn list_roles(
-        &mut self,
-        request: SignedRequest<sdk::ListRolesRequest>,
-    ) -> Result<sdk::ListRolesResponse, Status> {
-        self.query_client
-            .list_roles(Request::new(request.into()))
-            .await
-            .map(|res| res.into_inner())
-    }
-
-    // Observations
-    pub async fn observe_transfers(
-        &self,
-        request: SignedRequest<sdk::ObserveAccountsRequest>,
-    ) -> Result<impl Stream<Item = Result<sdk::FinalizedTransactions, Status>>, Status> {
-        self.query_client
-            .clone()
-            .observe_transfers(Request::new(request.into()))
-            .await
-            .map(tonic::Response::into_inner)
-    }
-
-    pub async fn observe_resources(
-        &self,
-        request: SignedRequest<sdk::ObserveResourcesRequest>,
-    ) -> Result<impl Stream<Item = Result<sdk::FinalizedTransactions, Status>>, Status> {
-        self.query_client
-            .clone()
-            .observe_resources(Request::new(request.into()))
-            .await
-            .map(tonic::Response::into_inner)
+    pub async fn get_account(&self, id: AccountId) -> M10Result<Account> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetAccountRequest { id: id.to_vec() })
+            .await?;
+        let account = self.client.clone().get_indexed_account(req).await?;
+        Account::try_from(account)
     }
 
     pub async fn observe_accounts(
         &self,
-        request: SignedRequest<sdk::ObserveAccountsRequest>,
-    ) -> Result<impl Stream<Item = Result<sdk::FinalizedTransactions, Status>>, Status> {
-        self.query_client
+        filter: AccountFilter,
+    ) -> M10Result<impl Stream<Item = M10Result<Vec<AccountUpdate>>>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let stream = self
+            .client
             .clone()
-            .observe_accounts(Request::new(request.into()))
-            .await
-            .map(tonic::Response::into_inner)
+            .observe_accounts(req)
+            .await?
+            .map(|res| match res {
+                Ok(txs) => Ok(txs
+                    .transactions
+                    .into_iter()
+                    .map(AccountUpdate::try_from)
+                    .collect::<M10Result<Vec<_>>>()?),
+                Err(err) => Err(M10Error::from(err)),
+            });
+        Ok(stream)
+    }
+
+    // Transfers
+
+    pub async fn get_transfer(&self, tx_id: TxId) -> M10Result<Transfer> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetTransferRequest { tx_id })
+            .await?;
+        let transfer = self.client.clone().get_transfer(req).await?;
+        Transfer::try_from(transfer)
+    }
+
+    pub async fn get_enhanced_transfer(&self, tx_id: TxId) -> M10Result<ExpandedTransfer> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetTransferRequest { tx_id })
+            .await?;
+        let transfer = self.client.clone().get_transfer(req).await?;
+        let enhanced = self
+            .client
+            .clone()
+            .enhance_transfer(transfer, self.signer.as_ref())
+            .await?;
+        ExpandedTransfer::try_from(enhanced)
+    }
+
+    pub async fn get_enhanced_transfers(
+        &self,
+        filter: TxnFilter<TransferFilter>,
+    ) -> M10Result<Vec<ExpandedTransfer>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let transfers = self.client.clone().list_transfers(req).await?;
+        self.client
+            .clone()
+            .enhance_transfers(transfers.transfers, self.signer.as_ref())
+            .await?
+            .into_iter()
+            .map(ExpandedTransfer::try_from)
+            .collect::<M10Result<_>>()
+    }
+
+    pub async fn list_transfers(
+        &self,
+        filter: TxnFilter<TransferFilter>,
+    ) -> M10Result<Vec<Transfer>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let transfers = self.client.clone().list_transfers(req).await?;
+        let transfers = transfers
+            .transfers
+            .into_iter()
+            .map(Transfer::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(transfers)
+    }
+
+    pub async fn observe_transfers(
+        &self,
+        filter: AccountFilter,
+    ) -> M10Result<impl Stream<Item = M10Result<Vec<Transfer>>>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let stream = self
+            .client
+            .clone()
+            .observe_transfers(req)
+            .await?
+            .map(|res| match res {
+                Ok(txs) => Ok(txs
+                    .transactions
+                    .into_iter()
+                    .map(Transfer::try_from)
+                    .collect::<M10Result<Vec<_>>>()?),
+                Err(err) => Err(M10Error::from(err)),
+            });
+        Ok(stream)
+    }
+
+    // Actions
+
+    pub async fn get_action(&self, tx_id: TxId) -> M10Result<Action> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetActionRequest { tx_id })
+            .await?;
+        let action = self.client.clone().get_action(req).await?;
+        Action::try_from(action)
+    }
+
+    pub async fn list_actions(&self, filter: TxnFilter<ActionsFilter>) -> M10Result<Vec<Action>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let actions = self.client.clone().list_actions(req).await?;
+        let actions = actions
+            .actions
+            .into_iter()
+            .map(Action::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(actions)
     }
 
     pub async fn observe_actions(
         &self,
-        request: SignedRequest<sdk::ObserveActionsRequest>,
-    ) -> Result<impl Stream<Item = Result<sdk::FinalizedTransactions, Status>>, Status> {
-        self.query_client
+        filter: AccountFilter<NamedAction>,
+    ) -> M10Result<impl Stream<Item = M10Result<Vec<Action>>>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let stream = self
+            .client
             .clone()
-            .observe_actions(Request::new(request.into()))
-            .await
-            .map(tonic::Response::into_inner)
+            .observe_actions(req)
+            .await?
+            .map(|res| match res {
+                Ok(txs) => Ok(txs
+                    .transactions
+                    .into_iter()
+                    .map(Action::try_from)
+                    .collect::<M10Result<Vec<_>>>()?),
+                Err(err) => Err(M10Error::from(err)),
+            });
+        Ok(stream)
     }
 
+    // Metrics
     pub async fn observe_metrics(
         &self,
-        request: SignedRequest<sdk::ObserveAccountsRequest>,
-    ) -> Result<impl Stream<Item = Result<sdk::TransactionMetrics, Status>>, Status> {
-        self.query_client
+        filter: AccountFilter,
+    ) -> M10Result<impl Stream<Item = M10Result<sdk::TransactionMetrics>>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let stream = self
+            .client
             .clone()
-            .observe_metrics(Request::new(request.into()))
-            .await
-            .map(tonic::Response::into_inner)
+            .observe_metrics(req)
+            .await?
+            .map_err(M10Error::from);
+        Ok(stream)
     }
 
-    pub async fn enhance_transfers(
-        &self,
-        transfers: Vec<sdk::FinalizedTransfer>,
-        signer: &impl Signer,
-    ) -> Result<Vec<EnhancedTransfer>, Status> {
-        futures_util::future::try_join_all(
-            transfers
-                .into_iter()
-                .map(|transfer| self.enhance_transfer(transfer, signer)),
-        )
-        .await
+    // Banks
+    pub async fn list_banks(&self, builder: PageBuilder<Uuid>) -> M10Result<Vec<Bank>> {
+        let req = self
+            .signer
+            .sign_request(sdk::ListBanksRequest {
+                page: Some(builder.into()),
+            })
+            .await?;
+        let banks = self.client.clone().list_banks(req).await?;
+        let banks = banks
+            .banks
+            .into_iter()
+            .map(Bank::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(banks)
     }
 
-    pub async fn enhance_transfer(
-        &self,
-        transfer: sdk::FinalizedTransfer,
-        signer: &impl Signer,
-    ) -> Result<EnhancedTransfer, Status> {
-        let mut enhanced_steps = Vec::default();
-        for transfer_step in &transfer.transfer_steps {
-            enhanced_steps.push(self.enhance_transfer_step(transfer_step, signer).await?);
-        }
-        Ok(EnhancedTransfer {
-            enhanced_steps,
-            transfer,
-        })
+    // Roles
+
+    pub async fn get_role(&self, id: Uuid) -> M10Result<Role> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetRoleRequest { id: id.into_vec() })
+            .await?;
+        let role = self.client.clone().get_role(req).await?;
+        Role::try_from(role)
     }
 
-    async fn enhance_transfer_step(
-        &self,
-        transfer_step: &sdk::TransferStep,
-        signer: &impl Signer,
-    ) -> Result<EnhancedTransferStep, Status> {
-        let from = async {
-            Result::<_, Status>::Ok(
-                self.query_client
-                    .clone()
-                    .get_account_info(Request::new(
-                        signer
-                            .sign_request(sdk::GetAccountRequest {
-                                id: transfer_step.from_account_id.clone(),
-                            })
-                            .await
-                            .map_err(|err| Status::internal(err.to_string()))?
-                            .into(),
-                    ))
-                    .await
-                    .map(|res| res.into_inner())
-                    .ok(),
-            )
-        };
-        let to = async {
-            Result::<_, Status>::Ok(
-                self.query_client
-                    .clone()
-                    .get_account_info(Request::new(
-                        signer
-                            .sign_request(sdk::GetAccountRequest {
-                                id: transfer_step.to_account_id.clone(),
-                            })
-                            .await
-                            .map_err(|err| Status::internal(err.to_string()))?
-                            .into(),
-                    ))
-                    .await
-                    .map(|res| res.into_inner())
-                    .ok(),
-            )
-        };
-        let (from, to) = futures_util::future::try_join(from, to).await?;
-        let from_bank = async {
-            if let Some(ref from) = from {
-                if from.parent_account_id.is_empty() {
-                    Ok(None)
-                } else {
-                    Result::<Option<AccountInfo>, Status>::Ok(
-                        self.query_client
-                            .clone()
-                            .get_account_info(Request::new(
-                                signer
-                                    .sign_request(sdk::GetAccountRequest {
-                                        id: from.parent_account_id.clone(),
-                                    })
-                                    .await
-                                    .map_err(|err| Status::internal(err.to_string()))?
-                                    .into(),
-                            ))
-                            .await
-                            .map(|res| res.into_inner())
-                            .ok(),
-                    )
-                }
-            } else {
-                Ok(None)
-            }
-        };
-        let to_bank = async {
-            if let Some(ref to) = to {
-                if to.parent_account_id.is_empty() {
-                    Ok(None)
-                } else {
-                    Result::<Option<AccountInfo>, Status>::Ok(
-                        self.query_client
-                            .clone()
-                            .get_account_info(Request::new(
-                                signer
-                                    .sign_request(sdk::GetAccountRequest {
-                                        id: to.parent_account_id.clone(),
-                                    })
-                                    .await
-                                    .map_err(|err| Status::internal(err.to_string()))?
-                                    .into(),
-                            ))
-                            .await
-                            .map(|res| res.into_inner())
-                            .ok(),
-                    )
-                }
-            } else {
-                Ok(None)
-            }
-        };
-        let (from_bank, to_bank) = futures_util::future::try_join(from_bank, to_bank).await?;
+    pub async fn list_roles(&self, builder: PageBuilder<Uuid, NameFilter>) -> M10Result<Vec<Role>> {
+        let req = self.signer.sign_request(builder.into()).await?;
+        let roles = self.client.clone().list_roles(req).await?;
+        let roles = roles
+            .roles
+            .into_iter()
+            .map(Role::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(roles)
+    }
 
-        Ok(EnhancedTransferStep {
-            from,
-            to,
-            from_bank,
-            to_bank,
-        })
+    // Role-bindings
+
+    pub async fn get_role_binding(&self, id: Uuid) -> M10Result<RoleBinding> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetRoleBindingRequest { id: id.into_vec() })
+            .await?;
+        let role_binding = self.client.clone().get_role_binding(req).await?;
+        RoleBinding::try_from(role_binding)
+    }
+
+    pub async fn list_role_bindings(
+        &self,
+        builder: PageBuilder<Uuid, NameFilter>,
+    ) -> M10Result<Vec<RoleBinding>> {
+        let req = self.signer.sign_request(builder.into()).await?;
+        let role_bindings = self.client.clone().list_role_bindings(req).await?;
+        let role_bindings = role_bindings
+            .role_bindings
+            .into_iter()
+            .map(RoleBinding::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(role_bindings)
+    }
+
+    // AccountSets
+
+    pub async fn get_account_set(&self, id: Uuid) -> M10Result<AccountSet> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetAccountSetRequest { id: id.into_vec() })
+            .await?;
+        let set = self.client.clone().get_account_set(req).await?;
+        AccountSet::try_from(set)
+    }
+
+    pub async fn list_account_sets(
+        &self,
+        builder: PageBuilder<Uuid, NameOrOwnerFilter>,
+    ) -> M10Result<Vec<AccountSet>> {
+        let req = self.signer.sign_request(builder.into()).await?;
+        let account_sets = self.client.clone().list_account_sets(req).await?;
+        let account_sets = account_sets
+            .account_sets
+            .into_iter()
+            .map(AccountSet::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(account_sets)
     }
 }

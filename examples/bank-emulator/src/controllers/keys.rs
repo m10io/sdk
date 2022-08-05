@@ -1,10 +1,10 @@
 use actix_web::{put, web::Data, HttpResponse, Scope};
 
 use crate::{
-    auth::{AuthModel, User, Verb},
+    auth::{BankEmulatorRole, User},
     context::Context,
     error::Error,
-    models::{Contact, ContactAuth},
+    models::Contact,
     rbac,
 };
 
@@ -14,9 +14,9 @@ async fn add(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    ContactAuth.is_authorized(Verb::Update, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Update)?;
     let mut conn = context.db_pool.get().await?;
-    let contact = Contact::find_by_user_id(&current_user.auth0_id)
+    let contact = Contact::find_by_user_id(&current_user.user_id)
         .fetch_optional(&mut *conn)
         .await?
         .ok_or_else(Error::unauthorized)?;

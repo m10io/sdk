@@ -10,8 +10,11 @@ use m10_protos::{
 pub mod account_sets;
 pub mod accounts;
 pub mod banks;
+pub mod resource_id;
 pub mod role_bindings;
 pub mod roles;
+
+pub use resource_id::ResourceId;
 
 /// A struct for building a document update operation
 ///

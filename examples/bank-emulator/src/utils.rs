@@ -5,6 +5,7 @@ use crate::models::TransferChain;
 use crate::{context::Context, models::Payment};
 
 use m10_protos::MetadataExt;
+use m10_sdk::account::AccountId;
 use m10_sdk::contract::FinalizedContractExt;
 use m10_sdk::EnhancedTransfer;
 use m10_sdk::{
@@ -39,6 +40,37 @@ pub(crate) async fn submit_transaction(
     .map_err(Error::from)
 }
 
+pub(crate) async fn find_ledger_account(
+    account_name: &str,
+    owner: Option<&String>,
+    context: &Context,
+) -> Result<Vec<u8>, Error> {
+    let owner = owner
+        .map(|o| base64::decode(o).unwrap())
+        .unwrap_or_else(|| context.signer.public_key().to_vec());
+    let mut client = context.ledger.clone();
+    let request = context
+        .signer
+        .sign_request(sdk::ListAccountsRequest {
+            filter: Some(sdk::list_accounts_request::Filter::Owner(owner)),
+            page: None,
+        })
+        .await?;
+    let docs = client
+        .list_accounts(request)
+        .await
+        .map_err(|err| Error::internal_msg(err.to_string()))?;
+    let account = docs
+        .accounts
+        .iter()
+        .find(|a| a.public_name == account_name)
+        .ok_or_else(|| {
+            error!(name = %account_name, "Could not find account");
+            Error::internal_msg("account not found")
+        })?;
+    Ok(account.id.to_vec())
+}
+
 pub(crate) async fn create_account_set(
     ledger_accounts: Vec<Vec<u8>>,
     context: &Context,
@@ -57,6 +89,49 @@ pub(crate) async fn create_account_set(
     });
     submit_transaction(payload, vec![], context).await?;
     Ok(account_set_id)
+}
+
+pub(crate) async fn create_ledger_account(
+    parent_id: &[u8],
+    limit: u64,
+    name: String,
+    public_name: String,
+    profile_image_url: Option<&str>,
+    context: &Context,
+) -> Result<Vec<u8>, Error> {
+    let payload = sdk::CreateLedgerAccount {
+        parent_id: parent_id.to_vec(),
+        balance_limit: limit,
+        frozen: false,
+        ..Default::default()
+    };
+    let ledger_account_id = submit_transaction(payload, vec![], context)
+        .await?
+        .account_created;
+    let account_doc = sdk::Account {
+        id: ledger_account_id.clone(),
+        owner: context.signer.public_key().to_vec(),
+        name,
+        public_name,
+        profile_image_url: profile_image_url.unwrap_or_default().to_string(),
+    };
+    let payload = sdk::Operation::insert(account_doc);
+    submit_transaction(payload, vec![], context).await?;
+    Ok(ledger_account_id)
+}
+
+pub(crate) fn check_if_parent(child: &[u8], parent: &[u8]) -> Result<(), Error> {
+    let raw_id = u128::from_be_bytes((&child[0..16]).try_into()?);
+    let child_id = AccountId::from_raw(raw_id)?;
+    let raw_id = u128::from_be_bytes((&parent[0..16]).try_into()?);
+    let parent_id = AccountId::from_raw(raw_id)?;
+    let expected_parent_id = child_id
+        .parent_id()
+        .ok_or_else(|| Error::internal_msg("holding account can't be a root account"))?;
+    if parent_id != expected_parent_id {
+        return Err(Error::internal_msg("accounts are not of same type"));
+    }
+    Ok(())
 }
 
 async fn payment_from_transfer(

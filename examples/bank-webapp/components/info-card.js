@@ -39,7 +39,7 @@ export const CustomerInfoCard = ({ customer = {} }) => {
 }
 
 export const UserCard = ({ title, user, isLoaded }) => {
-  const phone = user?.['https://m10.net/user_metadata']?.phone || user.phone_number
+  const phone = user?.attributes?.phone || user.phone_number
   return (
     <Card title={title || 'User Info'} iconComponent={<IconUser color={publicRuntimeConfig.bankPrimaryColor} />}>
       <InfoRow title={'Name'} value={user?.name} />

@@ -82,6 +82,8 @@ service M10QueryService {
   // Banks
   // Param: [`RequestEnvelope`] should contain [`ListBankRequest`]
   rpc  ListBanks(RequestEnvelope) returns (m10.sdk.ListBanksResponse);
+  // Param: [`RequestEnvelope`] should contain [`Bank`]
+  rpc  GetBank(RequestEnvelope) returns (m10.sdk.model.Bank);
 }
 
 message RequestEnvelope {
@@ -235,4 +237,8 @@ message ListBanksRequest {
 
 message ListBanksResponse {
   repeated m10.sdk.model.Bank banks = 1;
+}
+
+message GetBankRequest {
+  bytes id = 1;
 }

@@ -5,10 +5,10 @@ use actix_web::{
 };
 
 use crate::{
-    auth::{AuthModel, User, Verb},
+    auth::{BankEmulatorRole, User},
     context::Context,
     error::Error,
-    models::{FeeMetadata, FeeResponse, FeeType, FeesAuth},
+    models::{FeeMetadata, FeeResponse, FeeType},
 };
 
 #[post("{currency}/{type}")]
@@ -19,7 +19,7 @@ async fn create_schedule(
     context: Data<Context>,
 ) -> Result<Json<FeeMetadata>, Error> {
     let mut conn = context.db_pool.get().await?;
-    FeesAuth.is_authorized(Verb::Create, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Create)?;
 
     let (currency, fee_type) = path.into_inner();
     let _currency = context

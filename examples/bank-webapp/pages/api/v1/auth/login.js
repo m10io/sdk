@@ -14,6 +14,7 @@ export default async(req, res) => {
           method: 'POST',
           url: url,
           data: {
+            client_id: 'bank-emulator',
             grant_type: 'password',
             username: body.username,
             password: body.password,

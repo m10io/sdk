@@ -37,6 +37,22 @@ pub struct BankTransfer {
 }
 
 impl BankTransfer {
+    pub fn find_by_id(txn_id: Uuid) -> QueryAs<'static, Postgres, Self, PgArguments> {
+        sqlx::query_as(
+            "
+            SELECT  
+                tf.txn_id, tf.reference, tf.amount, tf.routing,
+                tx.account, tx.other_account, tx.transaction_type,
+                tx.transaction_status, tf.created_at, tx.updated_at
+            FROM bank_transfers tf, bank_transactions tx
+            WHERE 
+                tf.id = $1 AND
+                tx.transaction_type = 'debit'
+            ",
+        )
+        .bind(txn_id)
+    }
+
     pub fn find_by_reference(reference: &str) -> QueryAs<'_, Postgres, Self, PgArguments> {
         sqlx::query_as(
             "

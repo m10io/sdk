@@ -33,7 +33,7 @@ pub(crate) fn key_pair() -> m10_sdk::Ed25519 {
 pub async fn admin_jwt() -> String {
     ADMIN_JWT
         .get_or_init(|| async {
-            create_or_get_auth_token("omega-admin@m10test.io", "trust:admin openid").await
+            create_or_get_auth_token("omega-admin@m10test.io", "openid").await
         })
         .await
         .clone()
@@ -101,7 +101,7 @@ pub(crate) async fn prepopulated_user_jwt() -> String {
 
 pub async fn create_or_get_user(email: &str) -> String {
     // TODO: Own scope for omega Bank
-    let jwt = create_or_get_auth_token(email, "trust:user openid").await;
+    let jwt = create_or_get_auth_token(email, "openid").await;
     jwt
 }
 
@@ -116,6 +116,7 @@ pub async fn create_or_get_auth_token(email: &str, scope: &str) -> String {
 
 async fn login(email: &str, scope: &str) -> Option<String> {
     let request = [
+        ("client_id", "bank-emulator".to_string()),
         ("grant_type", "password".to_string()),
         ("username", email.to_string()),
         ("password", password(email)),
@@ -145,6 +146,7 @@ fn password(username: &str) -> String {
 
 async fn signup(email: &str) {
     let request = [
+        ("client_id", "bank-emulator".to_string()),
         ("given_name", "integration tester".to_string()),
         ("family_name", "tester".to_string()),
         ("phone", "+15555555555".to_string()),

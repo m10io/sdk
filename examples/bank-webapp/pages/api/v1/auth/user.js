@@ -12,7 +12,7 @@ export default async(req, res) => {
     method,
     headers: { authorization },
   } = req
-  const url = `${process.env.OAUTH_DOMAIN}/userinfo`
+  const url = `${process.env.OAUTH_DOMAIN}/oauth/userinfo`
   switch (method) {
     case 'GET':
       try {

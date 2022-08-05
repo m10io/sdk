@@ -6,6 +6,7 @@ use std::fmt::Debug;
 mod account_sets;
 mod accounts;
 mod actions;
+mod banks;
 mod directory_entry;
 mod role_bindings;
 mod roles;
@@ -23,6 +24,8 @@ pub(super) enum FindSubCommands {
     /// Find actions
     /// (either by context or account)
     Action(actions::FindActionOptions),
+    /// Find banks
+    Bank(banks::FindBankOptions),
     /// Find role record(s)
     Role(roles::FindRoleOptions),
     /// Find role binding record(s)
@@ -56,6 +59,7 @@ impl FindSubCommands {
             FindSubCommands::DirectoryEntry(options) => options.find().await?,
             FindSubCommands::Action(options) => options.find(config).await?,
             FindSubCommands::Transactions(options) => options.find(config).await?,
+            FindSubCommands::Bank(options) => options.find(config).await?,
         }
         Ok(())
     }

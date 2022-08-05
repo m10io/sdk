@@ -12,7 +12,7 @@ This adds a generic bank webapp frontend to pair with the generic bank backend
 - create `.env` file with following keys:
   ```
   NODE_ENV=development
-  OAUTH_DOMAIN=https://dev-m10.us.auth0.com
+  OAUTH_DOMAIN=https://keycloak-develop.m10.net
   OAUTH_AUDIENCE=https://api.m10.net
 
   OXIDE_API_URL=https://develop.m10.net/m10-bank/api/v1/
@@ -31,12 +31,12 @@ Authentication is handled via [Auth0](https://auth0.com). Rather than support re
 1. Login: `${process.env.BASE_API_URL}/oauth/token`
   - This route returns a Bearer Token to be used in all subsequent requests in the Authorization header.
 
-2. Get User: `${process.env.OAUTH_DOMAIN}/userinfo`
+2. Get User: `${process.env.OAUTH_DOMAIN}/realms/master/protocol/openid-connect/userinfo`
   - This is a GET request that returns user info. All that is required is a Bearer token in the Authorization header.
 
 The `BASE_API_URL` env variable is used exclusively for this separate authentication service.
 
-Additionally, we have included user-specific metadata, such as `name` and `phone` in a `https://m10.net/user_metadata` field in the return user object JWT. This field name can be changed according to auth0 specifications.
+Additionally, we have included user-specific metadata, such as `name` and `phone` in a `attributes` field in the return user object JWT. This field name can be changed according to auth0 specifications.
 
 Finally, Auth0 allows creating Roles in order to subdivide permissions for authenticated users. In order to view the admin pages of this webapp, one of the following roles are required:
 

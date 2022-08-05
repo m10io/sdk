@@ -1,18 +1,15 @@
 #![allow(dead_code)]
 use actix_web::{web::Data, FromRequest};
-use biscuit::{jwk::JWKSet, Empty, ValidationOptions, JWT};
-use enumflags2::{bitflags, BitFlags};
+use biscuit::{jwk::JWKSet, ClaimsSet, Empty, ValidationOptions, JWT};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use smol_str::SmolStr;
-use std::{collections::HashSet, convert::TryFrom, future::Ready, str::FromStr, time::Duration};
+use std::{collections::HashSet, convert::TryFrom, future::Ready, time::Duration};
 use tokio::sync::watch;
 use tracing::error;
 
 use crate::error::Error;
 
 const JWKS_CACHE_DURATION: Duration = Duration::from_secs(15);
-const DEFAULT_PERMISSIONS: &[&str] = &["own.*.create|read|update"];
 
 pub type Jwt = JWT<PrivateClaims, Empty>;
 pub type Jwks = JWKSet<Empty>;
@@ -23,140 +20,101 @@ pub fn empty_jwks() -> Jwks {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResourceAccess<T> {
+    pub roles: Vec<T>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Resources<T> {
+    pub directory: Option<ResourceAccess<String>>,
+    pub account: Option<ResourceAccess<String>>,
+    #[serde(rename = "bank-emulator")]
+    pub bank_emulator: Option<ResourceAccess<T>>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PrivateClaims {
-    permissions: Vec<String>,
     scope: String,
+    resource_access: Resources<BankEmulatorRole>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Hash, Eq, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum BankEmulatorRole {
+    AdminTest,
+    Admin,
+    User,
+    Create,
+    Read,
+    Update,
+    Delete,
+    #[serde(rename = "scope:own")]
+    ScopeOwn,
+    #[serde(rename = "scope:m10")]
+    ScopeM10,
+    #[serde(rename = "scope:m10-test")]
+    ScopeM10Test,
 }
 
 #[derive(Debug)]
 pub struct User {
-    pub auth0_id: String,
-    pub permissions: Vec<Permission>,
+    pub scope: AuthScope,
+    pub roles: HashSet<BankEmulatorRole>,
+    pub user_id: String,
     pub token: String,
 }
 
 impl User {
-    pub fn authorize(&self, resource: &SmolStr, verb: Verb) -> Result<&Permission, Error> {
-        self.permissions
+    pub fn new(claims_set: ClaimsSet<PrivateClaims>) -> Result<Self, Error> {
+        let user_id = claims_set
+            .registered
+            .subject
+            .ok_or_else(Error::unauthorized)?;
+
+        let resource_access = claims_set.private.resource_access;
+
+        let resource = resource_access
+            .bank_emulator
+            .ok_or_else(Error::unauthorized)?;
+
+        let all_scopes_sorted = vec![
+            BankEmulatorRole::ScopeM10,
+            BankEmulatorRole::ScopeM10Test,
+            BankEmulatorRole::ScopeOwn,
+        ];
+        let mut scopes = all_scopes_sorted
             .iter()
-            .find(|p| p.authorize(resource, verb))
-            .ok_or_else(Error::unauthorized)
-    }
+            .filter(|s| resource.roles.contains(s));
 
-    pub fn query_scope(&self, resource: &SmolStr, verb: Verb) -> AuthScope {
-        let mut scopes = self
-            .permissions
-            .iter()
-            .filter_map(|p| p.authorize(resource, verb).then(|| p.scope.clone()));
-        match scopes.next() {
-            Some(s) if s.as_str() == "own" => AuthScope::Own(self.auth0_id.clone()),
-            Some(s) => AuthScope::Tenant(s),
-            _ => AuthScope::None,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Resources {
-    All,
-    Individual(HashSet<SmolStr>),
-}
-
-impl Resources {
-    fn authorize(&self, resource: &SmolStr) -> bool {
-        match self {
-            Self::All => true,
-            Self::Individual(r) => r.contains(resource),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Permission {
-    pub scope: String,
-    pub resources: Resources,
-    pub verb: BitFlags<Verb>,
-}
-
-impl Permission {
-    fn authorize(&self, resource: &SmolStr, verb: Verb) -> bool {
-        self.verb.contains(verb) && self.resources.authorize(resource)
-    }
-}
-
-impl FromStr for Permission {
-    type Err = BadPermission;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (scope, permission) = s.split_once('.').ok_or(BadPermission::InvalidFormat)?;
-        let (r, v) = permission
-            .split_once('.')
-            .ok_or(BadPermission::InvalidFormat)?;
-        let resources = if r.eq("*") {
-            Resources::All
-        } else {
-            Resources::Individual(r.split_terminator(':').map(SmolStr::from).collect())
-        };
         Ok(Self {
-            scope: scope.into(),
-            resources,
-            verb: Verb::parse(v)?,
+            scope: match scopes.next() {
+                Some(BankEmulatorRole::ScopeM10) => AuthScope::Tenant("m10".to_string()),
+                Some(BankEmulatorRole::ScopeM10Test) => AuthScope::Tenant("m10-test".to_string()),
+                Some(BankEmulatorRole::ScopeOwn) => AuthScope::Own(user_id.clone()),
+                _ => AuthScope::None,
+            },
+            roles: HashSet::from_iter(resource.roles.iter().cloned()),
+            token: String::new(),
+            user_id,
         })
     }
-}
 
-impl Verb {
-    fn parse(s: &str) -> Result<BitFlags<Verb>, BadPermission> {
-        s.split_terminator('|')
-            .try_fold(BitFlags::default(), |acc, verb| {
-                let verb = match verb {
-                    "create" => Verb::Create,
-                    "read" => Verb::Read,
-                    "update" => Verb::Update,
-                    "delete" => Verb::Delete,
-                    _ => return Err(BadPermission::UnknownVerb),
-                };
-                Ok(acc | verb)
-            })
+    pub fn is_authorized(&self, role: BankEmulatorRole) -> Result<AuthScope, Error> {
+        self.roles
+            .contains(&role)
+            .then(|| role)
+            .ok_or_else(Error::unauthorized)?;
+
+        Ok(self.scope.clone())
     }
-}
-
-#[bitflags]
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Verb {
-    Create = 0b0000_0001,
-    Read = 0b0000_0010,
-    Update = 0b0000_0100,
-    Delete = 0b0000_1000,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum BadPermission {
-    InvalidFormat,
-    UnknownVerb,
 }
 
 impl TryFrom<Jwt> for User {
     type Error = Error;
     fn try_from(jwt: Jwt) -> Result<Self, Error> {
         let (_, claims_set) = jwt.unwrap_decoded();
-        let auth0_id = claims_set
-            .registered
-            .subject
-            .ok_or_else(Error::unauthorized)?;
-        let user = User {
-            permissions: claims_set
-                .private
-                .permissions
-                .iter()
-                .map(|s| s.as_str())
-                .chain(DEFAULT_PERMISSIONS.iter().copied())
-                .filter_map(|p| p.parse().ok())
-                .collect(),
-            token: String::new(),
-            auth0_id,
-        };
+        let user = User::new(claims_set)?;
         Ok(user)
     }
 }
@@ -175,7 +133,7 @@ pub fn validate_token(
 }
 
 pub async fn watch_jwks(mut url: Url, jwks_s: watch::Sender<Jwks>) {
-    url.set_path("/.well-known/jwks.json");
+    url.set_path("/realms/master/protocol/openid-connect/certs");
     loop {
         if let Ok(jwks) = fetch_jwks(url.clone()).await {
             if jwks_s.send(jwks).is_err() {
@@ -225,13 +183,7 @@ fn user_from_request(req: &actix_web::HttpRequest) -> Result<User, Error> {
     Ok(user)
 }
 
-pub trait AuthModel {
-    fn is_authorized(&self, verb: Verb, user: &User) -> Result<(), Error>;
-
-    fn auth_scope(&self, verb: Verb, user: &User) -> AuthScope;
-}
-
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum AuthScope {
     Tenant(String),
     Own(String),

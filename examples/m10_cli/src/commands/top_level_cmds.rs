@@ -193,8 +193,6 @@ impl ObserveOptions {
 /// access.token
 pub(crate) struct AuthOptions {
     #[clap(long)]
-    pub(crate) client_secret: Option<String>,
-    #[clap(long)]
     pub(crate) username: Option<String>,
     #[clap(long)]
     pub(crate) password: Option<String>,

@@ -157,6 +157,12 @@ pub(crate) struct SetInstrument {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct SetBalanceLimit {
+    pub account_id: String,
+    pub balance_limit: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct AccountRef {
     pub(crate) ledger_id: String,
     pub(crate) account_id: String,

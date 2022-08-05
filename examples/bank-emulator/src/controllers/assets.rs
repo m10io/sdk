@@ -6,13 +6,13 @@ use actix_web::{
 use sqlx::Connection;
 
 use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
+    auth::{AuthScope, BankEmulatorRole, User},
     context::Context,
     error::Error,
     models::{
-        Asset, AssetAuth, Contact, CreateNotificationPreferencesRequest,
-        ListNotificationPreferencesFilter, ListResponse, NotificationPreferences,
-        NotificationPreferencesAuth, Page, Payment, PaymentQuery,
+        Asset, AssetType, AssetTypeQuery, Contact, CreateNotificationPreferencesRequest,
+        ListNotificationPreferencesFilter, ListResponse, NotificationPreferences, Page, Payment,
+        PaymentQuery,
     },
     utils,
 };
@@ -23,9 +23,9 @@ async fn list_assets(
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i32, Asset>>, Error> {
     let mut conn = context.db_pool.get().await?;
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = match scope {
-        AuthScope::Own(_) => Asset::find_by_user_id(&current_user.auth0_id),
+        AuthScope::Own(_) => Asset::find_by_user_id(&current_user.user_id),
         _ => {
             return Err(Error::unauthorized());
         }
@@ -40,21 +40,27 @@ async fn list_assets(
 #[get("{id}")]
 async fn get_asset(
     instrument: Path<String>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
-    AssetAuth.is_authorized(Verb::Read, &current_user)?;
+    let _scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let mut conn = context.db_pool.get().await?;
-    let asset = Asset::find_by_user_id_instrument(&current_user.auth0_id, &*instrument)
-        .fetch_optional(&mut *conn)
-        .await?
-        .ok_or_else(Error::unauthorized)?;
+    let asset = Asset::find_by_user_id_instrument_type(
+        &current_user.user_id,
+        &*instrument,
+        (&*asset_type).into(),
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or_else(Error::unauthorized)?;
     Ok(Json(asset))
 }
 
 #[get("{id}/bank_account")]
 async fn get_bank_account(
     instrument: Path<String>,
+    asset_type: Query<AssetTypeQuery>,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     // get bank issuance account
@@ -63,30 +69,50 @@ async fn get_bank_account(
         .currencies
         .get(&*instrument)
         .ok_or_else(|| Error::not_found("currency configuration"))?;
-    let ledger_account_id = currency.ledger_account_id(&context).await?.to_vec();
+    let asset = match (&*asset_type).into() {
+        AssetType::Regulated => Asset {
+            ledger_account_id: currency.ledger_account_id(&context).await?.to_vec(),
+            asset_type: AssetType::Regulated,
+            ..Default::default()
+        },
+        AssetType::IndirectCbdc => Asset {
+            ledger_account_id: currency
+                .cbdc
+                .as_ref()
+                .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
+                .ledger_account_id(currency.account_owner.as_ref(), &context)
+                .await?
+                .to_vec(),
+            asset_type: AssetType::IndirectCbdc,
+            ..Default::default()
+        },
+        _ => return Err(Error::internal_msg("unsupported asset type")),
+    };
 
-    Ok(Json(Asset {
-        ledger_account_id,
-        ..Default::default()
-    }))
+    Ok(Json(asset))
 }
 
 #[get("{id}/payments")]
 async fn list_payments(
     instrument: Path<String>,
+    asset_type: Query<AssetTypeQuery>,
     page: Query<Page<u64>>,
     include_child_accounts: Query<PaymentQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<u64, Payment>>, Error> {
     let mut conn = context.db_pool.get().await?;
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let ledger_account_id = match scope {
         AuthScope::Own(_) => {
-            let asset = Asset::find_by_user_id_instrument(&current_user.auth0_id, &*instrument)
-                .fetch_optional(&mut *conn)
-                .await?
-                .ok_or_else(Error::unauthorized)?;
+            let asset = Asset::find_by_user_id_instrument_type(
+                &current_user.user_id,
+                &*instrument,
+                (&*asset_type).into(),
+            )
+            .fetch_optional(&mut *conn)
+            .await?
+            .ok_or_else(Error::unauthorized)?;
             Some(asset.ledger_account_id)
         }
         AuthScope::Tenant(_) => None,
@@ -118,19 +144,24 @@ async fn list_payments(
 #[get("{id}/payments/{payment}")]
 async fn get_payment(
     ids: Path<(String, u64)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Payment>, Error> {
-    AssetAuth.is_authorized(Verb::Read, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Read)?;
     let (instrument, tx_id) = ids.into_inner();
     let mut conn = context.db_pool.get().await?;
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     match scope {
         AuthScope::Own(_) => {
-            Asset::find_by_user_id_instrument(&current_user.auth0_id, &instrument)
-                .fetch_optional(&mut *conn)
-                .await?
-                .ok_or_else(Error::unauthorized)?;
+            Asset::find_by_user_id_instrument_type(
+                &current_user.user_id,
+                &instrument,
+                (&*asset_type).into(),
+            )
+            .fetch_optional(&mut *conn)
+            .await?
+            .ok_or_else(Error::unauthorized)?;
         }
         AuthScope::Tenant(_) => {}
         _ => {
@@ -144,17 +175,22 @@ async fn get_payment(
 #[post("{id}/notification_preferences")]
 async fn create_notification_preferences(
     instrument: Path<String>,
+    asset_type: Query<AssetTypeQuery>,
     request: Json<CreateNotificationPreferencesRequest>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<NotificationPreferences>, Error> {
-    NotificationPreferencesAuth.is_authorized(Verb::Create, &current_user)?;
+    let _scope = current_user.is_authorized(BankEmulatorRole::Create)?;
     let mut conn = context.db_pool.get().await?;
-    let asset = Asset::find_by_user_id_instrument(&current_user.auth0_id, &*instrument)
-        .fetch_optional(&mut *conn)
-        .await?
-        .ok_or_else(Error::unauthorized)?;
-    let contact = Contact::find_by_user_id(&current_user.auth0_id)
+    let asset = Asset::find_by_user_id_instrument_type(
+        &current_user.user_id,
+        &*instrument,
+        (&*asset_type).into(),
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or_else(Error::unauthorized)?;
+    let contact = Contact::find_by_user_id(&current_user.user_id)
         .fetch_optional(&mut *conn)
         .await?
         .ok_or_else(Error::unauthorized)?;
@@ -183,7 +219,7 @@ async fn list_notification_preferences(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i32, NotificationPreferences>>, Error> {
-    let scope = NotificationPreferencesAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let filter = ListNotificationPreferencesFilter {
         instrument: Some(instrument.into_inner()),
         ..Default::default()

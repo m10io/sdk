@@ -10,11 +10,7 @@ use sqlx::{types::Json, Executor, Postgres};
 #[cfg(test)]
 use tracing::warn;
 
-use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
-    config::CurrencyConfig,
-    error::Error,
-};
+use crate::{config::CurrencyConfig, error::Error};
 
 const FEE_METADATA_KEY: &str = "fee_metadata";
 
@@ -265,18 +261,6 @@ where
     }
 }
 
-pub struct FeesAuth;
-
-impl AuthModel for FeesAuth {
-    fn is_authorized(&self, verb: Verb, user: &User) -> Result<(), Error> {
-        user.authorize(&"fees".into(), verb).map(|_| ())
-    }
-
-    fn auth_scope(&self, verb: Verb, user: &User) -> AuthScope {
-        user.query_scope(&"fees".into(), verb)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use m10_sdk::sdk::{self, TransferStep};
@@ -401,6 +385,8 @@ mod tests {
             ledger_account_name: "usd".to_string(),
             account_owner: None,
             ledger_account_id: OnceCell::default(),
+            rtgs: None,
+            cbdc: None,
             decimals: 2,
             asset: false,
             asset_id: OnceCell::default(),
@@ -483,6 +469,8 @@ mod tests {
             ledger_account_name: "usd".to_string(),
             account_owner: None,
             ledger_account_id: OnceCell::default(),
+            rtgs: None,
+            cbdc: None,
             decimals: 2,
             asset: false,
             asset_id: OnceCell::default(),
@@ -580,6 +568,8 @@ mod tests {
             ledger_account_name: "usd".to_string(),
             account_owner: None,
             ledger_account_id: OnceCell::default(),
+            rtgs: None,
+            cbdc: None,
             decimals: 2,
             asset: false,
             asset_id: OnceCell::default(),

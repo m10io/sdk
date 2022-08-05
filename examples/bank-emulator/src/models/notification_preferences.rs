@@ -7,10 +7,7 @@ use sqlx::{
     Decode, Encode, Executor, Postgres,
 };
 
-use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
-    error::Error,
-};
+use crate::{auth::AuthScope, error::Error};
 
 const SERVICE_INFO_BIT_MASK: u32 = 1;
 const IS_ENABLED_BIT_MASK: u32 = 1 << 1;
@@ -325,18 +322,5 @@ impl NotificationToggles {
     fn _is_interested_in_and_enabled(toggles: i32, event: u32) -> bool {
         NotificationToggles::is_interested_in(toggles, event)
             && NotificationToggles::is_interested_in(toggles, IS_ENABLED_BIT_MASK)
-    }
-}
-
-pub struct NotificationPreferencesAuth;
-
-impl AuthModel for NotificationPreferencesAuth {
-    fn is_authorized(&self, verb: Verb, user: &User) -> Result<(), Error> {
-        user.authorize(&"notification_preferences".into(), verb)
-            .map(|_| ())
-    }
-
-    fn auth_scope(&self, verb: Verb, user: &User) -> AuthScope {
-        user.query_scope(&"notification_preferences".into(), verb)
     }
 }

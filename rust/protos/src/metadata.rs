@@ -12,9 +12,15 @@ pub fn memo(memo: &str) -> Any {
     .any()
 }
 
-pub trait Metadata: Message + Sized + Default {
+pub trait MetadataType {
     const TYPE_URL: &'static str;
+}
 
+pub trait Metadata: MetadataType {
+    fn any(&self) -> Any;
+}
+
+impl<M: MetadataType + Message + Sized + Default> Metadata for M {
     fn any(&self) -> Any {
         Any {
             type_url: Self::TYPE_URL.to_string(),
@@ -24,53 +30,72 @@ pub trait Metadata: Message + Sized + Default {
 }
 
 pub trait MetadataExt {
-    fn metadata<M: Metadata>(&self) -> Option<M>;
+    // Deprecated - please use [`protobuf`] instead
+    fn metadata<M: Metadata + Message + Default>(&self) -> Option<M> {
+        self.protobuf::<M>()
+    }
+
+    fn protobuf<M: Metadata + Message + Default>(&self) -> Option<M> {
+        self.with_type::<M>().and_then(|b| M::decode(b).ok())
+    }
+
+    fn with_type<M: MetadataType>(&self) -> Option<&[u8]>;
+
     fn memo(&self) -> String {
-        self.metadata::<Memo>().unwrap_or_default().plaintext
+        self.protobuf::<Memo>().unwrap_or_default().plaintext
+    }
+}
+
+impl MetadataExt for Any {
+    fn with_type<M: MetadataType>(&self) -> Option<&[u8]> {
+        (self.type_url == M::TYPE_URL).then(|| self.value.as_slice())
+    }
+}
+
+impl<T: MetadataExt> MetadataExt for Vec<T> {
+    fn with_type<M: MetadataType>(&self) -> Option<&[u8]> {
+        self.iter().find_map(MetadataExt::with_type::<M>)
     }
 }
 
 impl MetadataExt for TransferStep {
-    fn metadata<M: Metadata>(&self) -> Option<M> {
-        self.metadata
-            .iter()
-            .filter(|a| a.type_url == M::TYPE_URL)
-            .find_map(|a| M::decode(a.value.as_slice()).ok())
+    fn with_type<M: MetadataType>(&self) -> Option<&[u8]> {
+        self.metadata.with_type::<M>()
     }
 }
 
 impl MetadataExt for CreateTransfer {
-    fn metadata<M: Metadata>(&self) -> Option<M> {
-        self.transfer_steps.iter().find_map(|step| step.metadata())
+    fn with_type<M: MetadataType>(&self) -> Option<&[u8]> {
+        self.transfer_steps.with_type::<M>()
     }
 }
 
 impl MetadataExt for FinalizedTransfer {
-    fn metadata<M: Metadata>(&self) -> Option<M> {
-        self.transfer_steps.iter().find_map(|step| step.metadata())
+    fn with_type<M: MetadataType>(&self) -> Option<&[u8]> {
+        self.transfer_steps.with_type::<M>()
     }
 }
 
-impl Metadata for Attachment {
+impl MetadataType for Attachment {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Attachment";
 }
 
-impl Metadata for Memo {
+impl MetadataType for Memo {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Memo";
 }
 
-impl Metadata for Fee {
+impl MetadataType for Fee {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Fee";
 }
 
-impl Metadata for Withdraw {
+impl MetadataType for Withdraw {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Withdraw";
 }
 
-impl Metadata for Deposit {
+impl MetadataType for Deposit {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Deposit";
 }
 
-impl Metadata for Contract {
+impl MetadataType for Contract {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Contract";
 }

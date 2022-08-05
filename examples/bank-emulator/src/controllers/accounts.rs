@@ -3,8 +3,9 @@ use actix_web::{
     web::{Data, Json, Path, Query},
     HttpResponse, Scope,
 };
-use m10_protos::sdk::{
-    transaction, CreateTransfer, Deposit, GetTransferRequest, TransferStep, Withdraw,
+use m10_protos::{
+    prost::Any,
+    sdk::{transaction, CreateTransfer, Deposit, GetTransferRequest, TransferStep, Withdraw},
 };
 use m10_sdk::{sdk::SetFreezeState, LedgerClient, Metadata, Signer};
 use serde_json::{json, Value};
@@ -13,14 +14,15 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
+    auth::{AuthScope, BankEmulatorRole, User},
     bank::Bank,
     context::Context,
     error::Error,
+    liquidity::reserve_cbdc,
     models::{
-        Account, AccountAuth, AccountStatus, AmountRequest, Asset, AssetAuth, BankTransfer,
+        Account, AccountStatus, AmountRequest, Asset, AssetType, AssetTypeQuery, BankTransfer,
         Contact, CreateAccountRequest, LedgerAccountQuery, ListResponse, NotificationPreferences,
-        NotificationPreferencesAuth, Page, Payment, PaymentQuery, RedeemRequest,
+        Page, Payment, PaymentQuery, RedeemRequest,
     },
     rbac::create_contact_rbac_role,
     utils::{self, *},
@@ -30,17 +32,17 @@ async fn mirror_transfer(
     from_account_id: Vec<u8>,
     to_account_id: Vec<u8>,
     amount: u64,
+    metadata: Any,
     context: &Context,
 ) -> Result<u64, Error> {
     // create transaction
-    let deposit_metadata = Deposit::default().any();
     let payload = LedgerClient::transaction_request(
         m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
             transfer_steps: vec![TransferStep {
                 from_account_id,
                 to_account_id,
                 amount,
-                metadata: vec![deposit_metadata],
+                metadata: vec![metadata],
             }],
         }),
         vec![],
@@ -61,7 +63,7 @@ async fn create(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Account>, Error> {
-    AccountAuth.is_authorized(Verb::Create, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Create)?;
     let req = request.into_inner();
     let name = req
         .contact
@@ -103,8 +105,19 @@ async fn create(
     for a in assets {
         if let Some(config) = context.config.currencies.get(&a) {
             if !config.test {
+                if let Some(mut cbdc_asset) =
+                    Asset::new_cbdc_for_currency(config, &context, name, profile_image_url).await?
+                {
+                    cbdc_asset.asset_type = AssetType::IndirectCbdc;
+                    cbdc_asset.instrument = a.clone();
+                    cbdc_asset.linked_account = account.id;
+                    cbdc_asset.tenant = req.tenant.clone();
+                    cbdc_asset.insert(&mut txn).await?;
+                    ledger_accounts.push(cbdc_asset.ledger_account_id);
+                }
                 let mut asset =
                     Asset::new_for_currency(config, &context, name, profile_image_url).await?;
+                asset.asset_type = AssetType::Regulated;
                 asset.instrument = a;
                 asset.linked_account = account.id;
                 asset.tenant = req.tenant.clone();
@@ -122,7 +135,7 @@ async fn create(
 
     // Create Contact entry
     let mut contact = Contact {
-        user_id: current_user.auth0_id,
+        user_id: current_user.user_id,
         account_id: Some(account.id),
         bank_reference: Some(contact_ref),
         contact_data: req.contact,
@@ -154,7 +167,7 @@ async fn list(
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i64, Account>>, Error> {
     let mut conn = context.db_pool.get().await?;
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let limit = page.get_limit();
     let last_token = page.into_inner().try_into()?;
     let accounts = match scope {
@@ -177,9 +190,8 @@ async fn delete(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Account>, Error> {
-    let tenant = AccountAuth
-        .auth_scope(Verb::Delete, &current_user)
-        .authorized_tenant()?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Delete)?;
+    let tenant = scope.authorized_tenant()?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
     let account = Account::delete(*id, &tenant, &mut txn)
@@ -195,7 +207,7 @@ async fn get(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Account>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let mut account = query
@@ -215,7 +227,7 @@ async fn list_assets(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i64, Asset>>, Error> {
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Asset::find_by_account_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let assets = query.fetch_all(&mut *conn).await?;
@@ -228,12 +240,18 @@ async fn list_assets(
 #[get("{id}/assets/{asset}")]
 async fn get_asset(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_account_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_account_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -245,12 +263,18 @@ async fn get_asset(
 #[post("{id}/assets/{asset}/freeze")]
 async fn freeze_asset(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_account_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_account_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -267,14 +291,20 @@ async fn freeze_asset(
 #[get("{id}/assets/{asset}/payments")]
 async fn list_payments(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     page: Query<Page<u64>>,
     include_child_accounts: Query<PaymentQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<u64, Payment>>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_account_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_account_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -304,12 +334,18 @@ async fn list_payments(
 #[get("{id}/assets/{asset}/payments/{payment}")]
 async fn get_payment(
     ids: Path<(i64, String, u64)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Payment>, Error> {
     let (id, instrument, tx_id) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_account_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_account_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     query
         .fetch_optional(&mut *conn)
@@ -322,12 +358,18 @@ async fn get_payment(
 #[post("{id}/assets/{asset}/unfreeze")]
 async fn unfreeze_asset(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_account_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_account_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -347,7 +389,7 @@ async fn list_notification_preferences(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i32, NotificationPreferences>>, Error> {
-    let scope = NotificationPreferencesAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::get_notification_preferences_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let preferences = query.fetch_all(&mut *conn).await?;
@@ -364,8 +406,9 @@ async fn deposit(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Value>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
+    let request = request.into_inner();
     let mut conn = context.db_pool.get().await?;
     let account = query
         .fetch_optional(&mut *conn)
@@ -373,8 +416,12 @@ async fn deposit(
         .ok_or_else(|| Error::not_found("account"))?;
     let bank_txn = if let Some(account_ref) = account.bank_reference.as_ref() {
         let mut bank = context.bank.clone();
+        let reference = format!(
+            "customer deposit for:{}",
+            serde_json::to_string(&request.asset_type.unwrap_or_default())?
+        );
         let txn_id = bank
-            .account_deposit(request.amount_in_cents, account_ref, "customer deposit")
+            .account_deposit(request.amount_in_cents, account_ref, &reference)
             .await?;
         Some(txn_id)
     } else {
@@ -391,8 +438,9 @@ async fn convert_into(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<BankTransfer>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
+    let request = request.into_inner();
     let mut conn = context.db_pool.get().await?;
     let account = query
         .fetch_optional(&mut *conn)
@@ -407,20 +455,32 @@ async fn convert_into(
         .currencies
         .get(&instrument)
         .ok_or_else(|| Error::not_found("currency configuration"))?;
-    let from_account = currency.ledger_account_id(&context).await?.to_vec();
+    let asset_type = request.asset_type.unwrap_or_default();
+    let from_account = match asset_type {
+        AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
+        AssetType::IndirectCbdc => {
+            reserve_cbdc(request.amount_in_cents, currency, &context).await?
+        }
+        _ => return Err(Error::internal_msg("unsupported asset type")),
+    };
 
     // take customer ledger account from query param or asset
     let to_account = if let Some(id) = &ledger_account_id.ledger_account_id {
         hex::decode(id)?
     } else {
-        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-        let query = Asset::find_by_account_id_instrument_scoped(*id, &instrument, scope)?;
+        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+        let query =
+            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?
             .ok_or_else(Error::unauthorized)?;
         asset.ledger_account_id
     };
+
+    // Check if accounts are directly related (issuing account needs to be
+    // parent of customer account)
+    check_if_parent(&to_account, &from_account)?;
 
     // Withdraw money from linked bank account
     let bank_account = account
@@ -432,31 +492,38 @@ async fn convert_into(
         .account_withdraw(request.amount_in_cents, &bank_account)
         .await?;
 
-    let transfer =
-        match mirror_transfer(from_account, to_account, request.amount_in_cents, &context).await {
-            Ok(_) => {
-                let amount = bank.settle_withdraw(bank_txn).await?;
-                BankTransfer {
-                    id: bank_txn,
-                    from_account: bank_account_number,
-                    to_account: bank.account_number(),
-                    amount: Some(amount),
-                    status: 0,
-                    error: None,
-                }
+    let transfer = match mirror_transfer(
+        from_account,
+        to_account,
+        request.amount_in_cents,
+        Deposit::default().any(),
+        &context,
+    )
+    .await
+    {
+        Ok(_) => {
+            let amount = bank.settle_withdraw(bank_txn).await?;
+            BankTransfer {
+                id: bank_txn,
+                from_account: bank_account_number,
+                to_account: bank.account_number(),
+                amount: Some(amount),
+                status: 0,
+                error: None,
             }
-            Err(err) => {
-                bank.reverse_withdraw(bank_txn).await?;
-                BankTransfer {
-                    id: bank_txn,
-                    from_account: bank_account_number,
-                    to_account: bank.account_number(),
-                    amount: None,
-                    status: 1,
-                    error: Some(err.to_string()),
-                }
+        }
+        Err(err) => {
+            bank.reverse_withdraw(bank_txn).await?;
+            BankTransfer {
+                id: bank_txn,
+                from_account: bank_account_number,
+                to_account: bank.account_number(),
+                amount: None,
+                status: 1,
+                error: Some(err.to_string()),
             }
-        };
+        }
+    };
     Ok(Json(transfer))
 }
 
@@ -468,8 +535,9 @@ async fn convert_direct_from(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<BankTransfer>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
+    let request = request.into_inner();
     let mut conn = context.db_pool.get().await?;
     let account = query
         .fetch_optional(&mut *conn)
@@ -484,14 +552,22 @@ async fn convert_direct_from(
         .currencies
         .get(&instrument)
         .ok_or_else(|| Error::not_found("currency configuration"))?;
-    let to_account = currency.ledger_account_id(&context).await?.to_vec();
+    let asset_type = request.asset_type.unwrap_or_default();
+    let to_account = match asset_type {
+        AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
+        AssetType::IndirectCbdc => {
+            reserve_cbdc(request.amount_in_cents, currency, &context).await?
+        }
+        _ => return Err(Error::internal_msg("unsupported asset type")),
+    };
 
     // take customer ledger account from query param or asset
     let from_account = if let Some(id) = &ledger_account_id.ledger_account_id {
         hex::decode(id)?
     } else {
-        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-        let query = Asset::find_by_account_id_instrument_scoped(*id, &instrument, scope)?;
+        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+        let query =
+            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?
@@ -499,14 +575,24 @@ async fn convert_direct_from(
         asset.ledger_account_id
     };
 
+    // Check if accounts are directly related (issuing account needs to be
+    // parent of customer account)
+    check_if_parent(&from_account, &to_account)?;
+
     // Deposit money from bank reserve account
     let bank_account = account
         .bank_reference
         .ok_or_else(|| Error::not_found("bank account"))?;
     let bank_account_number = crate::bank::try_account_number_from(&bank_account)?;
 
-    let ledger_txn =
-        mirror_transfer(from_account, to_account, request.amount_in_cents, &context).await?;
+    let ledger_txn = mirror_transfer(
+        from_account,
+        to_account,
+        request.amount_in_cents,
+        Withdraw::default().any(),
+        &context,
+    )
+    .await?;
     let mut bank = context.bank.clone();
     let bank_txn = bank
         .account_deposit(
@@ -535,8 +621,9 @@ async fn convert_from(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<BankTransfer>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
+    let request = request.into_inner();
     let mut conn = context.db_pool.get().await?;
     let account = query
         .fetch_optional(&mut *conn)
@@ -551,15 +638,27 @@ async fn convert_from(
         .currencies
         .get(&instrument)
         .ok_or_else(|| Error::not_found("currency configuration"))?;
-    let to_account_id = currency.ledger_account_id(&context).await?.to_vec();
+    let asset_type = request.asset_type.unwrap_or_default();
+    let to_account_id = match asset_type {
+        AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
+        AssetType::IndirectCbdc => currency
+            .cbdc
+            .as_ref()
+            .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
+            .ledger_account_id(currency.account_owner.as_ref(), &context)
+            .await?
+            .to_vec(),
+        _ => return Err(Error::internal_msg("unsupported asset type")),
+    };
 
-    let ledger_txn = (*request).txn_id;
     // get transaction from ledger
-    let request = context
+    let txn_request = context
         .signer
-        .sign_request(GetTransferRequest { tx_id: ledger_txn })
+        .sign_request(GetTransferRequest {
+            tx_id: request.txn_id,
+        })
         .await?;
-    let transfer = context.ledger.clone().get_transfer(request).await?;
+    let transfer = context.ledger.clone().get_transfer(txn_request).await?;
 
     if transfer.state != transaction::finalized_transfer::TransferState::Accepted as i32 {
         return Err(Error::internal_msg("Transfer not accepted (state)"));
@@ -573,7 +672,7 @@ async fn convert_from(
         .ok_or_else(|| Error::internal_msg("Transfer not accepted (target account"))?;
 
     let mut bank = context.bank.clone();
-    let reference = format!("ledger: {}", ledger_txn);
+    let reference = format!("ledger: {}", request.txn_id);
 
     // Check that ledger transfer hasn't been used yet
     let transfers = bank.transfers_by_reference(&reference).await?;
@@ -611,8 +710,9 @@ async fn fund(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
+    let request = request.into_inner();
     let mut conn = context.db_pool.get().await?;
     let account = query
         .fetch_optional(&mut *conn)
@@ -630,9 +730,21 @@ async fn fund(
             .currencies
             .get(&instrument)
             .ok_or_else(|| Error::not_found("currency configuration"))?;
-        let ledger_account_id = currency.ledger_account_id(&context).await?;
-        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-        let query = Asset::find_by_account_id_instrument_scoped(*id, &instrument, scope)?;
+        let asset_type = request.asset_type.unwrap_or_default();
+        let ledger_account_id = match asset_type {
+            AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
+            AssetType::IndirectCbdc => currency
+                .cbdc
+                .as_ref()
+                .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
+                .ledger_account_id(currency.account_owner.as_ref(), &context)
+                .await?
+                .to_vec(),
+            _ => return Err(Error::internal_msg("unsupported asset type")),
+        };
+        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+        let query =
+            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?
@@ -667,7 +779,7 @@ async fn open(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Account>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
@@ -691,7 +803,7 @@ async fn settle_deposit(
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
     let (id, txn_id) = ids.into_inner();
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let account = query
@@ -712,10 +824,30 @@ async fn settle_deposit(
             .currencies
             .get(&instrument)
             .ok_or_else(|| Error::not_found("currency configuration"))?;
-        let ledger_account_id = currency.ledger_account_id(&context).await?;
+        let txn = bank.transfer_by_id(txn_id).await?;
+        let asset_type = txn
+            .refernce
+            .split(':')
+            .last()
+            .ok_or_else(|| Error::not_found("asset type in deposit reference"))?
+            .try_into()?;
 
-        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-        let query = Asset::find_by_account_id_instrument_scoped(id, &instrument, scope)?;
+        let ledger_account_id = match asset_type {
+            AssetType::Regulated => currency.ledger_account_id(&context).await?,
+            AssetType::IndirectCbdc => {
+                currency
+                    .cbdc
+                    .as_ref()
+                    .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
+                    .ledger_account_id(currency.account_owner.as_ref(), &context)
+                    .await?
+            }
+            _ => return Err(Error::internal_msg("unsupported asset type")),
+        };
+
+        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+        let query =
+            Asset::find_by_account_id_instrument_type_scoped(id, &instrument, asset_type, scope)?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?
@@ -752,7 +884,7 @@ async fn settle_withdraw(
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
     let (id, txn_id) = ids.into_inner();
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(id, scope)?;
     let mut conn = context.db_pool.get().await?;
     query
@@ -771,8 +903,9 @@ async fn withdraw(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Value>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(*id, scope)?;
+    let request = request.into_inner();
     let mut conn = context.db_pool.get().await?;
     let account = query
         .fetch_optional(&mut *conn)
@@ -794,9 +927,21 @@ async fn withdraw(
             .currencies
             .get(&instrument)
             .ok_or_else(|| Error::not_found("currency configuration"))?;
-        let ledger_account_id = currency.ledger_account_id(&context).await?;
-        let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-        let query = Asset::find_by_account_id_instrument_scoped(*id, &instrument, scope)?;
+        let asset_type = request.asset_type.unwrap_or_default();
+        let ledger_account_id = match asset_type {
+            AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
+            AssetType::IndirectCbdc => currency
+                .cbdc
+                .as_ref()
+                .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
+                .ledger_account_id(currency.account_owner.as_ref(), &context)
+                .await?
+                .to_vec(),
+            _ => return Err(Error::internal_msg("unsupported asset type")),
+        };
+        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+        let query =
+            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?

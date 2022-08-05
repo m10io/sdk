@@ -8,9 +8,11 @@ use uuid::Uuid;
 
 mod account_sets;
 mod accounts;
+mod banks;
 mod ledger_accounts;
 mod role_bindings;
 mod roles;
+mod transfer;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,12 +22,16 @@ pub(super) enum UpdateSubCommands {
     Account(accounts::UpdateAccountOptions),
     /// Update account set record
     AccountSet(account_sets::UpdateAccountSetOptions),
+    /// Update bank record
+    Bank(banks::UpdateBankOptions),
     /// Update ledger account
     LedgerAccount(ledger_accounts::UpdateLedgerAccountOptions),
     /// Update role record
     Role(roles::UpdateRoleOptions),
     /// Update role binding record
     RoleBinding(role_bindings::UpdateRoleBindingOptions),
+    /// Update transfer status
+    Transfer(transfer::UpdateTransferOptions),
 }
 
 impl UpdateSubCommands {
@@ -35,11 +41,13 @@ impl UpdateSubCommands {
             UpdateSubCommands::AccountSet(options) => {
                 store_update(options.id, options, config).await
             }
+            UpdateSubCommands::Bank(options) => store_update(options.id, options, config).await,
             UpdateSubCommands::LedgerAccount(options) => options.update(config).await,
             UpdateSubCommands::Role(options) => store_update(options.id, options, config).await,
             UpdateSubCommands::RoleBinding(options) => {
                 store_update(options.id, options, config).await
             }
+            UpdateSubCommands::Transfer(options) => options.do_update(config).await,
         }
     }
 
@@ -47,6 +55,7 @@ impl UpdateSubCommands {
         match self {
             UpdateSubCommands::Account(options) => update_operation(options.id, options),
             UpdateSubCommands::AccountSet(options) => update_operation(options.id, options),
+            UpdateSubCommands::Bank(options) => update_operation(options.id, options),
             UpdateSubCommands::Role(options) => update_operation(options.id, options),
             UpdateSubCommands::RoleBinding(options) => update_operation(options.id, options),
             _ => Err(anyhow::anyhow!("Not supported")),

@@ -7,12 +7,12 @@ use chrono::Utc;
 use sqlx::Connection;
 
 use crate::{
-    auth::{AuthModel, User, Verb},
+    auth::{BankEmulatorRole, User},
     context::Context,
     error::Error,
     models::{
         ListNotificationPreferencesFilter, ListResponse, NotificationPreferences,
-        NotificationPreferencesAuth, UpdateNotificationPreferencesRequest,
+        UpdateNotificationPreferencesRequest,
     },
 };
 
@@ -22,7 +22,7 @@ async fn list(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i32, NotificationPreferences>>, Error> {
-    let scope = NotificationPreferencesAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = NotificationPreferences::find_scoped(filter.into_inner(), scope)?;
     let mut conn = context.db_pool.get().await?;
     let preferences = query.fetch_all(&mut *conn).await?;
@@ -39,7 +39,7 @@ async fn update(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<NotificationPreferences>, Error> {
-    let scope = NotificationPreferencesAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = NotificationPreferences::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;

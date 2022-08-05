@@ -21,6 +21,8 @@ pub(crate) struct UpdateLedgerAccountOptions {
     /// Currency description
     #[clap(long, group = "instrument")]
     description: Option<String>,
+    /// Holding balance limit
+    holding_limit: Option<u64>,
 }
 
 impl UpdateLedgerAccountOptions {
@@ -32,6 +34,16 @@ impl UpdateLedgerAccountOptions {
             let request = sdk::SetFreezeState {
                 account_id: account_id.clone(),
                 frozen,
+            };
+            context
+                .submit_transaction(request, config.context_id.clone())
+                .await??;
+        }
+
+        if let Some(limit) = self.holding_limit {
+            let request = sdk::SetBalanceLimit {
+                account_id: account_id.clone(),
+                balance_limit: limit,
             };
             context
                 .submit_transaction(request, config.context_id.clone())

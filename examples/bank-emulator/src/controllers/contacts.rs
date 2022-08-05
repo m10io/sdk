@@ -9,14 +9,13 @@ use serde_json::Value;
 use sqlx::Connection;
 
 use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
+    auth::{AuthScope, BankEmulatorRole, User},
     bank::Bank,
     context::Context,
     error::Error,
     models::{
-        Account, AccountAuth, Asset, AssetAuth, Contact, ContactAuth, CreateContactRequest,
-        ListResponse, NotificationPreferences, NotificationPreferencesAuth, Page, Payment,
-        PaymentQuery,
+        Account, Asset, AssetTypeQuery, Contact, CreateContactRequest, ListResponse,
+        NotificationPreferences, Page, Payment, PaymentQuery,
     },
     rbac,
     utils::{self, *},
@@ -28,7 +27,7 @@ async fn create(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Contact>, Error> {
-    ContactAuth.is_authorized(Verb::Create, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Create)?;
     let req = request.into_inner();
     let name = req
         .contact_data
@@ -44,7 +43,7 @@ async fn create(
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
     let mut contact: Contact = req.into();
-    contact.user_id = current_user.auth0_id;
+    contact.user_id = current_user.user_id;
     contact.rbac_role = role_id;
     contact.account_set = account_set_id;
     contact.insert(&mut txn).await?;
@@ -69,7 +68,7 @@ async fn list(
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i64, Contact>>, Error> {
     let mut conn = context.db_pool.get().await?;
-    let scope = ContactAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let limit = page.get_limit();
     let last_token = page.into_inner().try_into()?;
     let contacts = match scope {
@@ -92,10 +91,10 @@ async fn update_own(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Contact>, Error> {
-    ContactAuth.is_authorized(Verb::Update, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Update)?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
-    let mut contact = Contact::find_by_user_id(&current_user.auth0_id)
+    let mut contact = Contact::find_by_user_id(&current_user.user_id)
         .fetch_optional(&mut txn)
         .await?
         .ok_or_else(Error::unauthorized)?;
@@ -107,10 +106,10 @@ async fn update_own(
 
 #[delete("")]
 async fn delete_own(current_user: User, context: Data<Context>) -> Result<Json<Contact>, Error> {
-    ContactAuth.is_authorized(Verb::Update, &current_user)?;
+    current_user.is_authorized(BankEmulatorRole::Update)?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
-    let mut contact = Contact::find_by_user_id(&current_user.auth0_id)
+    let mut contact = Contact::find_by_user_id(&current_user.user_id)
         .fetch_optional(&mut txn)
         .await?
         .ok_or_else(Error::unauthorized)?;
@@ -125,7 +124,7 @@ async fn get(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Contact>, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let contact = query
@@ -142,7 +141,7 @@ async fn update(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Contact>, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
@@ -162,8 +161,8 @@ async fn delete(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Contact>, Error> {
-    let tenant = ContactAuth
-        .auth_scope(Verb::Delete, &current_user)
+    let tenant = current_user
+        .is_authorized(BankEmulatorRole::Delete)?
         .authorized_tenant()?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
@@ -180,7 +179,7 @@ async fn get_account(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Account>, Error> {
-    let scope = AccountAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_for_contact_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let account = query
@@ -196,7 +195,7 @@ async fn list_assets(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i64, Asset>>, Error> {
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Asset::find_by_contact_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let assets = query.fetch_all(&mut *conn).await?;
@@ -209,12 +208,18 @@ async fn list_assets(
 #[get("{id}/assets/{asset}")]
 async fn get_asset(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_contact_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_contact_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -226,12 +231,18 @@ async fn get_asset(
 #[post("{id}/assets/{asset}/freeze")]
 async fn freeze_asset(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_contact_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_contact_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -248,14 +259,20 @@ async fn freeze_asset(
 #[get("{id}/assets/{asset}/payments")]
 async fn list_payments(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     page: Query<Page<u64>>,
     include_child_accounts: Query<PaymentQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<u64, Payment>>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_contact_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_contact_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -285,12 +302,18 @@ async fn list_payments(
 #[get("{id}/assets/{asset}/payments/{payment}")]
 async fn get_payment(
     ids: Path<(i64, String, u64)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Payment>, Error> {
     let (id, instrument, tx_id) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_contact_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_contact_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     query
         .fetch_optional(&mut *conn)
@@ -303,12 +326,18 @@ async fn get_payment(
 #[post("{id}/assets/{asset}/unfreeze")]
 async fn unfreeze_asset(
     ids: Path<(i64, String)>,
+    asset_type: Query<AssetTypeQuery>,
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     let (id, instrument) = ids.into_inner();
-    let scope = AssetAuth.auth_scope(Verb::Read, &current_user);
-    let query = Asset::find_by_contact_id_instrument_scoped(id, &instrument, scope)?;
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let query = Asset::find_by_contact_id_instrument_type_scoped(
+        id,
+        &instrument,
+        (&*asset_type).into(),
+        scope,
+    )?;
     let mut conn = context.db_pool.get().await?;
     let asset = query
         .fetch_optional(&mut *conn)
@@ -328,7 +357,7 @@ async fn list_notification_preferences(
     current_user: User,
     context: Data<Context>,
 ) -> Result<Json<ListResponse<i32, NotificationPreferences>>, Error> {
-    let scope = NotificationPreferencesAuth.auth_scope(Verb::Read, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Contact::get_notification_preferences_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let preferences = query.fetch_all(&mut *conn).await?;
@@ -393,7 +422,7 @@ async fn add_key(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let contact = query
@@ -425,7 +454,7 @@ async fn approve_cip(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let contact = query
@@ -444,7 +473,7 @@ async fn deny_cip(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let contact = query
@@ -463,7 +492,7 @@ async fn freeze(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let contact = query
@@ -492,7 +521,7 @@ async fn unfreeze(
     current_user: User,
     context: Data<Context>,
 ) -> Result<HttpResponse, Error> {
-    let scope = ContactAuth.auth_scope(Verb::Update, &current_user);
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
     let query = Contact::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let contact = query

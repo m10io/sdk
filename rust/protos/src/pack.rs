@@ -8,9 +8,7 @@ pub trait Pack: Default + Message + Sized {
     const COLLECTION: Collection;
 
     fn pack(&self) -> Vec<u8> {
-        let mut document = Vec::new();
-        self.encode(&mut document).unwrap();
-        document
+        self.encode_to_vec()
     }
 
     fn set_id(&mut self, id: Vec<u8>);

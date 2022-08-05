@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use bytes::Buf;
 use hyper::{Body, Client, Method};
 use serde_json::{from_reader, json, to_vec, Value};
@@ -7,33 +9,20 @@ use super::top_level_cmds::AuthOptions;
 use crate::utils::m10_config_path;
 
 const OAUTH_AUDIENCE: &str = "https://api.m10.net";
-const OAUTH_SCOPE: &str = "openid ledger.write trust:admin";
+const OAUTH_SCOPE: &str = "openid";
 
 impl AuthOptions {
     pub(crate) async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
         let AuthOptions {
-            client_secret,
             username,
             password,
             stdout,
         } = self;
         let client =
             Client::builder().build::<_, Body>(hyper_rustls::HttpsConnector::with_native_roots());
-        let response = if let Some(client_secret) = client_secret {
+        let response = if let Some(username) = username {
             let oauth_token_body = json!({
-                "grant_type": "client_credentials",
-                "client_secret": client_secret,
-                "audience": OAUTH_AUDIENCE,
-                "scope": OAUTH_SCOPE,
-            });
-            let request = hyper::Request::builder()
-                .uri(format!("https://{}/oauth/token", &config.server))
-                .method(Method::POST)
-                .header(hyper::header::CONTENT_TYPE, "application/json")
-                .body(Body::from(to_vec(&oauth_token_body)?))?;
-            client.request(request).await?
-        } else if let Some(username) = username {
-            let oauth_token_body = json!({
+                "client_id": "directory",
                 "grant_type": "password",
                 "username": username,
                 "password": password.as_ref().unwrap(),
@@ -48,6 +37,7 @@ impl AuthOptions {
             client.request(request).await?
         } else {
             let device_code_body = json!({
+                "client_id": "directory",
                 "audience": OAUTH_AUDIENCE,
                 "scope": OAUTH_SCOPE,
             });
@@ -56,6 +46,7 @@ impl AuthOptions {
                 .method(Method::POST)
                 .header(hyper::header::CONTENT_TYPE, "application/json")
                 .body(Body::from(to_vec(&device_code_body)?))?;
+            let device_flow_time = Instant::now();
             let response = client.request(request).await?;
 
             let status = response.status();
@@ -66,12 +57,13 @@ impl AuthOptions {
             }
 
             println!("Log in at {}", response["verification_uri_complete"]);
-            let internal = Duration::from_secs(response["interval"].as_u64().unwrap());
+            let interval = Duration::from_secs(response["interval"].as_u64().unwrap());
+            let expires_in = Duration::from_secs(response["expires_in"].as_u64().unwrap());
             let oauth_token_body = json!({
+                "client_id": "directory",
                 "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
                 "device_code": response["device_code"],
             });
-            let mut poll_attempts = 0;
             loop {
                 let request = hyper::Request::builder()
                     .uri(format!("https://{}/oauth/token", &config.server))
@@ -79,11 +71,10 @@ impl AuthOptions {
                     .header(hyper::header::CONTENT_TYPE, "application/json")
                     .body(Body::from(to_vec(&oauth_token_body)?))?;
                 let response = client.request(request).await?;
-                if response.status().is_success() || poll_attempts > 5 {
+                if response.status().is_success() || device_flow_time.elapsed() > expires_in {
                     break response;
                 }
-                sleep(internal).await;
-                poll_attempts += 1;
+                sleep(interval).await;
             }
         };
         let status = response.status();

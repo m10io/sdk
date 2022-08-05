@@ -98,6 +98,13 @@ impl AccountIdExt for sdk::SetInstrument {
     }
 }
 
+impl AccountIdExt for sdk::SetBalanceLimit {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.account_id.involves_account(id)
+    }
+}
+
 impl AccountIdExt for (&sdk::transaction_data::Data, &sdk::TransactionResponse) {
     #[inline]
     fn involves_account(&self, id: AccountId) -> bool {
@@ -117,6 +124,7 @@ impl AccountIdExt for (&sdk::transaction_data::Data, &sdk::TransactionResponse) 
                 .map(|transfer| transfer.involves_account(id))
                 .unwrap_or(false),
             Data::SetInstrument(set_instrument) => set_instrument.involves_account(id),
+            Data::SetBalanceLimit(set_balance_limit) => set_balance_limit.involves_account(id),
         }
     }
 }

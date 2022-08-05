@@ -63,6 +63,7 @@ async fn accounts_wire_routes() {
         .json(&AmountRequest {
             amount_in_cents: 50000,
             currency: Some("usd".into()),
+            ..Default::default()
         })
         .send()
         .await
@@ -81,6 +82,7 @@ async fn accounts_wire_routes() {
         .json(&AmountRequest {
             currency: None,
             amount_in_cents: 700,
+            ..Default::default()
         })
         .send()
         .await
@@ -116,6 +118,7 @@ async fn accounts_wire_routes() {
         .json(&AmountRequest {
             currency: None,
             amount_in_cents: 500,
+            ..Default::default()
         })
         .send()
         .await
@@ -164,6 +167,7 @@ async fn accounts_wire_routes() {
         .json(&AmountRequest {
             amount_in_cents: 10000,
             currency: Some("usd".into()),
+            ..Default::default()
         })
         .send()
         .await
@@ -187,18 +191,32 @@ async fn accounts_wire_routes() {
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after + 10000, balance_before);
 
-    // fund invalid ledger account from bank account
-    println!("fund invalid ledger account from bank account");
+    // fund CBDC account from bank account
+    println!("fund CBDC account from bank account");
+
+    let balance_before = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+
     let transfer = client
         .post(format!(
-        "{}/api/v1/accounts/{}/request_funds?ledger_account_id=03800000000000001f0000000000000a",
-        base_url(),
-        account.id
-    ))
+            "{}/api/v1/accounts/{}/request_funds",
+            base_url(),
+            account.id
+        ))
         .bearer_auth(&jwt)
         .json(&AmountRequest {
-            amount_in_cents: 50000,
+            amount_in_cents: 5500,
             currency: Some("usd".into()),
+            asset_type: Some(AssetType::IndirectCbdc),
+            ..Default::default()
         })
         .send()
         .await
@@ -206,10 +224,49 @@ async fn accounts_wire_routes() {
         .assert_json::<BankTransfer>()
         .await;
     println!("transfer {:?}", transfer);
-    assert_eq!(transfer.status, 1);
-    assert!(transfer.error.is_some());
+    assert_eq!(transfer.status, 0);
+    assert_eq!(transfer.amount, Some(5500));
+
+    let balance_after = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+    println!("balance after transfer: {}", balance_after);
+    assert_eq!(balance_after + 5500, balance_before);
+
+    // Note temporary disabled, need to find a new way to
+    // test failed transfer since this fails now before the actual transfer
+    // fund invalid ledger account from bank account
+    // println!("fund invalid ledger account from bank account");
+    // let transfer = client
+    //     .post(format!(
+    //     "{}/api/v1/accounts/{}/request_funds?ledger_account_id=03800000000000001f0000000000000a",
+    //     base_url(),
+    //     account.id
+    // ))
+    //     .bearer_auth(&jwt)
+    //     .json(&AmountRequest {
+    //         amount_in_cents: 50000,
+    //         currency: Some("usd".into()),
+    //         ..Default::default()
+    //     })
+    //     .send()
+    //     .await
+    //     .unwrap()
+    //     .assert_json::<BankTransfer>()
+    //     .await;
+    // println!("transfer {:?}", transfer);
+    // assert_eq!(transfer.status, 1);
+    // assert!(transfer.error.is_some());
 
     // Redeem with transaction
+    println!("Redeem with transaction");
     let key_pair = key_pair();
 
     let public_key = key_pair.public_key().as_ref();
@@ -274,6 +331,7 @@ async fn accounts_wire_routes() {
         .json(&RedeemRequest {
             txn_id,
             amount_in_cents: 2200,
+            ..Default::default()
         })
         .send()
         .await
@@ -298,6 +356,7 @@ async fn accounts_wire_routes() {
     assert_eq!(balance_after - 2200, balance_before);
 
     // Redeem direct
+    println!("Redeem direct");
     let balance_before = balance_after;
     let transfer = client
         .post(format!(
@@ -309,6 +368,7 @@ async fn accounts_wire_routes() {
         .json(&RedeemRequest {
             txn_id,
             amount_in_cents: 3300,
+            ..Default::default()
         })
         .send()
         .await
@@ -331,6 +391,55 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after - 3300, balance_before);
+
+    // fund CBDC account from bank account over limit
+    println!("fund CBDC account from bank account over limit");
+
+    let balance_before = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+
+    let transfer = client
+        .post(format!(
+            "{}/api/v1/accounts/{}/request_funds",
+            base_url(),
+            account.id
+        ))
+        .bearer_auth(&jwt)
+        .json(&AmountRequest {
+            amount_in_cents: 110000,
+            currency: Some("usd".into()),
+            asset_type: Some(AssetType::IndirectCbdc),
+            ..Default::default()
+        })
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<BankTransfer>()
+        .await;
+    println!("transfer {:?}", transfer);
+    assert_eq!(transfer.status, 1);
+    assert!(transfer.error.is_some());
+
+    let balance_after = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+    println!("balance after transfer: {}", balance_after);
+    assert_eq!(balance_after, balance_before);
 }
 
 #[tokio::test]
@@ -407,6 +516,7 @@ async fn accounts_sandbox_routes() {
         .json(&AmountRequest {
             amount_in_cents: 500,
             currency: None,
+            ..Default::default()
         })
         .send()
         .await

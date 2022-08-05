@@ -157,6 +157,16 @@ pub mod sdk {
         }
     }
 
+    impl Pack for Bank {
+        const COLLECTION: Collection = Collection::Banks;
+        fn set_id(&mut self, id: Vec<u8>) {
+            self.id = id;
+        }
+        fn id(&self) -> &[u8] {
+            &self.id
+        }
+    }
+
     use transaction_data::Data;
 
     impl From<CreateTransfer> for Data {
@@ -180,6 +190,12 @@ pub mod sdk {
     impl From<SetInstrument> for Data {
         fn from(request: SetInstrument) -> Self {
             Self::SetInstrument(request)
+        }
+    }
+
+    impl From<SetBalanceLimit> for Data {
+        fn from(request: SetBalanceLimit) -> Self {
+            Self::SetBalanceLimit(request)
         }
     }
 

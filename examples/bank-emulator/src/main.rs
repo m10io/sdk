@@ -1,6 +1,7 @@
 use actix_web::{get, middleware, web::Data, App, HttpServer};
 use biscuit::{Validation, ValidationOptions};
 use futures_util::TryFutureExt;
+use reqwest::Url;
 use tokio::sync::watch;
 use tracing_actix_web::TracingLogger;
 
@@ -11,6 +12,7 @@ mod context;
 mod controllers;
 mod emulator;
 mod error;
+mod liquidity;
 mod logging;
 mod models;
 mod rbac;
@@ -32,11 +34,13 @@ async fn main() -> Result<(), eyre::Report> {
         MIGRATOR.run(&mut *conn).await?;
     }
     let context = context::Context::new_from_config(config.clone()).await?;
+    let issuer_uri: Url = config.oauth.issuer.parse()?;
     let (jwks_s, jwks_r) = watch::channel(auth::empty_jwks());
-    tokio::spawn(auth::watch_jwks(config.oauth.issuer.parse()?, jwks_s));
+    tokio::spawn(auth::watch_jwks(issuer_uri.clone(), jwks_s));
+    let full_issuer_uri = Url::join(&issuer_uri, "/realms/master")?;
+
     let validation_options = ValidationOptions {
-        issuer: Validation::Validate(config.oauth.issuer),
-        audience: Validation::Validate(config.oauth.audience),
+        issuer: Validation::Validate(full_issuer_uri.to_string()),
         ..Default::default()
     };
 

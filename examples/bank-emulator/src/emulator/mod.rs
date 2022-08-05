@@ -296,8 +296,12 @@ impl Bank for BankEmulator {
         Ok(txn_id)
     }
 
-    async fn transfer(&self) -> Result<Value, Error> {
-        unimplemented!()
+    async fn transfer_by_id(&self, txn_id: Uuid) -> Result<Self::Transfer, Error> {
+        let mut conn = self.db_pool.get().await?;
+        let transfer = BankTransfer::find_by_id(txn_id)
+            .fetch_one(&mut *conn)
+            .await?;
+        Ok(transfer)
     }
 
     async fn transfers_by_reference(&self, reference: &str) -> Result<Vec<Self::Transfer>, Error> {

@@ -31,6 +31,7 @@ message TransactionData {
     CreateTransfer initiate_transfer = 21;
     CommitTransfer commit_transfer = 22;
     SetInstrument set_instrument = 23;
+    SetBalanceLimit set_balance_limit = 24;
   }
 }
 
@@ -85,6 +86,7 @@ message TransactionError {
     INSUFFICIENT_BALANCE = 25;
     BALANCE_OVERFLOW = 26;
     ACCOUNT_DEPTH_EXCEEDED = 27;
+    HOLDING_LIMIT_EXCEEDED = 28;
 
     // Action specific status codes
     INVALID_TARGET = 30;
@@ -157,6 +159,7 @@ message CreateLedgerAccount {
   bool issuance = 2;
   bool frozen = 3;
   Instrument instrument = 4;
+  uint64 balance_limit = 5;
 }
 
 message SetFreezeState {
@@ -171,6 +174,11 @@ message SetInstrument {
   string description = 4;
 }
 
+message SetBalanceLimit {
+  bytes account_id = 1;
+  uint64 balance_limit = 2;
+}
+
 message GetAccountRequest { bytes id = 1; }
 
 message IndexedAccount {
@@ -179,6 +187,7 @@ message IndexedAccount {
   uint64 balance = 4;
   bool frozen = 5;
   Instrument instrument = 6;
+  uint64 balance_limit = 7;
   message Issuance {
     uint64 issued_balance = 1;
     uint64 non_leaf_children = 2;

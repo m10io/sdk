@@ -550,6 +550,28 @@ impl AccountId {
         self.0.to_be_bytes()
     }
 
+    /// Converts this ID to a big-endian byte vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use m10_sdk::account_id;
+    ///
+    /// let id = account_id![0x42, 0x01_2345, 0x06_789a; 0x0f_edcb_a987]?;
+    /// assert_eq!(
+    ///     id.to_vec(),
+    ///     vec![
+    ///         0x42, 0x81, 0x23, 0x45, 0x86, 0x78, 0x9a, 0x0f,
+    ///         0xed, 0xcb, 0xa9, 0x87, 0x00, 0x00, 0x00, 0x05,
+    ///     ]
+    /// );
+    /// # Ok::<_, Box<dyn std::error::Error>>(())
+    /// ```
+    #[inline]
+    pub fn to_vec(self) -> Vec<u8> {
+        self.0.to_be_bytes().to_vec()
+    }
+
     /// Attempts to create an ID from a big-endian byte array.
     ///
     /// This performs the inverse of [`to_be_bytes`].
@@ -723,6 +745,56 @@ impl AccountId {
     }
 }
 
+impl TryFrom<&[u8]> for AccountId {
+    type Error = AccountIdError;
+
+    #[inline]
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        Self::try_from_be_slice(bytes)
+    }
+}
+
+/// Attempts to parse an [`AccountId`] from a hex-encoded string.
+/// Note: Requires the [`format`] feature flag.
+///
+/// # Errors
+///
+/// Returns one of the following [`AccountIdError`] variants if account ID creation fails:
+///
+/// - [`InvalidDepth`] if the account ID depth exceeds [`MAX_DEPTH`].
+/// - [`InvalidSpecialBits`] if any non-index bits (i.e. bits reserved for identifying issuance
+///   account indexes and unused bits within the ID) are set incorrectly.
+/// - [`InvalidLen`] if the slice length does not equal the size of [`RawAccountId`].
+///
+/// # Examples
+///
+/// Valid account ID:
+/// ```
+/// use m10_sdk::{account_id, account::AccountId};
+/// use m10_sdk::account::AccountIdError;
+///
+/// let id: AccountId = "00000000000000000000000000000000".parse().expect("invalid ID");
+/// assert_eq!(id, account_id![0].unwrap());
+///
+/// let id: AccountId = "01000000000000000000000000000001".parse().expect("Invalid ID");
+/// assert_eq!(id, account_id![1;0].unwrap());
+///
+/// let id: Result<AccountId, AccountIdError> = "0100000000000000000000000000000".parse();
+/// assert!(id.is_err());
+/// ```
+///
+///
+/// [`AccountIdError`]: ../error/enum.AccountIdError.html
+#[cfg(feature = "format")]
+impl std::str::FromStr for AccountId {
+    type Err = AccountIdError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bytes = hex::decode(s).map_err(|_| AccountIdError::InvalidLen)?;
+        Self::try_from_be_slice(&bytes)
+    }
+}
+
 impl Serialize for AccountId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -767,13 +839,14 @@ impl From<AccountId> for RawAccountId {
     }
 }
 
-impl fmt::Debug for AccountId {
+#[cfg(feature = "format")]
+impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(self, f)
+        write!(f, "{}", hex::encode(&self.to_be_bytes()))
     }
 }
 
-impl fmt::Display for AccountId {
+impl fmt::Debug for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}", self.root_account_index())?;
         for index in self.issuance_account_indexes() {

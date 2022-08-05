@@ -5,6 +5,7 @@ pub mod context;
 pub mod controllers;
 mod emulator;
 pub mod error;
+mod liquidity;
 pub mod logging;
 pub mod models;
 mod rbac;

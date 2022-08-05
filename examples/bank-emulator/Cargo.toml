@@ -21,6 +21,8 @@ eyre = "0.6"
 futures-util = "0.3"
 hex = { version =  "0.4", features = ["serde"] }
 hyper = "0.14"
+prost = "0.8"
+prost-types = "0.8"
 rand = "0.8.5"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "multipart"] }
 rust_decimal = "1.14"
@@ -29,7 +31,8 @@ serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 serde_with = "1"
 smol_str = "0.1"
-m10-protos = { version = "0.21.1", features = ["dynamic2"] }
+m10-bank-emulator-protos = { path = "../../shared/rust/bank-emulator-protos", features = ["client"] }
+m10-protos = { version = "0.22.0", features = ["dynamic2"] }
 tracing-actix-web = "0.5.0-beta.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.2", default-features = false, features = ["env-filter", "smallvec", "ansi", "parking_lot"] }
@@ -38,4 +41,4 @@ tokio = { version = "1.6.1", features = ["full"] }
 tonic = "0.5"
 uuid = { version = "0.8", features = ["serde"] }
 m10-rds-pool = { path = "../rds-pool" }
-m10-sdk = "0.21.1"
+m10-sdk = "0.22.0"

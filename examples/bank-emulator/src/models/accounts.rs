@@ -2,12 +2,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 
-use crate::{
-    auth::{AuthModel, AuthScope, User, Verb},
-    error::Error,
-};
+use crate::{auth::AuthScope, error::Error};
 
-use super::{Asset, ContactType, NextPageToken};
+use super::{Asset, AssetType, ContactType, NextPageToken};
 
 #[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
@@ -83,12 +80,18 @@ pub struct AmountRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<String>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asset_type: Option<AssetType>,
+
     pub amount_in_cents: u64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct RedeemRequest {
     pub txn_id: u64,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asset_type: Option<AssetType>,
 
     pub amount_in_cents: u64,
 }
@@ -319,18 +322,6 @@ impl Account {
         .fetch_optional(txn)
         .await
         .map_err(Error::from)
-    }
-}
-
-pub struct AccountAuth;
-
-impl AuthModel for AccountAuth {
-    fn is_authorized(&self, verb: Verb, user: &User) -> Result<(), Error> {
-        user.authorize(&"accounts".into(), verb).map(|_| ())
-    }
-
-    fn auth_scope(&self, verb: Verb, user: &User) -> AuthScope {
-        user.query_scope(&"accounts".into(), verb)
     }
 }
 

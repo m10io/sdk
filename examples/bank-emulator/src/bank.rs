@@ -41,7 +41,7 @@ pub(crate) trait Bank {
         reference: &str,
     ) -> Result<Uuid, Error>;
     async fn account_withdraw(&mut self, amount: u64, account_ref: &Value) -> Result<Uuid, Error>;
-    async fn transfer(&self) -> Result<Value, Error>;
+    async fn transfer_by_id(&self, txn_id: Uuid) -> Result<Self::Transfer, Error>;
     async fn transfers_by_reference(&self, reference: &str) -> Result<Vec<Self::Transfer>, Error>;
     async fn fund(&mut self, amount: u64, contact_ref: &Value) -> Result<Uuid, Error>;
     async fn fund_account(

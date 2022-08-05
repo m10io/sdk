@@ -44,6 +44,8 @@ pub(crate) struct CreateLedgerAccountOptions {
     /// Currency description
     #[clap(long, group = "instrument")]
     description: Option<String>,
+    /// Holding balance limit
+    holding_limit: Option<u64>,
 }
 
 impl CreateLedgerAccountOptions {
@@ -108,6 +110,7 @@ impl CreateLedgerAccountOptions {
                     issuance: self.issuance,
                     frozen: self.frozen,
                     instrument: None,
+                    balance_limit: self.holding_limit.unwrap_or_default(),
                 }
             } else {
                 sdk::CreateLedgerAccount {
@@ -124,6 +127,7 @@ impl CreateLedgerAccountOptions {
                             .ok_or(anyhow::anyhow!("Instrument decimals missing"))?,
                         description: self.description.clone().unwrap_or_default(),
                     }),
+                    balance_limit: self.holding_limit.unwrap_or_default(),
                 }
             };
         let response = context.submit_transaction(request, context_id).await??;

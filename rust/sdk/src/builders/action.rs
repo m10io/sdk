@@ -1,6 +1,7 @@
 use crate::account::AccountId;
 use crate::builders::{TxnFilter, DEFAULT_TXN_LIMIT};
 use crate::types::Target;
+use crate::WithContext;
 use core::convert::From;
 use m10_protos::prost::Message;
 use m10_protos::sdk::list_actions_request::Filter;
@@ -97,3 +98,5 @@ impl From<TxnFilter<ActionsFilter>> for sdk::ListActionsRequest {
         }
     }
 }
+
+impl WithContext for ActionBuilder {}

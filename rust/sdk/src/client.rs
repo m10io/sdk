@@ -48,20 +48,13 @@ impl<S: Signer> M10Client<S> {
 
     pub async fn create_account(
         &self,
-        parent_id: AccountId,
-        issuance: bool,
-        context_id: Vec<u8>,
+        builder: impl Into<Ctx<AccountBuilder>>,
     ) -> M10Result<(TxId, AccountId)> {
+        let builder = builder.into();
         let req = self
-            .signed_transaction(
-                sdk::CreateLedgerAccount {
-                    parent_id: parent_id.to_vec(),
-                    frozen: false,
-                    issuance,
-                    instrument: None,
-                    balance_limit: 0,
-                },
-                context_id,
+            .signed_transaction::<sdk::CreateLedgerAccount>(
+                builder.value.into(),
+                builder.context_id,
             )
             .await?;
         let response = self
@@ -74,9 +67,10 @@ impl<S: Signer> M10Client<S> {
         Ok((response.tx_id, account_id))
     }
 
-    pub async fn transfer(&self, builder: TransferBuilder, context_id: Vec<u8>) -> M10Result<TxId> {
+    pub async fn transfer(&self, builder: impl Into<Ctx<TransferBuilder>>) -> M10Result<TxId> {
+        let builder = builder.into();
         let req = self
-            .signed_transaction::<sdk::CreateTransfer>(builder.into(), context_id)
+            .signed_transaction::<sdk::CreateTransfer>(builder.value.into(), builder.context_id)
             .await?;
         let response = self
             .client
@@ -89,13 +83,13 @@ impl<S: Signer> M10Client<S> {
 
     pub async fn initiate_transfer(
         &self,
-        builder: TransferBuilder,
-        context_id: Vec<u8>,
+        builder: impl Into<Ctx<TransferBuilder>>,
     ) -> M10Result<TxId> {
+        let builder = builder.into();
         let req = self
             .signed_transaction(
-                sdk::transaction_data::Data::InitiateTransfer(builder.into()),
-                context_id,
+                sdk::transaction_data::Data::InitiateTransfer(builder.value.into()),
+                builder.context_id,
             )
             .await?;
         let response = self
@@ -174,13 +168,10 @@ impl<S: Signer> M10Client<S> {
         Ok(response.tx_id)
     }
 
-    pub async fn documents(
-        &self,
-        builder: DocumentBuilder,
-        context_id: Vec<u8>,
-    ) -> M10Result<TxId> {
+    pub async fn documents(&self, builder: impl Into<Ctx<DocumentBuilder>>) -> M10Result<TxId> {
+        let builder = builder.into();
         let req = self
-            .signed_transaction::<sdk::DocumentOperations>(builder.into(), context_id)
+            .signed_transaction::<sdk::DocumentOperations>(builder.value.into(), builder.context_id)
             .await?;
         let response = self
             .client
@@ -200,6 +191,15 @@ impl<S: Signer> M10Client<S> {
             .await?;
         let account = self.client.clone().get_indexed_account(req).await?;
         Account::try_from(account)
+    }
+
+    pub async fn get_account_info(&self, id: AccountId) -> M10Result<AccountInfo> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetAccountRequest { id: id.to_vec() })
+            .await?;
+        let account = self.client.clone().get_account_info(req).await?;
+        AccountInfo::try_from(account)
     }
 
     pub async fn observe_accounts(

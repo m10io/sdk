@@ -1,4 +1,4 @@
-use crate::DocumentUpdate;
+use crate::{DocumentUpdate, WithContext};
 use core::convert::From;
 use m10_protos::prost::Message;
 use m10_protos::Pack;
@@ -58,3 +58,5 @@ impl From<DocumentBuilder> for sdk::DocumentOperations {
         }
     }
 }
+
+impl WithContext for DocumentBuilder {}

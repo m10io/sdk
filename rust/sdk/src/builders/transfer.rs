@@ -1,5 +1,6 @@
 use crate::account::AccountId;
 use crate::builders::{TxnFilter, DEFAULT_TXN_LIMIT};
+use crate::WithContext;
 use core::convert::From;
 use core::default::Default;
 use m10_protos::prost::Any;
@@ -125,3 +126,5 @@ impl From<TxnFilter<TransferFilter>> for sdk::ListTransferRequest {
         }
     }
 }
+
+impl WithContext for TransferBuilder {}

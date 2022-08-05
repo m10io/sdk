@@ -1,5 +1,6 @@
 use crate::account::AccountId;
 use crate::types::TxId;
+use crate::WithContext;
 use core::convert::From;
 use m10_protos::sdk;
 
@@ -54,3 +55,66 @@ impl From<AccountFilter<NamedAction>> for sdk::ObserveActionsRequest {
         }
     }
 }
+
+pub struct AccountBuilder {
+    parent_id: AccountId,
+    issuance: bool,
+    frozen: bool,
+    balance_limit: u64,
+    instrument: Option<sdk::Instrument>,
+}
+
+impl AccountBuilder {
+    pub fn parent(id: AccountId) -> Self {
+        Self {
+            parent_id: id,
+            issuance: false,
+            frozen: false,
+            balance_limit: 0,
+            instrument: None,
+        }
+    }
+
+    pub fn issuance(mut self, flag: bool) -> Self {
+        self.issuance = flag;
+        self
+    }
+
+    pub fn frozen(mut self, flag: bool) -> Self {
+        self.frozen = flag;
+        self
+    }
+
+    pub fn balance_limit(mut self, limit: u64) -> Self {
+        self.balance_limit = limit;
+        self
+    }
+
+    pub fn instrument(
+        mut self,
+        code: impl Into<String>,
+        decimals: u32,
+        description: Option<impl Into<String>>,
+    ) -> Self {
+        self.instrument = Some(sdk::Instrument {
+            code: code.into(),
+            decimal_places: decimals,
+            description: description.map(|d| d.into()).unwrap_or_default(),
+        });
+        self
+    }
+}
+
+impl From<AccountBuilder> for sdk::CreateLedgerAccount {
+    fn from(builder: AccountBuilder) -> Self {
+        sdk::CreateLedgerAccount {
+            parent_id: builder.parent_id.to_vec(),
+            frozen: builder.frozen,
+            issuance: builder.issuance,
+            instrument: None,
+            balance_limit: builder.balance_limit,
+        }
+    }
+}
+
+impl WithContext for AccountBuilder {}

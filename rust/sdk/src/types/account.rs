@@ -25,6 +25,21 @@ pub struct Account {
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
+feature = "format",
+display("AccountInfo {{ id={id} parent_id={parent_id} public_name={public_name} currency={code}({decimals}) profile_image_url={profile_image_url} }}")
+)]
+#[derive(Clone, Debug)]
+pub struct AccountInfo {
+    pub id: AccountId,
+    pub parent_id: AccountId,
+    pub public_name: String,
+    pub profile_image_url: String,
+    pub code: String,
+    pub decimals: u32,
+}
+
+#[cfg_attr(feature = "format", derive(parse_display::Display))]
+#[cfg_attr(
     feature = "format",
     display("balance={balance} issuance_accounts={issuance_accounts} holding_accounts={holding_accounts}")
 )]
@@ -158,6 +173,21 @@ impl TryFrom<sdk::FinalizedTransaction> for AccountUpdate {
             success,
             timestamp,
             update_type,
+        })
+    }
+}
+
+impl TryFrom<sdk::AccountInfo> for AccountInfo {
+    type Error = M10Error;
+
+    fn try_from(info: sdk::AccountInfo) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: AccountId::try_from_be_slice(&info.account_id)?,
+            parent_id: AccountId::try_from_be_slice(&info.parent_account_id)?,
+            public_name: info.public_name,
+            profile_image_url: info.profile_image_url,
+            code: info.code,
+            decimals: info.decimal_places,
         })
     }
 }

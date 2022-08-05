@@ -48,11 +48,17 @@ impl TryFrom<sdk::TransferStep> for TransferStep {
     type Error = M10Error;
 
     fn try_from(step: sdk::TransferStep) -> Result<Self, Self::Error> {
+        let sdk::TransferStep {
+            from_account_id,
+            to_account_id,
+            amount,
+            metadata,
+        } = step;
         Ok(TransferStep {
-            from: AccountId::try_from_be_slice(&step.from_account_id)?,
-            to: AccountId::try_from_be_slice(&step.to_account_id)?,
-            amount: step.amount,
-            metadata: vec![],
+            from: AccountId::try_from_be_slice(&from_account_id)?,
+            to: AccountId::try_from_be_slice(&to_account_id)?,
+            amount,
+            metadata,
         })
     }
 }

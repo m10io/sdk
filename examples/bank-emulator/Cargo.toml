@@ -8,8 +8,8 @@ members = [".", "integration-tests"]
 default-members = ["."]
 
 [dependencies]
-actix-web = "4.0.0-beta.19"
-actix-multipart = "0.4.0-beta.12"
+actix-web = "4.1"
+actix-multipart = "0.4.0"
 async-trait = "0.1"
 base64 = "0.13"
 biscuit = "0.5"
@@ -18,6 +18,7 @@ oneline-eyre = "0.1"
 config = { version = "0.11", default-features = false, features = ["toml"] }
 enumflags2 = "0.7"
 eyre = "0.6"
+flume = "0.10"
 futures-util = "0.3"
 hex = { version =  "0.4", features = ["serde"] }
 hyper = "0.14"
@@ -31,14 +32,16 @@ serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 serde_with = "1"
 smol_str = "0.1"
-m10-bank-emulator-protos = { path = "../../shared/rust/bank-emulator-protos", features = ["client"] }
-m10-protos = { version = "0.23.1", features = ["dynamic2"] }
-tracing-actix-web = "0.5.0-beta.9"
+tracing-actix-web = "0.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.2", default-features = false, features = ["env-filter", "smallvec", "ansi", "parking_lot"] }
 tracing-error = "0.1"
-tokio = { version = "1.6.1", features = ["full"] }
+tokio = { version = "1.25", features = ["full"] }
 tonic = "0.5"
 uuid = { version = "0.8", features = ["serde"] }
+
+m10-bank-emulator-protos = { path = "../../shared/rust/bank-emulator-protos", features = ["client"] }
+m10-protos = { version = "0.24.0", features = ["dynamic2"] }
 m10-rds-pool = { path = "../rds-pool" }
-m10-sdk = "0.23.1"
+m10-sdk = "0.24.0"
+pala-types = { path = "../../shared/rust/pala-types" }

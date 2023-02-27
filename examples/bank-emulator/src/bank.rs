@@ -10,6 +10,7 @@ pub(crate) trait Bank {
     type Transfer;
 
     async fn create_account(&mut self, display_name: &str) -> Result<Value, Error>;
+    async fn create_loan_account(&mut self, display_name: &str) -> Result<Self::Account, Error>;
     fn account_number(&self) -> i32;
     fn currency(&self) -> &str;
     async fn create_contact(
@@ -29,6 +30,7 @@ pub(crate) trait Bank {
     async fn unfreeze_contact(&self, contact_ref: &Value) -> Result<Self::Contact, Error>;
     async fn deny_contact(&self, contact_ref: &Value) -> Result<Self::Contact, Error>;
     async fn get_account(&self, account_ref: &Value) -> Result<Self::Account, Error>;
+    async fn find_account_by_name(&self, name: &str) -> Result<Self::Account, Error>;
     async fn get_contact(&self, contact_ref: &Value) -> Result<Self::Contact, Error>;
     async fn open_account(&self, account_ref: &Value) -> Result<Self::Account, Error>;
     async fn close_account(&self, account_ref: &Value) -> Result<Self::Account, Error>;
@@ -41,6 +43,18 @@ pub(crate) trait Bank {
         reference: &str,
     ) -> Result<Uuid, Error>;
     async fn account_withdraw(&mut self, amount: u64, account_ref: &Value) -> Result<Uuid, Error>;
+    async fn issue_to(
+        &mut self,
+        account_id: i64,
+        amount: u64,
+        reference: &str,
+    ) -> Result<Uuid, Error>;
+    async fn destroy_from(
+        &mut self,
+        account_id: i64,
+        amount: u64,
+        reference: &str,
+    ) -> Result<Uuid, Error>;
     async fn transfer_by_id(&self, txn_id: Uuid) -> Result<Self::Transfer, Error>;
     async fn transfers_by_reference(&self, reference: &str) -> Result<Vec<Self::Transfer>, Error>;
     async fn fund(&mut self, amount: u64, contact_ref: &Value) -> Result<Uuid, Error>;

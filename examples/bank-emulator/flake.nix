@@ -1,10 +1,10 @@
 {
   description = "m10-bank-emulator";
   inputs = {
-    rust-overlay.url = "github:sadroeck/rust-overlay?rev=f540e0001088700f72a3b2a178c9d8e70616a4a9";
+    rust-overlay.url = "github:oxalica/rust-overlay?rev=c8e0f1989d31f5d045bc9f7ae4b5733b6c141efe";
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:sphw/nixpkgs?rev=81cbfc8f2a1e218249b7bff74013b63150171496";
-    cargo2nix.url = "github:cargo2nix/cargo2nix?rev=e1591efe36f3549c39d4845341f9a994f31f660b";
+    nixpkgs.url = "github:nixos/nixpkgs?rev=084b922d4c32fe09235def404b7ede58a5ec0458";
+    cargo2nix.url = "github:cargo2nix/cargo2nix?rev=c149357cc3d17f2849c73eb7a09d07a307cdcfe8";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -19,8 +19,8 @@
         };
         m10-protos = import ../../nix/protos.nix { inherit pkgs; };
         rust-overrides = import ../../nix/rust-overrides.nix { inherit m10-protos; };
-        rustPkgs = pkgs.rustBuilder.makePackageSet' {
-          rustChannel = "1.59.0";
+        rustPkgs = pkgs.rustBuilder.makePackageSet {
+          rustChannel = "1.63.0";
           packageFun = import ./Cargo.nix;
           packageOverrides = rust-overrides;
         };

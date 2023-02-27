@@ -15,6 +15,11 @@ impl DocumentBuilder {
         self
     }
 
+    pub fn insert_operation(mut self, op: sdk::Operation) -> Self {
+        self.docs.push(op);
+        self
+    }
+
     pub fn insert_custom(mut self, collection: Collection, doc: impl Message) -> Self {
         self.docs.push(sdk::Operation {
             operation: Some(sdk::operation::Operation::InsertDocument(
@@ -45,7 +50,7 @@ impl DocumentBuilder {
         self
     }
 
-    pub fn update<P: Pack>(mut self, update: DocumentUpdate<P>) -> Self {
+    pub fn update<P: Pack>(mut self, update: &DocumentUpdate<P>) -> Self {
         self.docs.push(update.operation());
         self
     }

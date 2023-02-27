@@ -9,12 +9,21 @@ pub(crate) mod contracts;
 pub(crate) mod role_bindings;
 pub(crate) mod roles;
 pub(crate) mod transfers;
-pub(crate) mod tx;
 
 #[derive(Clone, Debug)]
 pub enum PrettyId {
     Hex(bytes::Bytes),
     Uuid(Uuid),
+}
+
+impl PrettyId {
+    #[inline]
+    pub fn to_vec(&self) -> Vec<u8> {
+        match self {
+            Self::Hex(h) => h.to_vec(),
+            Self::Uuid(u) => u.as_bytes().to_vec(),
+        }
+    }
 }
 
 impl From<PrettyId> for bytes::Bytes {

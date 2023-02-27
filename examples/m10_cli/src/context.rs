@@ -1,14 +1,12 @@
 use crate::utils::{key_pair_from_env, load_key_pair};
 use m10_sdk::ImageClient;
-use m10_sdk::LedgerClient as M10Client;
-use m10_sdk::{sdk, sdk::transaction_data::Data, KeyPair, Signer};
+use m10_sdk::KeyPair;
+use m10_sdk::M10Client;
 use tonic::transport::{Channel, ClientTlsConfig, Uri};
-use tonic::Status;
 
 pub(crate) struct Context {
-    pub(crate) admin: KeyPair,
     pub(crate) image_client: ImageClient,
-    pub(crate) m10_client: M10Client,
+    pub(crate) m10_client: M10Client<KeyPair>,
 }
 
 impl Context {
@@ -32,7 +30,7 @@ impl Context {
         Ok(channel)
     }
 
-    pub(crate) async fn new(config: &crate::Config) -> Result<Self, anyhow::Error> {
+    pub(crate) fn new(config: &crate::Config) -> anyhow::Result<Self> {
         let admin = if let Some(key_file) = &config.key_file {
             load_key_pair(key_file)
         } else if let Some(k) = &config.signing_key {
@@ -47,29 +45,11 @@ impl Context {
         };
         let channel = Self::channel_from_address(&addr, config.no_tls)?;
         let image_client = ImageClient::new(addr);
-        let m10_client = M10Client::new(channel);
+        let m10_client = M10Client::new(admin, channel);
 
         Ok(Self {
-            admin,
             image_client,
             m10_client,
         })
-    }
-
-    pub(crate) async fn submit_transaction(
-        &mut self,
-        data: impl Into<Data>,
-        context_id: Vec<u8>,
-    ) -> Result<Result<sdk::TransactionResponse, sdk::TransactionError>, Status> {
-        let payload = M10Client::transaction_request(data, context_id);
-        let signed_request = self
-            .admin
-            .sign_request(payload)
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-        self.m10_client
-            .create_transaction(signed_request)
-            .await
-            .map(sdk::TransactionResponse::tx_error)
     }
 }

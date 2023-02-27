@@ -195,6 +195,9 @@ class MobileNav extends Component {
 								src={m10LogoBlue}
 								alt={'M10'}
 							/>
+						) : publicRuntimeConfig.bankLogoSrc
+							? (
+								<img src={publicRuntimeConfig.bankLogoSrc} style={{ width: 100 }} alt={publicRuntimeConfig.bankName} />
 						) : (
 							<div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
 								{publicRuntimeConfig.bankName}

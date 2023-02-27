@@ -1,5 +1,5 @@
 use clap::Parser;
-use m10_sdk::sdk;
+use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use std::{collections::HashMap, fmt::Debug};
@@ -24,7 +24,7 @@ pub(crate) struct CreateRoleBindingOptions {
     name: String,
     /// Set owner of the role record
     #[clap(short, long)]
-    owner: Option<String>,
+    owner: Option<PublicKey>,
     /// Link role binding to a role record
     #[clap(short, long)]
     #[serde_as(as = "DisplayFromStr")]
@@ -51,12 +51,12 @@ fn parse_key_vals(s: &str) -> Result<HashMap<String, String>, serde_json::Error>
 
 impl super::BuildFromOptions for CreateRoleBindingOptions {
     type Document = sdk::RoleBinding;
-    fn build_from_options(&self, default_owner: Vec<u8>) -> Result<Self::Document, anyhow::Error> {
+    fn build_from_options(
+        &self,
+        default_owner: PublicKey,
+    ) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self
-            .owner
-            .as_ref()
-            .map_or::<Result<Vec<u8>, _>, _>(Ok(default_owner), base64::decode)?;
+        let owner = self.owner.clone().unwrap_or(default_owner).0;
         let subjects = self
             .subjects
             .iter()

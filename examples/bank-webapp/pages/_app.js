@@ -4,6 +4,8 @@ import Head from 'next/head'
 import getConfig from 'next/config'
 import lodashGet from 'lodash/get'
 import 'styles/base.scss'
+import 'styles/react-flow.scss'
+import 'styles/react-datepicker.scss'
 const { publicRuntimeConfig } = getConfig()
 
 const MyApp = ({ pageProps, Component }) => {
@@ -37,6 +39,7 @@ const MyApp = ({ pageProps, Component }) => {
           href={'https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap'}
           rel={'stylesheet'}
         />
+        <link rel="shortcut icon" href="/favicon.ico" />
         {/*
           <link rel={'icon'} href={'/logo.svg'} />
           <link rel={'mask-icon'} href={'/logo.svg'} color={'#384764'} />

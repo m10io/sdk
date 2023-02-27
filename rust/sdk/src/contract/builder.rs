@@ -2,6 +2,7 @@ use m10_protos::prost::Message;
 use m10_protos::sdk::{
     Contract, CreateLedgerTransfer, CreateLedgerTransfers, CreateTransfer, TransferStep,
 };
+use m10_protos::Metadata;
 use std::time::{Duration, SystemTime};
 
 pub const DEFAULT_CONTRACT_DURATION: Duration = Duration::from_secs(300);
@@ -54,7 +55,7 @@ impl ContractBuilder {
         amount: u64,
         memo: Option<&str>,
     ) -> Self {
-        let memo = memo.map(m10_protos::metadata::memo);
+        let memo = memo.map(m10_protos::metadata::memo).map(|m| m.any());
         self.transfers.push(CreateLedgerTransfer {
             ledger_id: ledger_id.to_string(),
             nonce: fastrand::u64(..),

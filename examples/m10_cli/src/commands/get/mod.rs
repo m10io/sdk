@@ -1,33 +1,32 @@
-use crate::commands::top_level_cmds::Format;
-use crate::{collections::*, context::Context};
+use crate::context::Context;
 use clap::Parser;
-use m10_sdk::prost::Message;
-use m10_sdk::{sdk, Signer};
-use ron::ser::{to_string_pretty, PrettyConfig};
+use m10_sdk::account::AccountId;
+use m10_sdk::{Format, PrettyPrint};
 use serde::{Deserialize, Serialize};
-use std::{
-    convert::TryFrom,
-    fmt::Debug,
-    io::{self, LineWriter},
-};
+use std::error::Error as StdError;
+use std::fmt::{Debug, Display};
+use std::str::FromStr;
 use uuid::Uuid;
 
 mod actions;
 mod directory_entry;
 mod images;
 mod key_pair;
-mod ledger_accounts;
 mod public_key;
 mod transfers;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
 #[clap(about)]
-pub(super) struct GetStoreItemOptions {
+pub(super) struct GetStoreItemOptions<ID>
+where
+    ID: FromStr + Display,
+    ID::Err: StdError + Send + Sync + 'static,
+{
     /// The record id
-    id: Uuid,
+    id: ID,
     /// Set output format (one of 'json', 'yaml', 'raw')
     #[clap(short = 'f', long, default_value = "raw")]
-    #[serde(default = "Format::default")]
+    #[serde(default)]
     format: Format,
 }
 
@@ -36,19 +35,21 @@ pub(super) struct GetStoreItemOptions {
 #[clap(about)]
 pub(super) enum GetSubCommands {
     /// Get an account record by id
-    Account(GetStoreItemOptions),
+    Account(GetStoreItemOptions<AccountId>),
     /// Get an account info record by id
-    AccountInfo(GetStoreItemOptions),
+    AccountInfo(GetStoreItemOptions<AccountId>),
     /// Get an account set record by id
-    AccountSet(GetStoreItemOptions),
+    AccountSet(GetStoreItemOptions<Uuid>),
     /// Get an action by tx id
     Action(actions::GetActionOptions),
+    /// Get a bank record by id
+    Bank(GetStoreItemOptions<Uuid>),
     /// Get ledger account information by id
-    LedgerAccount(ledger_accounts::GetLedgerAccountOptions),
+    LedgerAccount(GetStoreItemOptions<AccountId>),
     /// Get a role record by id
-    Role(GetStoreItemOptions),
+    Role(GetStoreItemOptions<Uuid>),
     /// Get a role binding record by id
-    RoleBinding(GetStoreItemOptions),
+    RoleBinding(GetStoreItemOptions<Uuid>),
     /// Get a transfer by id
     Transfer(transfers::GetTransferOptions),
     /// Get a directory entry
@@ -65,107 +66,71 @@ pub(super) enum GetSubCommands {
 
 impl GetSubCommands {
     pub(super) async fn get(&self, config: &crate::Config) -> anyhow::Result<()> {
+        if let GetSubCommands::PublicKey(options) = self {
+            return options.get(config);
+        };
+        let context = Context::new(config)?;
         match self {
-            GetSubCommands::Account(options) => {
-                let mut context = Context::new(config).await?;
-                let request = context
-                    .admin
-                    .sign_request(sdk::GetAccountRequest {
-                        id: options.id.as_bytes().to_vec(),
-                    })
-                    .await?;
-                let doc = context.m10_client.get_account(request).await?;
-                print_document::<_, accounts::Account>(doc, options.format)
+            GetSubCommands::Account(options) => context
+                .m10_client
+                .get_account(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::AccountInfo(options) => context
+                .m10_client
+                .get_account_metadata(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::AccountSet(options) => context
+                .m10_client
+                .get_account_set(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::Bank(options) => context
+                .m10_client
+                .get_bank(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::LedgerAccount(options) => context
+                .m10_client
+                .get_account(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::Role(options) => context
+                .m10_client
+                .get_role(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::RoleBinding(options) => context
+                .m10_client
+                .get_role_binding(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::Transfer(options) => {
+                if options.enhanced {
+                    context
+                        .m10_client
+                        .get_enhanced_transfer(options.id)
+                        .await?
+                        .print(options.format)?
+                } else {
+                    context
+                        .m10_client
+                        .get_transfer(options.id)
+                        .await?
+                        .print(options.format)?
+                }
             }
-            GetSubCommands::AccountInfo(options) => {
-                let mut context = Context::new(config).await?;
-                let request = context
-                    .admin
-                    .sign_request(sdk::GetAccountRequest {
-                        id: options.id.as_bytes().to_vec(),
-                    })
-                    .await?;
-                let doc = context.m10_client.get_account_info(request).await?;
-                print_document::<_, accounts::AccountInfo>(doc, options.format)
-            }
-            GetSubCommands::AccountSet(options) => {
-                let mut context = Context::new(config).await?;
-                let request = context
-                    .admin
-                    .sign_request(sdk::GetAccountSetRequest {
-                        id: options.id.as_bytes().to_vec(),
-                    })
-                    .await?;
-                let doc = context.m10_client.get_account_set(request).await?;
-                print_document::<_, account_sets::AccountSet>(doc, options.format)
-            }
-            GetSubCommands::LedgerAccount(options) => options.get(config).await,
-            GetSubCommands::Role(options) => {
-                let mut context = Context::new(config).await?;
-                let request = context
-                    .admin
-                    .sign_request(sdk::GetRoleRequest {
-                        id: options.id.as_bytes().to_vec(),
-                    })
-                    .await?;
-                let doc = context.m10_client.get_role(request).await?;
-                print_document::<_, roles::Role>(doc, options.format)
-            }
-            GetSubCommands::RoleBinding(options) => {
-                let mut context = Context::new(config).await?;
-                let request = context
-                    .admin
-                    .sign_request(sdk::GetRoleBindingRequest {
-                        id: options.id.as_bytes().to_vec(),
-                    })
-                    .await?;
-                let doc = context.m10_client.get_role_binding(request).await?;
-                print_document::<_, role_bindings::RoleBinding>(doc, options.format)
-            }
-            GetSubCommands::Transfer(options) => options.get(config).await,
-            GetSubCommands::DirectoryEntry(options) => options.get().await,
-            GetSubCommands::Image(options) => options.get(config).await,
-            GetSubCommands::PublicKey(options) => options.get(config),
-            GetSubCommands::KeyPair(options) => options.get(config),
-            GetSubCommands::Action(options) => options.get(config).await,
-        }
+            GetSubCommands::DirectoryEntry(options) => options.get().await?,
+            GetSubCommands::Image(options) => options.get(config).await?,
+            GetSubCommands::Action(options) => context
+                .m10_client
+                .get_action(options.id)
+                .await?
+                .print(options.format)?,
+            GetSubCommands::KeyPair(options) => options.get(config)?,
+            GetSubCommands::PublicKey(_) => unreachable!("No context"),
+        };
+        Ok(())
     }
-}
-
-fn print_item<I>(item: I, format: Format) -> anyhow::Result<()>
-where
-    I: Serialize,
-{
-    match format {
-        Format::Json => {
-            let stdout = io::stdout();
-            let handle = stdout.lock();
-            let writer = LineWriter::new(handle);
-            serde_json::to_writer_pretty(writer, &item)?;
-        }
-        Format::Yaml => {
-            let stdout = io::stdout();
-            let handle = stdout.lock();
-            let writer = LineWriter::new(handle);
-            serde_yaml::to_writer(writer, &item)?;
-        }
-        Format::Raw => {
-            let pretty = PrettyConfig::new()
-                .with_depth_limit(4)
-                .with_separate_tuple_members(true);
-            let s = to_string_pretty(&item, pretty)?;
-            println!("{}", s);
-        }
-    }
-    Ok(())
-}
-
-fn print_document<D, I>(document: D, format: Format) -> anyhow::Result<()>
-where
-    D: Message + Default,
-    I: TryFrom<D, Error = anyhow::Error> + Serialize,
-{
-    let printable = I::try_from(document)?;
-    print_item(printable, format)?;
-    Ok(())
 }

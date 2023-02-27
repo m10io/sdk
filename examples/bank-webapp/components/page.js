@@ -93,7 +93,7 @@ class Page extends Component {
     const isSmallViewport = windowWidth < 900
     return (windowWidth
       ? (
-        <div>
+        <>
           {withGlobalNav && (
             <GlobalNav
               router={router}
@@ -111,14 +111,25 @@ class Page extends Component {
             wrapperClassName,
           )}>
             {withSidebar && !isSmallViewport && (
-              <Sidebar router={router} customer={customer} jwtUser={jwtUser} />
+              <Sidebar
+                router={router}
+                customer={customer}
+                jwtUser={jwtUser}
+                navLogoRoute={navLogoRoute}
+                withM10Logo={withM10Logo}
+                logout={logout}
+              />
             )}
             <div className={classnames(
               styles.pageContainer,
               fullWidth && styles.pageContainerFullWidth,
               containerClassName,
             )}>
-              <Container fullWidth={fullWidth} centeredContent={centeredContent}>
+              <Container
+                fullWidth={fullWidth}
+                centeredContent={centeredContent}
+                className={styles.pageErrorContainer}
+              >
                 {isLoading
                   ? <LoadingOverlay />
                   : loadError
@@ -128,7 +139,7 @@ class Page extends Component {
               </Container>
             </div>
           </div>
-        </div>
+        </>
       ) : null
     )
   }

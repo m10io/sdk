@@ -5,9 +5,8 @@ use super::{
 };
 use crate::commands::observe::ObserveSubcommands;
 use clap::{Parser, Subcommand};
-use m10_sdk::sdk;
+use m10_sdk::{sdk, Format};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -150,8 +149,7 @@ pub(crate) struct ShowOptions {
     #[serde(flatten)]
     cmd: ShowSubCommands,
     /// Set output format (one of 'json', 'yaml', 'raw')
-    #[clap(short = 'f', long, default_value = "raw")]
-    #[serde(default = "Format::default")]
+    #[clap(short = 'f', long, default_value_t)]
     format: Format,
 }
 
@@ -268,31 +266,5 @@ impl Commands {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub(crate) enum Format {
-    Json,
-    Yaml,
-    Raw,
-}
-
-impl Format {
-    pub(super) fn default() -> Self {
-        Format::Raw
-    }
-}
-
-impl FromStr for Format {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "json" => Ok(Format::Json),
-            "yaml" => Ok(Format::Yaml),
-            "raw" => Ok(Format::Raw),
-            _ => Err("no match"),
-        }
     }
 }

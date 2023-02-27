@@ -3,8 +3,9 @@ use crate::collections::ResourceId;
 use crate::error::M10Error;
 use crate::types::PublicKey;
 use m10_protos::sdk;
+use serde::Serialize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct AccountSet {
     pub id: ResourceId,
     pub owner: PublicKey,

@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::error::Error;
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_account_status")]
 pub enum BankAccountStatus {
@@ -17,7 +17,7 @@ pub enum BankAccountStatus {
     Closed,
 }
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_account_type")]
@@ -29,7 +29,7 @@ pub enum BankAccountType {
     Holding,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq)]
 pub struct BankAccount {
     pub id: i64,
     pub account_status: BankAccountStatus,
@@ -162,16 +162,18 @@ impl BankAccount {
         &mut self,
         account: i64,
         amount: i64,
+        reference: &str,
         routing: Option<Value>,
         txn: impl Executor<'_, Database = Postgres>,
     ) -> Result<Uuid, Error> {
         // Sandbox withdraw w/o real routing
         // Money id deposited into this account
-        let query = sqlx::query_scalar("SELECT withdraw($1, $2, $3, $4, 'SBW', $5);")
+        let query = sqlx::query_scalar("SELECT withdraw($1, $2, $3, $4, $5, $6);")
             .bind(Uuid::new_v4())
             .bind(account)
             .bind(self.id)
             .bind(amount)
+            .bind(reference)
             .bind(routing);
         let txn_id = query.fetch_one(txn).await?;
         Ok(txn_id)

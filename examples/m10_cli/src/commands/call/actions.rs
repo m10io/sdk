@@ -1,25 +1,29 @@
 use crate::context::Context;
 use anyhow::Context as AnyhowContext;
+use clap::ArgGroup;
 use clap::Parser;
-use m10_protos::sdk::transaction_error::Code;
-use m10_sdk::sdk;
+use m10_sdk::account::AccountId;
+use m10_sdk::ActionBuilder;
+use m10_sdk::WithContext;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
+#[clap(group = ArgGroup::new("target").required(true), about)]
 pub(crate) struct ActionOptions {
     /// Name of the registered action
     #[clap(short, long)]
     name: String,
     /// Account ID invoking the action
     #[clap(long)]
-    from: String,
+    from: AccountId,
     /// Target account ID
-    #[clap(short, long)]
-    target: String,
+    #[clap(short, long, group = "target")]
+    to: Option<AccountId>,
+    #[clap(short, long, group = "target")]
+    broadcast: bool,
     /// Opaque payload. Interpreted as raw string
     #[clap(short, long, conflicts_with = "file")]
     payload: Option<String>,
@@ -30,10 +34,13 @@ pub(crate) struct ActionOptions {
 
 impl ActionOptions {
     pub(crate) async fn invoke(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
+        let context = Context::new(config)?;
 
-        let from = hex::decode(&self.from).context("Invalid <from> format")?;
-        let target = hex::decode(&self.target).context("Invalid <target> format")?;
+        let builder = if let Some(to) = self.to {
+            ActionBuilder::for_account(self.name.clone(), self.from, to)
+        } else {
+            ActionBuilder::for_all(self.name.clone(), self.from)
+        };
 
         let mut buf = vec![];
         let payload = if let Some(payload) = self.payload.as_ref() {
@@ -51,25 +58,15 @@ impl ActionOptions {
                 .context("Could not read from STDIN")?;
             value.as_bytes().to_vec()
         };
-
-        let action = sdk::InvokeAction {
-            name: self.name.clone(),
-            payload,
-            from_account: from,
-            target: Some(sdk::Target {
-                target: Some(sdk::target::Target::AccountId(target)),
-            }),
-        };
-        let response = context
-            .submit_transaction(action, config.context_id.clone())
+        let tx_id = context
+            .m10_client
+            .action(
+                builder
+                    .payload(payload)
+                    .context_id(config.context_id.clone()),
+            )
             .await?;
-        if let Err(err) = response {
-            let err_type = Code::from_i32(err.code).unwrap_or(Code::Unknown);
-            eprintln!("Could not invoke action: {:?} {}", err_type, err.message);
-            Err(anyhow::anyhow!("failed action"))
-        } else {
-            eprintln!("Invoked action {}:", self.name);
-            Ok(())
-        }
+        eprintln!("Invoked action {} in txId {}", self.name, tx_id);
+        Ok(())
     }
 }

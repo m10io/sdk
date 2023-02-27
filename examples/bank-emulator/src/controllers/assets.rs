@@ -64,25 +64,14 @@ async fn get_bank_account(
     context: Data<Context>,
 ) -> Result<Json<Asset>, Error> {
     // get bank issuance account
-    let currency = context
-        .config
-        .currencies
-        .get(&*instrument)
-        .ok_or_else(|| Error::not_found("currency configuration"))?;
     let asset = match (&*asset_type).into() {
         AssetType::Regulated => Asset {
-            ledger_account_id: currency.ledger_account_id(&context).await?.to_vec(),
+            ledger_account_id: context.get_currency_regulated_account(&*instrument).await?,
             asset_type: AssetType::Regulated,
             ..Default::default()
         },
         AssetType::IndirectCbdc => Asset {
-            ledger_account_id: currency
-                .cbdc
-                .as_ref()
-                .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
-                .ledger_account_id(currency.account_owner.as_ref(), &context)
-                .await?
-                .to_vec(),
+            ledger_account_id: context.get_currency_cbdc_account(&*instrument).await?,
             asset_type: AssetType::IndirectCbdc,
             ..Default::default()
         },
@@ -125,12 +114,14 @@ async fn list_payments(
         include_child_accounts,
     } = include_child_accounts.into_inner();
     let limit = limit.map(|l| if l > 50 { 50 } else { l }).unwrap_or(50);
+    let asset_type = AssetType::from(&asset_type.into_inner());
     let payments = utils::list_payments(
         &*instrument,
         id.unwrap_or_default(),
         limit as u64,
         include_child_accounts,
         ledger_account_id,
+        asset_type,
         &context,
     )
     .await?;

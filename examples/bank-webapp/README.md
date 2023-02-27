@@ -12,7 +12,7 @@ This adds a generic bank webapp frontend to pair with the generic bank backend
 - create `.env` file with following keys:
   ```
   NODE_ENV=development
-  OAUTH_DOMAIN=https://keycloak-develop.m10.net
+  OAUTH_DOMAIN=https://keycloak-app.m10.net
   OAUTH_AUDIENCE=https://api.m10.net
 
   OXIDE_API_URL=https://develop.m10.net/m10-bank/api/v1/
@@ -43,7 +43,7 @@ Finally, Auth0 allows creating Roles in order to subdivide permissions for authe
 - `omega-admin`
 - `omega-test-admin`
 
-The aforementioned user object includes a `https://m10.net/roles` field that includes user roles in string format. The implementation of this can be found in `utils/auth`.
+The aforementioned user object includes a `resource_access` field that includes user roles by client. The implementation of this can be found in `utils/auth`.
 
 ## Directory structure
 

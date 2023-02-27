@@ -18,6 +18,6 @@ pub(crate) struct FindNotificationPreferencesOptions {
     no_notifications: bool,
     /// Set output format (one of 'json', 'yaml', 'raw')
     #[clap(short, long, default_value = "raw")]
-    #[serde(default = "super::Format::default")]
+    #[serde(default)]
     pub(super) format: super::Format,
 }

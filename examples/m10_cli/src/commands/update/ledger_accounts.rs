@@ -1,6 +1,6 @@
 use crate::context::Context;
 use clap::{ArgGroup, Parser};
-use m10_sdk::sdk;
+use m10_sdk::account::AccountId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -8,7 +8,7 @@ use std::fmt::Debug;
 #[clap(group = ArgGroup::new("instrument").requires_all(&["code", "decimals"]).multiple(true), about)]
 pub(crate) struct UpdateLedgerAccountOptions {
     /// Account id
-    id: String,
+    id: AccountId,
     /// Update freeze state
     #[clap(short, long)]
     freeze: Option<bool>,
@@ -27,39 +27,33 @@ pub(crate) struct UpdateLedgerAccountOptions {
 
 impl UpdateLedgerAccountOptions {
     pub(super) async fn update(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
+        let context = Context::new(config)?;
 
-        let account_id = hex::decode(&self.id)?;
         if let Some(frozen) = self.freeze {
-            let request = sdk::SetFreezeState {
-                account_id: account_id.clone(),
-                frozen,
-            };
             context
-                .submit_transaction(request, config.context_id.clone())
-                .await??;
+                .m10_client
+                .freeze_account(self.id, frozen, config.context_id.clone())
+                .await?;
         }
 
         if let Some(limit) = self.holding_limit {
-            let request = sdk::SetBalanceLimit {
-                account_id: account_id.clone(),
-                balance_limit: limit,
-            };
             context
-                .submit_transaction(request, config.context_id.clone())
-                .await??;
+                .m10_client
+                .set_account_limit(self.id, limit, config.context_id.clone())
+                .await?;
         }
 
         if let Some(code) = self.code.clone() {
-            let request = sdk::SetInstrument {
-                account_id,
-                code,
-                decimal_places: self.decimals.unwrap(), // ensured by Clap/requires_all
-                description: self.description.clone().unwrap_or_default(),
-            };
             context
-                .submit_transaction(request, config.context_id.clone())
-                .await??;
+                .m10_client
+                .set_account_instrument(
+                    self.id,
+                    code,
+                    self.decimals.unwrap(),
+                    self.description.clone(),
+                    config.context_id.clone(),
+                )
+                .await?;
         }
         Ok(())
     }

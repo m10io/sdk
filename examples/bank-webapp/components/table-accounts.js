@@ -52,7 +52,7 @@ const makeColumns = ({ accounts, totalCount, tableName, isSmallViewport }) => {
   return [
     {
       Header: tableName,
-      titleIconComponent: <IconBookOpen color={publicRuntimeConfig.bankPrimaryColor} />,
+      titleIconComponent: <IconBookOpen color="#fff" />,
       columns: columns,
     },
   ]

@@ -1,11 +1,13 @@
-use crate::collections::transfers::{AccountInfo, EnhancedTransfer, Transfer};
 use crate::context::Context;
-use crate::utils::print_items;
+
 use clap::ArgGroup;
 use clap::Parser;
-use m10_sdk::{self, sdk, Signer};
+use m10_sdk::account::AccountId;
+use m10_sdk::TransferFilter;
+use m10_sdk::TxnFilter;
+use m10_sdk::{self, Format, PrettyPrint};
 use serde::{Deserialize, Serialize};
-use std::{convert::TryFrom, fmt::Debug};
+use std::fmt::Debug;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
 #[clap(group = ArgGroup::new("filter").required(true), about)]
@@ -18,7 +20,7 @@ pub(crate) struct FindTransferOptions {
     max_tx_id: Option<u64>,
     /// Set account filter
     #[clap(short, long, group = "filter")]
-    account: Option<String>,
+    account: Option<AccountId>,
     /// Set contextID filter
     #[clap(short, long, group = "filter")]
     context_id: Option<String>,
@@ -33,78 +35,40 @@ pub(crate) struct FindTransferOptions {
     enhanced: bool,
     /// Set output format (one of 'json', 'yaml', 'raw')
     #[clap(short, long, default_value = "raw")]
-    #[serde(default = "super::Format::default")]
-    format: super::Format,
+    #[serde(default)]
+    format: Format,
 }
 
 impl FindTransferOptions {
     pub(crate) async fn find(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
-        let filter = if let Some(account) = &self.account {
-            sdk::list_transfer_request::Filter::AccountId(hex::decode(account)?)
+        let context = Context::new(config)?;
+        let max_tx_id = self.max_tx_id.unwrap_or(u64::MAX);
+
+        let filter = if let Some(account) = self.account {
+            TxnFilter::<TransferFilter>::by_account(account)
         } else if let Some(context_id) = &self.context_id {
-            sdk::list_transfer_request::Filter::ContextId(hex::decode(context_id)?)
+            TxnFilter::<TransferFilter>::by_context_id(hex::decode(context_id)?)
         } else {
             anyhow::bail!("Missing account or context_id filter")
-        };
-        let max_tx_id = self.max_tx_id.unwrap_or(u64::MAX);
-        let request = sdk::ListTransferRequest {
-            filter: Some(filter),
-            min_tx_id: self.min_tx_id,
-            max_tx_id,
-            limit: self.limit,
-            include_child_accounts: self.include_child_accounts,
-        };
+        }
+        .min_tx(self.min_tx_id)
+        .max_tx(max_tx_id)
+        .limit(self.limit)
+        .include_child_accounts(self.include_child_accounts);
+
         if self.enhanced {
-            self.list_enhanced(request, &mut context).await
-        } else {
-            self.list(request, &mut context).await
-        }
-    }
-
-    async fn list(
-        &self,
-        request: sdk::ListTransferRequest,
-        context: &mut Context,
-    ) -> anyhow::Result<()> {
-        let request = context.admin.sign_request(request).await?;
-        let txs = context.m10_client.list_transfers(request).await?;
-
-        let items = txs
-            .transfers
-            .into_iter()
-            .map(Transfer::try_from)
-            .collect::<Result<_, anyhow::Error>>()?;
-        print_items(items, self.format)?;
-        Ok(())
-    }
-
-    async fn list_enhanced(
-        &self,
-        request: sdk::ListTransferRequest,
-        context: &mut Context,
-    ) -> anyhow::Result<()> {
-        let request = context.admin.sign_request(request).await?;
-        let transfers = context.m10_client.list_transfers(request).await?.transfers;
-
-        let mut items = vec![];
-        for transfer in transfers {
-            let m10_sdk::EnhancedTransfer {
-                transfer,
-                mut enhanced_steps,
-            } = context
+            context
                 .m10_client
-                .enhance_transfer(transfer, &context.admin)
-                .await?;
-            let m10_sdk::EnhancedTransferStep { from, to, .. } = enhanced_steps.swap_remove(0);
-            items.push(EnhancedTransfer {
-                transfer: Transfer::try_from(transfer)?,
-                from: from.map(AccountInfo::try_from).transpose()?,
-                to: to.map(AccountInfo::try_from).transpose()?,
-            })
+                .get_enhanced_transfers(filter)
+                .await?
+                .print(self.format)?;
+        } else {
+            context
+                .m10_client
+                .list_transfers(filter)
+                .await?
+                .print(self.format)?;
         }
-
-        print_items(items, self.format)?;
         Ok(())
     }
 }

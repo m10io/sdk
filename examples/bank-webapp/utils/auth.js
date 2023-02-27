@@ -49,14 +49,14 @@ export const verifyJWT = req => {
 // requires JWT decoded user object
 export const determineHomeRouteByUser = user => {
   if (!user) throw new Error('no user')
-  const roles = user?.['https://m10.net/roles'] || []
+  const roles = user?.resource_access?.['bank-emulator']?.roles || []
   const isAdmin = isAuthorizedAdmin(roles)
   if (isAdmin) return routes.ADMIN_CUSTOMERS_PAGE
   else return routes.WELCOME_PAGE
 }
 
-const ADMIN_ROLE = 'iron-admin'
-const TEST_ADMIN_ROLE = 'iron-test-admin'
+const ADMIN_ROLE = 'admin'
+const TEST_ADMIN_ROLE = 'admin-test'
 
 export const isAuthorizedAdmin = (roles = []) => roles.includes(ADMIN_ROLE) || roles.includes(TEST_ADMIN_ROLE)
 // TODO: determine business-owner specific role (i.e. user coming from diapay app to register business)
@@ -66,7 +66,7 @@ export const isAuthorizedBusinessOwner = (roles = []) => true /* roles.includes(
 const isAuthorizedRoute = ({ user, route }) => {
   if (SHARED_AUTHENTICATED_ROUTES.some(r => r === route)) return true
   // TODO: handle other user types by auth0 role
-  const roles = user?.['https://m10.net/roles'] || []
+  const roles = user?.resource_access?.['bank-emulator']?.roles || []
   const isAdmin = isAuthorizedAdmin(roles) && ADMIN_OWNER_ROUTES.some(r => route.includes(r))
   const isBusinessOwner = isAuthorizedBusinessOwner(roles) && BUSINESS_OWNER_ROUTES.some(r => r.includes(route))
   return isAdmin || isBusinessOwner

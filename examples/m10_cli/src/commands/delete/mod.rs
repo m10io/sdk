@@ -1,7 +1,7 @@
 use crate::{collections::PrettyId, context::Context};
 use bytes::Bytes;
 use clap::Parser;
-use m10_sdk::{prost::Message, sdk, Pack};
+use m10_sdk::{prost::Message, sdk, DocumentBuilder, Pack, WithContext};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use std::fmt::Debug;
@@ -35,7 +35,7 @@ impl DeleteSubCommands {
     pub(super) async fn delete(&self, config: &crate::Config) -> anyhow::Result<()> {
         match self {
             DeleteSubCommands::Account(options) => {
-                store_delete::<sdk::Account>(options.id.clone(), config).await
+                store_delete::<sdk::AccountMetadata>(options.id.clone(), config).await
             }
             DeleteSubCommands::AccountSet(options) => {
                 store_delete::<sdk::AccountSet>(options.id.clone(), config).await
@@ -55,7 +55,7 @@ impl DeleteSubCommands {
     pub(super) fn delete_operation(&self) -> sdk::Operation {
         match self {
             DeleteSubCommands::Account(options) => {
-                delete_operation::<sdk::Account>(options.id.clone())
+                delete_operation::<sdk::AccountMetadata>(options.id.clone())
             }
             DeleteSubCommands::AccountSet(options) => {
                 delete_operation::<sdk::AccountSet>(options.id.clone())
@@ -73,21 +73,17 @@ async fn store_delete<D>(id: PrettyId, config: &crate::Config) -> anyhow::Result
 where
     D: Message + Pack + Default + 'static,
 {
-    let mut context = Context::new(config).await?;
-    let id_bytes: Bytes = id.clone().into();
-    let response = context
-        .submit_transaction(
-            sdk::Operation::delete::<D>(id_bytes.to_vec()),
-            config.context_id.clone(),
+    let context = Context::new(config)?;
+    context
+        .m10_client
+        .documents(
+            DocumentBuilder::default()
+                .delete_custom(D::COLLECTION, id.to_vec())
+                .context_id(config.context_id.clone()),
         )
         .await?;
-    if let Err(err) = response {
-        eprintln!("Err {} deleting resource: {}", err.code, err.message);
-        Err(anyhow::anyhow!("failed resource deletion"))
-    } else {
-        eprintln!("deleted {} in {}", id, D::COLLECTION);
-        Ok(())
-    }
+    eprintln!("deleted {} in {}", id, D::COLLECTION);
+    Ok(())
 }
 
 fn delete_operation<D>(id: PrettyId) -> sdk::Operation

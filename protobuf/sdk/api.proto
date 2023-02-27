@@ -11,6 +11,16 @@ package m10.sdk;
 service M10TxService {
   rpc CreateTransaction(RequestEnvelope)
       returns (m10.sdk.transaction.TransactionResponse) {}
+  rpc BulkCreateTransactions(BulkTransactions)
+      returns (BulkTransactionsResponse);
+}
+
+message BulkTransactions {
+  repeated RequestEnvelope transactions = 1;
+}
+
+message BulkTransactionsResponse {
+  repeated m10.sdk.transaction.TransactionResponse responses = 1;
 }
 
 service M10QueryService {
@@ -26,9 +36,9 @@ service M10QueryService {
   // Accounts
   rpc GetIndexedAccount(RequestEnvelope)
       returns (m10.sdk.transaction.IndexedAccount) {}
-  rpc GetAccount(RequestEnvelope) returns (m10.sdk.model.Account);
+  rpc GetAccountMetadata(RequestEnvelope) returns (m10.sdk.model.AccountMetadata);
   rpc GetAccountInfo(RequestEnvelope) returns (m10.sdk.model.AccountInfo);
-  rpc ListAccounts(RequestEnvelope) returns (m10.sdk.ListAccountsResponse);
+  rpc ListAccountMetadata(RequestEnvelope) returns (m10.sdk.ListAccountMetadataResponse);
   // Request to observe all account changes processed by the M10 ledger
   // Param: [`RequestEnvelope`] should contain [`ObserveAccountsRequest`]
   rpc ObserveAccounts(RequestEnvelope) returns (stream FinalizedTransactions);
@@ -121,14 +131,17 @@ message ListAccountSetsResponse {
   ListAccountSetsRequest next_request = 2;
 }
 
-message ListAccountsRequest {
-  oneof filter { bytes owner = 1; }
+message ListAccountMetadataRequest {
+  oneof filter {
+    bytes owner = 1;
+    string name = 2;
+  }
   Page page = 4;
 }
 
-message ListAccountsResponse {
-  repeated m10.sdk.model.Account accounts = 1;
-  ListAccountsRequest next_request = 2;
+message ListAccountMetadataResponse {
+  repeated m10.sdk.model.AccountMetadata accounts = 1;
+  ListAccountMetadataRequest next_request = 2;
 }
 
 message GetRoleBindingRequest { bytes id = 1; }

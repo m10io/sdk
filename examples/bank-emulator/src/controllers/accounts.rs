@@ -3,9 +3,8 @@ use actix_web::{
     web::{Data, Json, Path, Query},
     HttpResponse, Scope,
 };
-use m10_protos::{
-    prost::Any,
-    sdk::{transaction, CreateTransfer, Deposit, GetTransferRequest, TransferStep, Withdraw},
+use m10_protos::sdk::{
+    transaction, CreateTransfer, Deposit, GetTransferRequest, SelfTransfer, TransferStep, Withdraw,
 };
 use m10_sdk::{sdk::SetFreezeState, LedgerClient, Metadata, Signer};
 use serde_json::{json, Value};
@@ -18,7 +17,6 @@ use crate::{
     bank::Bank,
     context::Context,
     error::Error,
-    liquidity::reserve_cbdc,
     models::{
         Account, AccountStatus, AmountRequest, Asset, AssetType, AssetTypeQuery, BankTransfer,
         Contact, CreateAccountRequest, LedgerAccountQuery, ListResponse, NotificationPreferences,
@@ -27,35 +25,6 @@ use crate::{
     rbac::create_contact_rbac_role,
     utils::{self, *},
 };
-
-async fn mirror_transfer(
-    from_account_id: Vec<u8>,
-    to_account_id: Vec<u8>,
-    amount: u64,
-    metadata: Any,
-    context: &Context,
-) -> Result<u64, Error> {
-    // create transaction
-    let payload = LedgerClient::transaction_request(
-        m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
-            transfer_steps: vec![TransferStep {
-                from_account_id,
-                to_account_id,
-                amount,
-                metadata: vec![metadata],
-            }],
-        }),
-        vec![],
-    );
-    let signed_request = context.signer.sign_request(payload).await?;
-    let mut ledger = context.ledger.clone();
-    let txn = ledger
-        .create_transaction(signed_request)
-        .await?
-        .tx_error()?;
-    info!("Deposit mirrored on ledger: {}", txn.tx_id);
-    Ok(txn.tx_id)
-}
 
 #[post("")]
 async fn create(
@@ -104,10 +73,15 @@ async fn create(
 
     for a in assets {
         if let Some(config) = context.config.currencies.get(&a) {
-            if !config.test {
-                if let Some(mut cbdc_asset) =
-                    Asset::new_cbdc_for_currency(config, &context, name, profile_image_url).await?
-                {
+            if config.test.is_none() {
+                if config.cbdc_config.is_some() {
+                    let mut cbdc_asset = Asset::new_cbdc_for_currency(
+                        &config.code,
+                        &context,
+                        name,
+                        profile_image_url,
+                    )
+                    .await?;
                     cbdc_asset.asset_type = AssetType::IndirectCbdc;
                     cbdc_asset.instrument = a.clone();
                     cbdc_asset.linked_account = account.id;
@@ -116,7 +90,8 @@ async fn create(
                     ledger_accounts.push(cbdc_asset.ledger_account_id);
                 }
                 let mut asset =
-                    Asset::new_for_currency(config, &context, name, profile_image_url).await?;
+                    Asset::new_for_currency(&config.code, &context, name, profile_image_url)
+                        .await?;
                 asset.asset_type = AssetType::Regulated;
                 asset.instrument = a;
                 asset.linked_account = account.id;
@@ -299,10 +274,11 @@ async fn list_payments(
 ) -> Result<Json<ListResponse<u64, Payment>>, Error> {
     let (id, instrument) = ids.into_inner();
     let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let asset_type = AssetType::from(&asset_type.into_inner());
     let query = Asset::find_by_account_id_instrument_type_scoped(
         id,
         &instrument,
-        (&*asset_type).into(),
+        asset_type.clone(),
         scope,
     )?;
     let mut conn = context.db_pool.get().await?;
@@ -321,6 +297,7 @@ async fn list_payments(
         limit as u64,
         include_child_accounts,
         Some(asset.ledger_account_id),
+        asset_type,
         &context,
     )
     .await?;
@@ -450,17 +427,10 @@ async fn convert_into(
     let instrument = context.bank.currency().to_lowercase();
 
     // get bank issuance account
-    let currency = context
-        .config
-        .currencies
-        .get(&instrument)
-        .ok_or_else(|| Error::not_found("currency configuration"))?;
     let asset_type = request.asset_type.unwrap_or_default();
     let from_account = match asset_type {
-        AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
-        AssetType::IndirectCbdc => {
-            reserve_cbdc(request.amount_in_cents, currency, &context).await?
-        }
+        AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
+        AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
         _ => return Err(Error::internal_msg("unsupported asset type")),
     };
 
@@ -469,8 +439,12 @@ async fn convert_into(
         hex::decode(id)?
     } else {
         let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
-        let query =
-            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
+        let query = Asset::find_by_account_id_instrument_type_scoped(
+            *id,
+            &instrument,
+            asset_type.clone(),
+            scope,
+        )?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?
@@ -492,11 +466,16 @@ async fn convert_into(
         .account_withdraw(request.amount_in_cents, &bank_account)
         .await?;
 
-    let transfer = match mirror_transfer(
+    let self_meta = SelfTransfer {
+        from_account_name: "Checking".to_string(),
+        to_account_name: asset_type.to_string(),
+    };
+
+    let transfer = match ledger_transfer(
         from_account,
         to_account,
         request.amount_in_cents,
-        Deposit::default().any(),
+        vec![Deposit::default().any(), self_meta.any()],
         &context,
     )
     .await
@@ -547,17 +526,10 @@ async fn convert_direct_from(
     let instrument = context.bank.currency().to_lowercase();
 
     // get bank issuance account
-    let currency = context
-        .config
-        .currencies
-        .get(&instrument)
-        .ok_or_else(|| Error::not_found("currency configuration"))?;
     let asset_type = request.asset_type.unwrap_or_default();
     let to_account = match asset_type {
-        AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
-        AssetType::IndirectCbdc => {
-            reserve_cbdc(request.amount_in_cents, currency, &context).await?
-        }
+        AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
+        AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
         _ => return Err(Error::internal_msg("unsupported asset type")),
     };
 
@@ -566,8 +538,12 @@ async fn convert_direct_from(
         hex::decode(id)?
     } else {
         let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
-        let query =
-            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
+        let query = Asset::find_by_account_id_instrument_type_scoped(
+            *id,
+            &instrument,
+            asset_type.clone(),
+            scope,
+        )?;
         let asset = query
             .fetch_optional(&mut *conn)
             .await?
@@ -585,11 +561,15 @@ async fn convert_direct_from(
         .ok_or_else(|| Error::not_found("bank account"))?;
     let bank_account_number = crate::bank::try_account_number_from(&bank_account)?;
 
-    let ledger_txn = mirror_transfer(
+    let self_meta = SelfTransfer {
+        from_account_name: asset_type.to_string(),
+        to_account_name: "Checking".to_string(),
+    };
+    let ledger_txn = ledger_transfer(
         from_account,
         to_account,
         request.amount_in_cents,
-        Withdraw::default().any(),
+        vec![Withdraw::default().any(), self_meta.any()],
         &context,
     )
     .await?;
@@ -633,21 +613,10 @@ async fn convert_from(
     let instrument = context.bank.currency().to_lowercase();
 
     // get bank issuance account
-    let currency = context
-        .config
-        .currencies
-        .get(&instrument)
-        .ok_or_else(|| Error::not_found("currency configuration"))?;
     let asset_type = request.asset_type.unwrap_or_default();
     let to_account_id = match asset_type {
-        AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
-        AssetType::IndirectCbdc => currency
-            .cbdc
-            .as_ref()
-            .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
-            .ledger_account_id(currency.account_owner.as_ref(), &context)
-            .await?
-            .to_vec(),
+        AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
+        AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
         _ => return Err(Error::internal_msg("unsupported asset type")),
     };
 
@@ -725,21 +694,10 @@ async fn fund(
     }
     if let Some(instrument) = request.currency.as_ref() {
         let instrument = instrument.to_lowercase();
-        let currency = context
-            .config
-            .currencies
-            .get(&instrument)
-            .ok_or_else(|| Error::not_found("currency configuration"))?;
         let asset_type = request.asset_type.unwrap_or_default();
         let ledger_account_id = match asset_type {
-            AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
-            AssetType::IndirectCbdc => currency
-                .cbdc
-                .as_ref()
-                .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
-                .ledger_account_id(currency.account_owner.as_ref(), &context)
-                .await?
-                .to_vec(),
+            AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
+            AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
             _ => return Err(Error::internal_msg("unsupported asset type")),
         };
         let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
@@ -819,11 +777,6 @@ async fn settle_deposit(
         .and_then(|v| v.get("currency").and_then(|c| c.as_str()))
     {
         let instrument = instrument.to_lowercase();
-        let currency = context
-            .config
-            .currencies
-            .get(&instrument)
-            .ok_or_else(|| Error::not_found("currency configuration"))?;
         let txn = bank.transfer_by_id(txn_id).await?;
         let asset_type = txn
             .refernce
@@ -833,15 +786,8 @@ async fn settle_deposit(
             .try_into()?;
 
         let ledger_account_id = match asset_type {
-            AssetType::Regulated => currency.ledger_account_id(&context).await?,
-            AssetType::IndirectCbdc => {
-                currency
-                    .cbdc
-                    .as_ref()
-                    .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
-                    .ledger_account_id(currency.account_owner.as_ref(), &context)
-                    .await?
-            }
+            AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
+            AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
             _ => return Err(Error::internal_msg("unsupported asset type")),
         };
 
@@ -922,21 +868,10 @@ async fn withdraw(
     };
     let ledger_txn = if let Some(instrument) = request.currency.as_ref() {
         let instrument = instrument.to_lowercase();
-        let currency = context
-            .config
-            .currencies
-            .get(&instrument)
-            .ok_or_else(|| Error::not_found("currency configuration"))?;
         let asset_type = request.asset_type.unwrap_or_default();
         let ledger_account_id = match asset_type {
-            AssetType::Regulated => currency.ledger_account_id(&context).await?.to_vec(),
-            AssetType::IndirectCbdc => currency
-                .cbdc
-                .as_ref()
-                .ok_or_else(|| Error::not_found("indirect CBDC configuration"))?
-                .ledger_account_id(currency.account_owner.as_ref(), &context)
-                .await?
-                .to_vec(),
+            AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
+            AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
             _ => return Err(Error::internal_msg("unsupported asset type")),
         };
         let scope = current_user.is_authorized(BankEmulatorRole::Read)?;

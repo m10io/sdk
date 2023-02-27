@@ -48,15 +48,19 @@ const LoginForm = ({ isSmallMobileViewport }) => {
       setLoginState({ user: null, isSubmitted: false, isSubmitting: false, error: e })
     }
   }
-
   return (
     <div className={classnames(
       styles.loginCardWrapper,
       isSmallMobileViewport && styles.loginCardWrapperSmallMobileViewport,
     )}>
-      <div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
-        {publicRuntimeConfig.bankName}
-      </div>
+      {publicRuntimeConfig.bankLogoSrc
+        ? (
+          <img src={publicRuntimeConfig.bankLogoSrc} style={{ width: 200 }} alt={publicRuntimeConfig.bankName} />
+        ) : (
+          <div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
+            {publicRuntimeConfig.bankName}
+          </div>
+        )}
       <div className={styles.welcomeText}>
         {'Welcome back'}
       </div>
@@ -138,7 +142,7 @@ const LoginPage = ({
           styles.infoWrapper,
           isSmallViewport && styles.infoWrapperMobile,
         )}>
-        {/*
+          {/*
           <div className={styles.needAccessText}>
             {'Need access? '}
             <a href={'mailto:email@email.com'}>{'Contact an admin'}</a>

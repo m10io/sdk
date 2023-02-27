@@ -10,16 +10,16 @@ export const getPaymentById = async id => (
   })
 )
 
-export const getPaymentsByAsset = async asset => (
-  await axios.get(`${routes.PAYMENTS_API}/assets/${asset}`, {
+export const getPaymentsByAsset = async(asset, moneyType) => (
+  await axios.get(`${routes.PAYMENTS_API}/assets/${asset}?type=${moneyType}`, {
     headers: {
       Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     }
   })
 )
 
-export const getPaymentsByAccountIdAndAsset = async(accountId, asset) => (
-  await axios.get(`${routes.ACCOUNTS_API}/${accountId}/assets/${asset}/payments`, {
+export const getPaymentsByAccountIdAndAsset = async(accountId, asset, moneyType) => (
+  await axios.get(`${routes.ACCOUNTS_API}/${accountId}/assets/${asset}/payments?type=${moneyType}`, {
     headers: {
       Authorization: `${Cookies.get('access_token') ? `Bearer ${Cookies.get('access_token')}` : ''}`
     }

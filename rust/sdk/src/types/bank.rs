@@ -3,8 +3,9 @@ use crate::error::{M10Error, M10Result};
 use crate::types::PublicKey;
 use m10_protos::sdk;
 use m10_protos::sdk::BankAccountRef;
+use serde::Serialize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Bank {
     pub id: ResourceId,
     pub owner: PublicKey,
@@ -39,14 +40,14 @@ impl std::fmt::Display for Bank {
     feature = "format",
     display("BankAccount{{ id={id} type={account_type} }}")
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct BankAccount {
     pub id: ResourceId,
     pub account_type: BankAccountType,
 }
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, Serialize)]
 pub enum BankAccountType {
     CentralBankDigitalCurrency,
     DigitalRegulatedMoney,

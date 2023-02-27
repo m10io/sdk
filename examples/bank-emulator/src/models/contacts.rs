@@ -7,7 +7,7 @@ use crate::{auth::AuthScope, error::Error};
 
 use super::{Asset, NextPageToken};
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "contact_type")]
 pub enum ContactType {
@@ -21,7 +21,7 @@ impl Default for ContactType {
     }
 }
 
-#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Contact {
     pub id: i64,
 
@@ -64,7 +64,7 @@ impl From<&Contact> for NextPageToken<i64> {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateContactRequest {
     pub tenant: String,
 

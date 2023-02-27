@@ -75,3 +75,10 @@ message QuoteEvent {
     Contract proposal = 2;
   } 
 }
+
+message SelfTransfer {
+  string from_account_name = 1;
+  string to_account_name = 2;
+}
+
+message RebalanceTransfer {}

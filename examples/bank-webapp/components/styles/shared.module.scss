@@ -18,9 +18,9 @@ $color-blue-dp: #214A73;
 
 %card-style {
   background: $content-background-color;
-  box-shadow: 0px 1px 4px rgb(0 0 0 / 25%);
-  border-radius: 10px;
+  border-radius: 5px;
   padding: 20px;
+  box-shadow: 0px 0px 20px rgba(0,0,0,0.1);
 }
 
 .centeredOnPage {
@@ -32,7 +32,7 @@ $color-blue-dp: #214A73;
 }
 
 %diapay-base-style {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Rubik', sans-serif;
   background-image: linear-gradient(to right, rgba(37, 34, 47, 1), rgba(22, 21, 27, 1));
   color: #ffffff;
 }

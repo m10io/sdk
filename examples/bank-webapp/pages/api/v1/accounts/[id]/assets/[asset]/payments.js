@@ -11,13 +11,14 @@ export default async(req, res) => {
       asset,
       limit,
       time,
+      type,
     },
   } = req
   const url = `${process.env.OXIDE_API_URL}/accounts/${id}/assets/${asset}/payments`
   switch (method) {
     case 'GET':
       try {
-        const fetchUrl = `${url}?limit=${limit || 10}${id && time ? `&id=${id}&time=${time}` : ''}`
+        const fetchUrl = `${url}?limit=${limit || 10}${id && time ? `&id=${id}&time=${time}` : ''}${type ? `&type=${type}` : ''}`
         const paymentsRes = await axios.get(fetchUrl, { headers: { Authorization: authorization } })
         const payments = paymentsRes.data
         res.status(200).json(payments)

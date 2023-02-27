@@ -8,6 +8,7 @@ use std::fmt::Debug;
 #[clap(group = ArgGroup::new("method"), about)]
 pub(crate) struct GetPubKeyOptions {
     /// File name of key pair
+    #[clap(value_name = "KEY", help = "Path to a key file")]
     key_file: Option<String>,
     /// Set output format (one of 'hex-str', 'int-array', hex-array', 'base64')
     #[clap(short, long, default_value = "base64")]

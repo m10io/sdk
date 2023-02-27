@@ -5,11 +5,10 @@ use crate::sdk::metadata::*;
 use crate::sdk::transaction::{CreateTransfer, TransferStep};
 use crate::sdk::FinalizedTransfer;
 
-pub fn memo(memo: &str) -> Any {
+pub fn memo(memo: &str) -> Memo {
     Memo {
         plaintext: memo.to_string(),
     }
-    .any()
 }
 
 pub trait MetadataType {
@@ -98,4 +97,12 @@ impl MetadataType for Deposit {
 
 impl MetadataType for Contract {
     const TYPE_URL: &'static str = "m10.sdk.metadata.Contract";
+}
+
+impl MetadataType for SelfTransfer {
+    const TYPE_URL: &'static str = "m10.sdk.metadata.SelfTransfer";
+}
+
+impl MetadataType for RebalanceTransfer {
+    const TYPE_URL: &'static str = "m10.sdk.metadata.RebalanceTransfer";
 }

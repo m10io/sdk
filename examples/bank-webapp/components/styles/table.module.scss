@@ -6,7 +6,6 @@
     margin: 0;
     border-spacing: 0;
     background: $content-background-color;
-    box-shadow: 0px 4px 4px rgb(0 0 0 / 25%);
     font-size: 14px;
     line-height: 20px;
     border-collapse: collapse;
@@ -52,11 +51,12 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    background: $content-background-color;
-    box-shadow: 0px 0px 4px rgb(0 0 0 / 25%);
-    border-radius: 10px 10px 0 0;
+    background: $bankPrimaryColor;
+    background: linear-gradient(106.42deg, $bankPrimaryColor, adjust-hue($bankPrimaryColor, 30deg)) !important;
+    color: #fff;
+    border-radius: 5px 5px 0 0;
     border-bottom: 1px solid #eaeaea;
-    padding: 30px;
+    padding: 20px 30px;
     font-weight: 500;
     font-size: 20px;
     line-height: 20px;
@@ -70,10 +70,10 @@
     }
 
     &.tableHeaderThemeCard {
-      font-family: 'Libre Baskerville', serif;
+      font-family: 'Rubik', sans-serif;
       font-size: 16px;
       font-weight: 600;
-      padding: 20px;
+      padding: 10px;
     }
 
     &.tableHeaderThemeNone {
@@ -116,8 +116,7 @@
     align-items: center;
     border-top: 1px solid #eaeaea;
     background: $content-background-color;
-    box-shadow: 0px 1px 4px rgb(0 0 0 / 25%);
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 5px 5px;
     padding: 40px 30px;
 
     &.tableBottomRowNoPagination {

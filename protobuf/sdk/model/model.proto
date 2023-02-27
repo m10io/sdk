@@ -4,7 +4,7 @@ package m10.sdk.model;
 
 // Arcadius Collection Documents
 
-message Account {
+message AccountMetadata {
   bytes owner = 1;
   string profile_image_url = 9;
   string name = 10;

@@ -62,7 +62,7 @@ pub(crate) async fn create_contact_rbac_role(
             .map(|account_id| Bytes::copy_from_slice(account_id).into())
             .collect();
         rules.push(Rule {
-            collection: Collection::Accounts.to_string(),
+            collection: Collection::AccountMetadata.to_string(),
             instance_keys: ledger_accounts.clone(),
             verbs: vec![Verb::Read as i32],
         });
@@ -115,9 +115,9 @@ pub(crate) async fn add_accounts_to_role(
     let mut account_rule = role
         .rules
         .iter()
-        .find(|r| r.collection == Collection::Accounts.to_string())
+        .find(|r| r.collection == Collection::AccountMetadata.to_string())
         .unwrap_or(&Rule {
-            collection: Collection::Accounts.to_string(),
+            collection: Collection::AccountMetadata.to_string(),
             instance_keys: vec![],
             verbs: vec![Verb::Read as i32],
         })

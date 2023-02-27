@@ -117,7 +117,7 @@ const makeColumns = ({ payments, totalCount, tableName, isSmallViewport, noLinkA
   return [
     {
       Header: tableName || 'Payments',
-      titleIconComponent: <IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />,
+      titleIconComponent: <IconDollarSign color="#fff" />,
       columns: columns
     },
   ]

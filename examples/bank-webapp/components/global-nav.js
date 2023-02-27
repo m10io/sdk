@@ -1,19 +1,14 @@
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import classnames from 'classnames'
-import Container from './container'
 import MobileNav from './mobile-nav'
 import Image from 'next/image'
 import Link from './link'
 import OutsideClickAlerter from 'components/outside-click-alerter'
 import authPlaceholderIcon from 'assets/icons/icon-default-user-circle.svg'
-import m10LogoBlue from 'assets/icons/m10-logo-blue.svg'
 import logoutIcon from 'assets/icons/icon-logout.svg'
 import { createNavItems } from 'components/sidebar'
 import routes from 'routes'
 import styles from './styles/global-nav.module.scss'
-import getConfig from 'next/config'
-const { publicRuntimeConfig } = getConfig()
 
 const GlobalNavDropdownToggle = ({ imgSrc }) => (
   <div className={styles.globalNavDropdownToggleIcon}>
@@ -92,11 +87,10 @@ const GlobalNav = ({
   navLogoRoute,
 }) => {
   const [isShowingMenu, setShowingMenu] = useState(false)
-  const toggleMenu = () => setShowingMenu(!isShowingMenu)
   const handleClickOutside = () => setShowingMenu(false)
   const NAV_ITEMS = createNavItems({ isRegistered: !!customer?.business_id, jwtUser }) // eslint-disable-line
   return (
-    <nav role={'navigation'}>
+    <>
       {isSmallViewport
         ? (
           <MobileNav
@@ -107,70 +101,27 @@ const GlobalNav = ({
             LOGGED_IN_BASE_ROUTE={LOGGED_IN_BASE_ROUTE}
             withM10Logo={withM10Logo}
           />
-        )
-        : (
-          <div className={styles.navigationWrapper}>
-            <Container fullWidth className={styles.navigationContainer}>
-              <div className={styles.navigationMenuItemsList}>
-                <div className={styles.navigationMenuItemsLeft}>
-                  <Link
-                    className={classnames(
-                      styles.navigationItem,
-                      styles.navigationLogo,
-                    )}
-                    href={navLogoRoute || LOGGED_IN_BASE_ROUTE}
-                  >
-                    {withM10Logo
-                      ? (
-                        <Image
-                          src={m10LogoBlue}
-                          alt={'M10'}
-                        />
-                      ) : (
-                        <div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
-                          {publicRuntimeConfig.bankName}
-                        </div>
-                      )}
-                  </Link>
-                  <div className={styles.navigationItemsWrapper}>
-                    {/* nav menu items */}
-                  </div>
-                </div>
-                {user?.sub && (
-                  <div className={styles.navigationMenuItemsRight}>
-                    <div className={styles.navigationMenuItemRight}>
-                    </div>
-                    <div
-                      className={styles.navigationMenuItemRight}
-                      onClick={toggleMenu}
-                      id={'navigation-menu-items-right'}
-                    >
-                      <GlobalNavDropdownToggle imgSrc={user?.picture} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Container>
-            {user?.sub && (
-              <OutsideClickAlerter
-                onOutsideClick={handleClickOutside}
-                shouldTrackClick
-                elementIdsToIgnore={[
-                  'navigation-menu-dropdown-logout-icon',
-                  'navigation-menu-items-right',
-                ]}
-              >
-                <GlobalNavDropdownMenu
-                  isVisible={isShowingMenu}
-                  user={user}
-                  customer={customer}
-                  logout={logout}
-                />
-              </OutsideClickAlerter>
-            )}
-          </div>
-        )}
-    </nav>
+        ) : <div>
+          {user?.sub && (
+            <OutsideClickAlerter
+              onOutsideClick={handleClickOutside}
+              shouldTrackClick
+              elementIdsToIgnore={[
+                'navigation-menu-dropdown-logout-icon',
+                'navigation-menu-items-right',
+              ]}
+            >
+              <GlobalNavDropdownMenu
+                isVisible={isShowingMenu}
+                user={user}
+                customer={customer}
+                logout={logout}
+              />
+            </OutsideClickAlerter>
+          )}
+        </div>
+      }
+    </>
   )
 }
 

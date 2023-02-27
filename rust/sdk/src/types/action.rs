@@ -6,9 +6,10 @@ use core::convert::{From, TryFrom};
 use core::result::Result;
 use m10_protos::sdk;
 use m10_protos::sdk::transaction_data::Data;
+use serde::Serialize;
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum Target {
     Any,
     #[cfg_attr(feature = "format", display("Account({0})"))]
@@ -41,7 +42,7 @@ impl TryFrom<sdk::Target> for Target {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Action {
     pub tx_id: TxId,
     pub context_id: Vec<u8>,

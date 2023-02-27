@@ -1,8 +1,8 @@
 use super::*;
 
-use m10_protos::sdk::Account;
+use m10_protos::sdk::AccountMetadata;
 
-impl DocumentUpdate<Account> {
+impl DocumentUpdate<AccountMetadata> {
     pub fn owner(&mut self, owner: Vec<u8>) -> &mut Self {
         self.document.owner = owner;
         let path = "owner".to_string();

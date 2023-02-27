@@ -7,12 +7,15 @@ import iconArrowUpLightGrey from 'assets/icons/icon-arrow-up-blue.svg'
 import IconUsers from 'assets/icons/icon-users'
 import IconBookOpen from 'assets/icons/icon-book-open'
 import IconDollarSign from 'icons/icon-dollar-sign'
+import IconLogout from 'assets/icons/icon-logout'
 import Link from './link'
 import styles from './styles/sidebar.module.scss'
 import getConfig from 'next/config'
+import m10LogoBlue from 'assets/icons/m10-logo-blue.svg'
+
 const { publicRuntimeConfig } = getConfig()
 
-export const createNavItems = () => {
+export const createNavItems = ({ logout }) => {
   return [
     {
       title: 'Payments',
@@ -23,22 +26,30 @@ export const createNavItems = () => {
       title: 'Customers',
       url: routes.ADMIN_CUSTOMERS_PAGE,
       icon: <IconUsers color={publicRuntimeConfig.bankPrimaryColor} />,
-  },
+    },
     {
       title: 'Offline Payments',
       url: routes.OFFLINE_PAYMENTS_PAYMENTS_PAGE,
       icon: <IconDollarSign color={publicRuntimeConfig.bankPrimaryColor} />,
-  },
+    },
     {
       title: 'Accounts',
       url: routes.ADMIN_ACCOUNTS_PAGE,
       icon: <IconBookOpen color={publicRuntimeConfig.bankPrimaryColor} />,
     },
+    {
+      title: 'Sign Out',
+      url: '#',
+      icon: <IconLogout color={publicRuntimeConfig.bankPrimaryColor} />,
+      onClick: () => { logout({ returnTo: window.location.origin }) }
+    },
   ]
 }
 
-const Sidebar = ({ router, customer, jwtUser, isLoading }) => {
-  const NAV_ITEMS = createNavItems()
+const LOGGED_IN_BASE_ROUTE = routes.ADMIN_CUSTOMERS_PAGE
+
+const Sidebar = ({ router, customer, jwtUser, isLoading, navLogoRoute, withM10Logo, logout }) => {
+  const NAV_ITEMS = createNavItems({ logout })
   const { pathname, asPath } = router
 
   // auto-open submenu if it includes current page route
@@ -72,6 +83,28 @@ const Sidebar = ({ router, customer, jwtUser, isLoading }) => {
   return (
     <div className={styles.sidebarWrapper} id={'sidebar'}>
       <div className={styles.sidebarContainer}>
+        <Link
+          className={classnames(
+            styles.navigationItem,
+            styles.navigationLogo,
+          )}
+          href={navLogoRoute || LOGGED_IN_BASE_ROUTE}
+        >
+          {withM10Logo
+            ? (
+              <Image
+                src={m10LogoBlue}
+                alt={'M10'}
+              />
+            ) : publicRuntimeConfig.bankLogoSrc
+              ? (
+                <img src={publicRuntimeConfig.bankLogoSrc} style={{ width: 100 }} alt={publicRuntimeConfig.bankName} />
+              ) : (
+                <div className={styles.bankLogoName} style={{ background: publicRuntimeConfig.bankPrimaryColor }}>
+                  {publicRuntimeConfig.bankName}
+                </div>
+              )}
+        </Link>
         {NAV_ITEMS.map((item, index) => {
           const subMenuItems = item.subMenuItems || []
           const isSubmenuOpen = sidebarMenuOpenState.openSubmenusByIndex.has(index)
@@ -82,7 +115,9 @@ const Sidebar = ({ router, customer, jwtUser, isLoading }) => {
             <div key={item.title}>
               <Link
                 href={isCurrentMenuItemRoot && item.preventLinkIfRoot ? null : item.url}
-                onClick={item.subMenuItems ? () => toggleMenuOpenState(index) : () => {}}
+                onClick={
+                  item.onClick ? item.onClick
+                    : item.subMenuItems ? () => toggleMenuOpenState(index) : () => { }}
                 className={classnames(
                   styles.sidebarMenuItemWrapper,
                   isHovered && styles.sidebarMenuItemActive,

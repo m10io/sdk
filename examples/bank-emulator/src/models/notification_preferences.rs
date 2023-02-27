@@ -22,7 +22,7 @@ pub struct ListNotificationPreferencesFilter {
     pub instrument: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListNotificationPreferencesResponse {
     pub data: Vec<NotificationPreferences>,
 
@@ -30,7 +30,7 @@ pub struct ListNotificationPreferencesResponse {
     pub total: Option<isize>,
 }
 
-#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NotificationPreferences {
     pub id: i32,
 
@@ -51,7 +51,7 @@ pub struct NotificationPreferences {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NotificationToggles {
     pub service_info: bool,
     pub is_enabled: bool,
@@ -143,7 +143,7 @@ impl From<i32> for NotificationToggles {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateNotificationPreferencesRequest {
     pub device_token: String,
 
@@ -163,7 +163,7 @@ impl From<CreateNotificationPreferencesRequest> for NotificationPreferences {
         }
     }
 }
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdateNotificationPreferencesRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub device_token: Option<String>,

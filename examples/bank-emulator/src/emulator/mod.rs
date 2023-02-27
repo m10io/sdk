@@ -81,6 +81,12 @@ impl Bank for BankEmulator {
         Ok(account.into())
     }
 
+    async fn create_loan_account(&mut self, display_name: &str) -> Result<Self::Account, Error> {
+        let conn = self.db_pool.get().await?;
+        let account = BankAccount::new(200000000, display_name, &self.currency, conn).await?;
+        Ok(account)
+    }
+
     fn account_number(&self) -> i32 {
         self.holding_account.account_number
     }
@@ -211,6 +217,15 @@ impl Bank for BankEmulator {
         Ok(account)
     }
 
+    async fn find_account_by_name(&self, name: &str) -> Result<Self::Account, Error> {
+        let mut conn = self.db_pool.get().await?;
+        let account = BankAccount::find_by_name(name)
+            .fetch_optional(&mut *conn)
+            .await?
+            .ok_or_else(|| Error::not_found("Bank account"))?;
+        Ok(account)
+    }
+
     async fn open_account(&self, account_ref: &Value) -> Result<Self::Account, Error> {
         let id = BankAccount::try_id_from(account_ref)?;
         let mut conn = self.db_pool.get().await?;
@@ -289,7 +304,41 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .withdraw_from(account_id, amount.try_into()?, None, &mut txn)
+            .withdraw_from(account_id, amount.try_into()?, "SBW", None, &mut txn)
+            .await?;
+        txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
+        Ok(txn_id)
+    }
+
+    async fn issue_to(
+        &mut self,
+        account_id: i64,
+        amount: u64,
+        reference: &str,
+    ) -> Result<Uuid, Error> {
+        let mut conn = self.db_pool.get().await?;
+        let mut txn = conn.begin().await?;
+        let txn_id = self
+            .holding_account
+            .deposit_into(account_id, amount.try_into()?, reference, None, &mut txn)
+            .await?;
+        txn.commit().await?;
+        self.holding_account.refresh(&mut *conn).await?;
+        Ok(txn_id)
+    }
+
+    async fn destroy_from(
+        &mut self,
+        account_id: i64,
+        amount: u64,
+        reference: &str,
+    ) -> Result<Uuid, Error> {
+        let mut conn = self.db_pool.get().await?;
+        let mut txn = conn.begin().await?;
+        let txn_id = self
+            .holding_account
+            .withdraw_from(account_id, amount.try_into()?, reference, None, &mut txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;

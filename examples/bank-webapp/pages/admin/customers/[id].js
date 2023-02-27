@@ -24,10 +24,14 @@ class CustomerPage extends Component {
     customer: {},
 
     // payments
-    isLoadingPayments: false,
-    hasLoadedPayments: false,
-    paymentsLoadError: null,
-    payments: [],
+    isLoadingCbdcPayments: false,
+    hasLoadedCbdcPayments: false,
+    isLoadingDrmPayments: false,
+    hasLoadedDrmPayments: false,
+    cbdcPaymentsLoadError: null,
+    cbdcPayments: [],
+    drmPaymentsLoadError: null,
+    drmPayments: [],
   }
 
   async getCustomer() {
@@ -41,21 +45,38 @@ class CustomerPage extends Component {
     }
   }
 
-  getPayments = async() => {
+  getCbdcPayments = async() => {
     try {
-      this.setState({ isLoadingPayments: true, paymentsLoadError: null })
-      const paymentsRes = await getPaymentsByAccountIdAndAsset(this.props.id, DEFAULT_ASSET)
+      this.setState({ isLoadingCbdcPayments: true, cbdcPaymentsLoadError: null })
+      const customer = this.state.customer
+      const paymentsRes = await getPaymentsByAccountIdAndAsset(customer?.account_id, DEFAULT_ASSET, 'indirect_cbdc')
       const payments = parsePaymentsApi(paymentsRes?.data?.data || [])
-      this.setState({ payments: payments, isLoadingPayments: false, hasLoadedPayments: true })
+      this.setState({ cbdcPayments: payments, isLoadingCbdcPayments: false, hasLoadedCbdcPayments: true })
     } catch (e) {
-      this.setState({ paymentsLoadError: e, isLoadingPayments: false })
+      this.setState({ cbdcPaymentsLoadError: e, isLoadingCbdcPayments: false })
+    }
+  }
+
+  getDrmPayments = async() => {
+    try {
+      this.setState({ isLoadingDrmPayments: true, drmPaymentsLoadError: null })
+      const customer = this.state.customer
+      const paymentsRes = await getPaymentsByAccountIdAndAsset(customer?.account_id, DEFAULT_ASSET, 'regulated')
+      const payments = parsePaymentsApi(paymentsRes?.data?.data || [])
+      this.setState({ drmPayments: payments, isLoadingDrmPayments: false, hasLoadedDrmPayments: true })
+    } catch (e) {
+      this.setState({ drmPaymentsLoadError: e, isLoadingDrmPayments: false })
     }
   }
 
   async componentDidMount() {
     await this.getCustomer()
-    await this.getPayments()
-    this.timerId = setInterval(() => this.getPayments(), 3000)
+    await this.getCbdcPayments()
+    await this.getDrmPayments()
+    this.timerId = setInterval(() => {
+      this.getCbdcPayments()
+      this.getDrmPayments()
+    }, 3000)
   }
 
   componentWillUnmount() {
@@ -68,9 +89,12 @@ class CustomerPage extends Component {
       isLoadingCustomer,
       customerLoadError,
       customer,
-      isLoadingPayments,
-      hasLoadedPayments,
-      payments,
+      isLoadingCbdcPayments,
+      hasLoadedCbdcPayments,
+      cbdcPayments,
+      isLoadingDrmPayments,
+      hasLoadedDrmPayments,
+      drmPayments,
     } = this.state
     return (
       <Page
@@ -82,9 +106,18 @@ class CustomerPage extends Component {
       >
         <CustomerInfoCard customer={customer} />
         <TablePayments
-          payments={payments}
-          isLoading={!hasLoadedPayments && isLoadingPayments}
-          tableName={'Payments'}
+          payments={cbdcPayments}
+          isLoading={!hasLoadedCbdcPayments && isLoadingCbdcPayments}
+          tableName={'CBDC Payments'}
+          noPagination
+          headerTheme={TABLE_HEADER_THEME_CARD}
+          windowWidth={windowWidth}
+          accountId={id}
+        />
+        <TablePayments
+          payments={drmPayments}
+          isLoading={!hasLoadedDrmPayments && isLoadingDrmPayments}
+          tableName={'DRM Payments'}
           noPagination
           headerTheme={TABLE_HEADER_THEME_CARD}
           windowWidth={windowWidth}

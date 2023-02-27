@@ -3,14 +3,22 @@
 .cardWrapper {
   @extend %card-style;
   margin: 0 0 20px 0;
+  overflow: hidden;
 
   .cardTitle {
+    margin-left: -20px;
+    margin-top: -20px;
+    padding-top: 20px;
+    padding-left: 20px;
+    background: linear-gradient(106.42deg, $bankPrimaryColor, adjust-hue($bankPrimaryColor, 30deg)) !important;
+    color: #fff;
+    width: calc(100% + 20px);
     display: flex;
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid #e1e1e1;
     font-size: 16px;
-    font-family: 'Libre Baskerville', serif;
+    font-family: 'Rubik', serif;
     font-weight: 600;
   }
 

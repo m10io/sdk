@@ -102,6 +102,7 @@ const Table = ({
   setPageIndex,
   isSmallViewport,
   onlyForwardPagination,
+  rightHeaderContent,
 }) => {
   if (isLoading) {
     return <TableLoader
@@ -166,10 +167,9 @@ const Table = ({
               {columns[0].titleIconComponent}
             </div>
           )}
-          {headerTheme !== TABLE_HEADER_THEME_NONE && (
-            title
-          )}
+          {headerTheme !== TABLE_HEADER_THEME_NONE && title}
           <div className={styles.rightHeaderActions}>
+            {rightHeaderContent}
             {withAccordion && (
               <div className={styles.accordionExpander} onClick={() => setIsExpanded(!isExpanded)}>
                 <IconAccordion color={publicRuntimeConfig.bankPrimaryColor} />
@@ -268,8 +268,8 @@ const Table = ({
               disabled={isLastPage}
               role={'button'}
               tabIndex={0}
-              className={styles.tablePageNumberLink}
               className={classnames(
+                styles.tablePageNumberLink,
                 styles.tablePageNumberLink,
                 isLastPage && styles.tablePageNumberLinkDisabled,
               )}
@@ -347,6 +347,7 @@ Table.propTypes = {
   isSmallViewport: PropTypes.bool,
   onlyForwardPagination: PropTypes.bool,
   limit: PropTypes.number,
+  rightHeaderContent: PropTypes.node,
 }
 
 Table.defaultProps = {

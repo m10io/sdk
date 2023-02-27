@@ -12,7 +12,7 @@ const { publicRuntimeConfig } = getConfig()
 const makeColumns = ({ customers, totalCount, tableName }) => ([
   {
     Header: tableName,
-    titleIconComponent: <IconUsers color={publicRuntimeConfig.bankPrimaryColor} />,
+    titleIconComponent: <IconUsers color="#fff" />,
     columns: [
       {
         Header: 'Name',
@@ -26,8 +26,8 @@ const makeColumns = ({ customers, totalCount, tableName }) => ([
         Header: '\u200b',
         accessor: 'id',
         style: { minWidth: 25, textAlign: 'right' },
-        Cell: ({ cell: { row: { original: { account_id } } } }) => (
-          <a href={`${routes.ADMIN_CUSTOMERS_PAGE}/${account_id}`}>
+        Cell: ({ cell: { row: { original: { id } } } }) => (
+          <a href={`${routes.ADMIN_CUSTOMERS_PAGE}/${id}`}>
             <Image
               height={15}
               width={15}

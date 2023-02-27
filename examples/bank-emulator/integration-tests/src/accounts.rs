@@ -392,6 +392,44 @@ async fn accounts_wire_routes() {
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after - 3300, balance_before);
 
+    // Redeem CBDC direct
+    println!("Redeem CBDC direct");
+    let balance_before = balance_after;
+    let transfer = client
+        .post(format!(
+            "{}/api/v1/accounts/{}/redeem_direct",
+            base_url(),
+            account.id
+        ))
+        .bearer_auth(&jwt)
+        .json(&RedeemRequest {
+            txn_id,
+            amount_in_cents: 1100,
+            asset_type: Some(AssetType::IndirectCbdc),
+            ..Default::default()
+        })
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<BankTransfer>()
+        .await;
+    println!("transfer {:?}", transfer);
+    assert_eq!(transfer.status, 0);
+    assert_eq!(transfer.amount, Some(1100));
+
+    let balance_after = account_balance(
+        &client
+            .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
+            .bearer_auth(&jwt)
+            .send()
+            .await
+            .unwrap()
+            .assert_json::<Account>()
+            .await,
+    );
+    println!("balance after transfer: {}", balance_after);
+    assert_eq!(balance_after - 1100, balance_before);
+
     // fund CBDC account from bank account over limit
     println!("fund CBDC account from bank account over limit");
 
@@ -406,6 +444,37 @@ async fn accounts_wire_routes() {
             .await,
     );
 
+    let assets = client
+        .get(format!("{}/api/v1/assets", base_url()))
+        .bearer_auth(&jwt)
+        .send()
+        .await
+        .unwrap()
+        .assert_json::<ListResponse<i32, Asset>>()
+        .await;
+
+    let regulated_asset = assets
+        .data
+        .iter()
+        .find(|a| a.asset_type == AssetType::Regulated)
+        .expect("regulated asset");
+    let cbdc_asset = assets
+        .data
+        .iter()
+        .find(|a| a.asset_type == AssetType::IndirectCbdc)
+        .expect("cbdc asset");
+
+    let request = key_pair
+        .sign_request(sdk::GetAccountRequest {
+            id: regulated_asset.ledger_account_id.to_vec(),
+        })
+        .await
+        .expect("request signed");
+    let regulated_account_before = ledger
+        .get_indexed_account(request.clone())
+        .await
+        .expect("regulated ledger account");
+
     let transfer = client
         .post(format!(
             "{}/api/v1/accounts/{}/request_funds",
@@ -414,7 +483,7 @@ async fn accounts_wire_routes() {
         ))
         .bearer_auth(&jwt)
         .json(&AmountRequest {
-            amount_in_cents: 110000,
+            amount_in_cents: 1100_00,
             currency: Some("usd".into()),
             asset_type: Some(AssetType::IndirectCbdc),
             ..Default::default()
@@ -425,9 +494,10 @@ async fn accounts_wire_routes() {
         .assert_json::<BankTransfer>()
         .await;
     println!("transfer {:?}", transfer);
-    assert_eq!(transfer.status, 1);
-    assert!(transfer.error.is_some());
+    assert_eq!(transfer.status, 0);
+    assert_eq!(transfer.amount, Some(1100_00));
 
+    // Expect transfer to happen
     let balance_after = account_balance(
         &client
             .get(format!("{}/api/v1/accounts/{}", base_url(), account.id))
@@ -439,7 +509,33 @@ async fn accounts_wire_routes() {
             .await,
     );
     println!("balance after transfer: {}", balance_after);
-    assert_eq!(balance_after, balance_before);
+    assert_eq!(balance_after, balance_before - 1100_00);
+
+    // wait for adjustment
+    tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+
+    let regulated_account_after = ledger
+        .get_indexed_account(request)
+        .await
+        .expect("regulated ledger account");
+    let request = key_pair
+        .sign_request(sdk::GetAccountRequest {
+            id: cbdc_asset.ledger_account_id.to_vec(),
+        })
+        .await
+        .expect("request signed");
+    let cbdc_account = ledger
+        .get_indexed_account(request)
+        .await
+        .expect("cbdc ledger account");
+
+    // Expect cbdc account to stay under limit
+    assert!(cbdc_account.balance <= 1000_00, "cbdc balance above limit");
+    // Expect overflow transferred to regulated account
+    assert!(
+        regulated_account_after.balance > regulated_account_before.balance,
+        "regulated account balance not increased"
+    );
 }
 
 #[tokio::test]

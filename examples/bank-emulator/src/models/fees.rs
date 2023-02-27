@@ -14,7 +14,7 @@ use crate::{config::CurrencyConfig, error::Error};
 
 const FEE_METADATA_KEY: &str = "fee_metadata";
 
-#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct FeeMetadata {
     #[serde(flatten)]
     pub schedule: FeeSchedule,
@@ -116,14 +116,14 @@ impl FeeMetadata {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FeeType {
     Transfer,
     Withdraw,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct FeeSplit {
     pub name: String,
     pub percent: Decimal,
@@ -131,7 +131,7 @@ pub struct FeeSplit {
     pub account: [u8; 16],
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct FeeSchedule {
     pub fees: Vec<FeeBracket>,
 }
@@ -221,7 +221,7 @@ pub struct FeeResponse {
     pub fees: Vec<Fee>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Fee {
     pub name: String,
     pub amount: u64,
@@ -266,7 +266,6 @@ mod tests {
     use m10_sdk::sdk::{self, TransferStep};
     use m10_sdk::Metadata;
     use rust_decimal::Decimal;
-    use tokio::sync::OnceCell;
 
     use crate::{
         config::CurrencyConfig,
@@ -380,18 +379,7 @@ mod tests {
 
     #[test]
     fn test_calculate_fees() {
-        let currency = CurrencyConfig {
-            code: "usd".to_string(),
-            ledger_account_name: "usd".to_string(),
-            account_owner: None,
-            ledger_account_id: OnceCell::default(),
-            rtgs: None,
-            cbdc: None,
-            decimals: 2,
-            asset: false,
-            asset_id: OnceCell::default(),
-            test: true,
-        };
+        let currency = CurrencyConfig::new_test();
         let metadata = FeeMetadata {
             schedule: FeeSchedule {
                 fees: vec![
@@ -464,18 +452,7 @@ mod tests {
 
     #[test]
     fn test_validation_succeed() {
-        let currency = CurrencyConfig {
-            code: "usd".to_string(),
-            ledger_account_name: "usd".to_string(),
-            account_owner: None,
-            ledger_account_id: OnceCell::default(),
-            rtgs: None,
-            cbdc: None,
-            decimals: 2,
-            asset: false,
-            asset_id: OnceCell::default(),
-            test: true,
-        };
+        let currency = CurrencyConfig::new_test();
         let metadata = FeeMetadata {
             schedule: FeeSchedule {
                 fees: vec![
@@ -515,7 +492,7 @@ mod tests {
             from_account_id: vec![1],
             to_account_id: vec![0],
             amount: 500,
-            metadata: vec![m10_sdk::memo("main")],
+            metadata: vec![m10_sdk::memo("main").any()],
         }];
         for fee in res.fees {
             steps.push(TransferStep {
@@ -534,7 +511,7 @@ mod tests {
                 from_account_id: vec![1],
                 to_account_id: vec![0],
                 amount: 500,
-                metadata: vec![m10_sdk::memo("main")],
+                metadata: vec![m10_sdk::memo("main").any()],
             },
             TransferStep {
                 from_account_id: vec![1],
@@ -563,18 +540,7 @@ mod tests {
 
     #[test]
     fn test_validation_failed() {
-        let currency = CurrencyConfig {
-            code: "usd".to_string(),
-            ledger_account_name: "usd".to_string(),
-            account_owner: None,
-            ledger_account_id: OnceCell::default(),
-            rtgs: None,
-            cbdc: None,
-            decimals: 2,
-            asset: false,
-            asset_id: OnceCell::default(),
-            test: true,
-        };
+        let currency = CurrencyConfig::new_test();
         let metadata = FeeMetadata {
             schedule: FeeSchedule {
                 fees: vec![
@@ -614,7 +580,7 @@ mod tests {
                 from_account_id: vec![1],
                 to_account_id: vec![0],
                 amount: 500,
-                metadata: vec![m10_sdk::memo("main")],
+                metadata: vec![m10_sdk::memo("main").any()],
             },
             TransferStep {
                 from_account_id: vec![1],

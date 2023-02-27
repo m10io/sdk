@@ -28,6 +28,7 @@ const nextConfig = {
     bankLogoUrl: process.env.BANK_LOGO_URL,
     bankPrimaryColor: process.env.BANK_PRIMARY_COLOR,
     bankSecondaryColor: process.env.BANK_SECONDARY_COLOR,
+    bankLogoSrc: process.env.BANK_LOGO_SRC,
   },
   images: {
     domains: [

@@ -12,11 +12,16 @@ export default async(req, res) => {
     method,
     headers: { authorization },
   } = req
-  const url = `${process.env.OAUTH_DOMAIN}/oauth/userinfo`
+  const url = `${process.env.BASE_API_URL}/oauth/userinfo`
   switch (method) {
     case 'GET':
       try {
-        const userInfoRes = await axios.get(url, { headers: { Authorization: authorization } })
+        const userInfoRes = await axios({
+          method: 'GET',
+          url: url,
+          headers: { Authorization: authorization },
+          data: {},
+        })
         const userInfo = userInfoRes.data
         res.status(200).json(userInfo)
       } catch (e) {

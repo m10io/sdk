@@ -20,7 +20,7 @@ pub(crate) struct Image {
 
 impl Image {
     pub(super) async fn create(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
+        let mut context = Context::new(config)?;
 
         let image = if let Some(file_name) = &self.file {
             let mut image_file = File::open(file_name)?;

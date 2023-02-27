@@ -32,6 +32,22 @@ impl From<AccountFilter<()>> for sdk::ObserveAccountsRequest {
     }
 }
 
+pub struct OwnerFilter {
+    owner: Vec<u8>,
+}
+
+impl OwnerFilter {
+    pub fn new(owner: Vec<u8>) -> Self {
+        Self { owner }
+    }
+}
+
+impl From<OwnerFilter> for sdk::list_account_metadata_request::Filter {
+    fn from(filter: OwnerFilter) -> Self {
+        sdk::list_account_metadata_request::Filter::Owner(filter.owner)
+    }
+}
+
 #[derive(Default)]
 pub struct NamedAction {
     name: String,
@@ -57,7 +73,7 @@ impl From<AccountFilter<NamedAction>> for sdk::ObserveActionsRequest {
 }
 
 pub struct AccountBuilder {
-    parent_id: AccountId,
+    parent_id: Option<AccountId>,
     issuance: bool,
     frozen: bool,
     balance_limit: u64,
@@ -65,14 +81,39 @@ pub struct AccountBuilder {
 }
 
 impl AccountBuilder {
-    pub fn parent(id: AccountId) -> Self {
+    pub fn new() -> Self {
         Self {
-            parent_id: id,
+            parent_id: None,
             issuance: false,
             frozen: false,
             balance_limit: 0,
             instrument: None,
         }
+    }
+
+    pub fn parent(id: AccountId) -> Self {
+        Self {
+            parent_id: Some(id),
+            issuance: false,
+            frozen: false,
+            balance_limit: 0,
+            instrument: None,
+        }
+    }
+
+    pub fn root(
+        code: impl Into<String>,
+        decimals: u32,
+        description: Option<impl Into<String>>,
+    ) -> Self {
+        Self {
+            parent_id: None,
+            issuance: false,
+            frozen: false,
+            balance_limit: 0,
+            instrument: None,
+        }
+        .instrument(code, decimals, description)
     }
 
     pub fn issuance(mut self, flag: bool) -> Self {
@@ -108,13 +149,19 @@ impl AccountBuilder {
 impl From<AccountBuilder> for sdk::CreateLedgerAccount {
     fn from(builder: AccountBuilder) -> Self {
         sdk::CreateLedgerAccount {
-            parent_id: builder.parent_id.to_vec(),
+            parent_id: builder.parent_id.map_or(vec![], |id| id.to_vec()),
             frozen: builder.frozen,
             issuance: builder.issuance,
-            instrument: None,
+            instrument: builder.instrument,
             balance_limit: builder.balance_limit,
         }
     }
 }
 
 impl WithContext for AccountBuilder {}
+
+impl Default for AccountBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}

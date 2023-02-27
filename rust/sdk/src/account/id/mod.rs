@@ -1,7 +1,9 @@
 //! `AccountId` and related types.
 
 use super::*;
+use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt::Formatter;
 use std::{
     convert::{TryFrom, TryInto},
     fmt,
@@ -790,8 +792,9 @@ impl std::str::FromStr for AccountId {
     type Err = AccountIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = hex::decode(s).map_err(|_| AccountIdError::InvalidLen)?;
-        Self::try_from_be_slice(&bytes)
+        let mut buf = [0u8; 16];
+        hex::decode_to_slice(s, &mut buf).map_err(|_| AccountIdError::InvalidLen)?;
+        Self::try_from_be_bytes(buf)
     }
 }
 
@@ -800,7 +803,30 @@ impl Serialize for AccountId {
     where
         S: Serializer,
     {
-        serializer.serialize_u128(self.0)
+        use serde::ser::Error;
+        let mut buffer = [0u8; 32];
+        hex::encode_to_slice(&self.to_be_bytes(), &mut buffer).map_err(S::Error::custom)?;
+        serializer.serialize_str(std::str::from_utf8(&buffer).map_err(S::Error::custom)?)
+    }
+}
+
+struct HexAccountId;
+
+impl<'de> Visitor<'de> for HexAccountId {
+    type Value = AccountId;
+
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        formatter.write_str("Hex-encoded byte buffer")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        let mut buffer = [0u8; 16];
+        hex::decode_to_slice(v, &mut buffer).map_err(E::custom)?;
+        let id = AccountId::try_from_be_bytes(buffer).map_err(E::custom)?;
+        Ok(id)
     }
 }
 
@@ -809,17 +835,7 @@ impl<'de> Deserialize<'de> for AccountId {
     where
         D: Deserializer<'de>,
     {
-        use serde::de::{Error, Unexpected};
-
-        let raw = RawAccountId::deserialize(deserializer)?;
-        let id = AccountId::from_raw(raw).map_err(|error| {
-            D::Error::invalid_value(
-                Unexpected::Other(&format!("integer `{}`", raw)),
-                &format!("a valid account ID ({})", error).as_str(),
-            )
-        })?;
-
-        Ok(id)
+        deserializer.deserialize_str(HexAccountId)
     }
 }
 

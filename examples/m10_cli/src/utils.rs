@@ -1,13 +1,7 @@
-use crate::commands::Format;
 use m10_sdk::account::{AccountId, Builder as AccountIdBuilder, LeafAccountIndex, RawAccountIndex};
 use m10_sdk::{sdk::signature::Algorithm, Ed25519, KeyPair, Signer, P256};
-use ron::ser::{to_writer_pretty, PrettyConfig};
-use serde::Serialize;
-use std::{
-    fs::File,
-    io::{LineWriter, Read},
-};
-use std::{io, path::PathBuf, str::FromStr};
+use std::{fs::File, io::Read};
+use std::{path::PathBuf, str::FromStr};
 
 pub(crate) fn m10_config_path() -> PathBuf {
     dirs::home_dir()
@@ -156,29 +150,4 @@ pub(crate) fn load_key_pair_exportable(path_str: &str) -> Result<Vec<u8>, anyhow
     let mut pkcs8_bytes: Vec<u8> = Vec::new();
     key_file.read_to_end(&mut pkcs8_bytes)?;
     Ok(pkcs8_bytes)
-}
-
-pub(crate) fn print_items<I>(items: Vec<I>, format: Format) -> anyhow::Result<()>
-where
-    I: Serialize,
-{
-    let stdout = io::stdout();
-    let handle = stdout.lock();
-    let writer = LineWriter::new(handle);
-    match format {
-        Format::Json => {
-            serde_json::to_writer_pretty(writer, &items)?;
-        }
-        Format::Yaml => {
-            serde_yaml::to_writer(writer, &items)?;
-        }
-        Format::Raw => {
-            let pretty = PrettyConfig::new()
-                .with_depth_limit(4)
-                .with_separate_tuple_members(true)
-                .with_enumerate_arrays(true);
-            to_writer_pretty(writer, &items, pretty)?;
-        }
-    }
-    Ok(())
 }

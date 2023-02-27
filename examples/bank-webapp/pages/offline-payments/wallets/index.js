@@ -50,7 +50,7 @@ const makeColumns = ({ wallets, isSmallViewport }) => {
   return [
     {
       Header: 'Offline Payment Wallets',
-      titleIconComponent: <IconBookOpen color={publicRuntimeConfig.bankPrimaryColor} />,
+      titleIconComponent: <IconBookOpen color="#fff" />,
       columns: columns,
     },
   ]

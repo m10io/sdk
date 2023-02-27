@@ -6,6 +6,7 @@ use crate::{DocumentId, LedgerClient};
 use core::clone::Clone;
 use core::convert::{Into, TryFrom};
 use futures_core::Stream;
+use futures_util::future::try_join_all;
 use futures_util::{StreamExt, TryStreamExt};
 use m10_protos::sdk;
 use m10_signing::{SignedRequest, Signer};
@@ -34,6 +35,10 @@ impl<S: Signer> M10Client<S> {
             signer: Arc::new(signer),
             client: LedgerClient::new(channel),
         }
+    }
+
+    pub fn signer(&self) -> &S {
+        &self.signer
     }
 
     async fn signed_transaction<D: Into<sdk::transaction_data::Data>>(
@@ -155,9 +160,62 @@ impl<S: Signer> M10Client<S> {
         Ok(response.tx_id)
     }
 
-    pub async fn action(&self, builder: ActionBuilder, context_id: Vec<u8>) -> M10Result<TxId> {
+    pub async fn set_account_limit(
+        &self,
+        account_id: AccountId,
+        limit: u64,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
         let req = self
-            .signed_transaction::<sdk::InvokeAction>(builder.into(), context_id)
+            .signed_transaction(
+                sdk::SetBalanceLimit {
+                    account_id: account_id.to_vec(),
+                    balance_limit: limit,
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
+    }
+
+    pub async fn set_account_instrument(
+        &self,
+        account_id: AccountId,
+        code: impl Into<String>,
+        decimals: u32,
+        description: Option<impl Into<String>>,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::SetInstrument {
+                    account_id: account_id.to_vec(),
+                    code: code.into(),
+                    decimal_places: decimals,
+                    description: description.map(|d| d.into()).unwrap_or_default(),
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
+    }
+
+    pub async fn action(&self, builder: impl Into<Ctx<ActionBuilder>>) -> M10Result<TxId> {
+        let builder = builder.into();
+        let req = self
+            .signed_transaction::<sdk::InvokeAction>(builder.value.into(), builder.context_id)
             .await?;
         let response = self
             .client
@@ -200,6 +258,28 @@ impl<S: Signer> M10Client<S> {
             .await?;
         let account = self.client.clone().get_account_info(req).await?;
         AccountInfo::try_from(account)
+    }
+
+    pub async fn list_accounts(
+        &self,
+        filter: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+    ) -> M10Result<Vec<Account>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let accounts = self.client.clone().list_account_metadata(req).await?;
+        let accounts = try_join_all(
+            accounts
+                .accounts
+                .into_iter()
+                // TODO: Remove indexed vs non-indexed differentiation
+                .map(|account| async move {
+                    match AccountId::try_from_be_slice(&account.id) {
+                        Ok(id) => self.get_account(id).await,
+                        Err(err) => Err(M10Error::from(err)),
+                    }
+                }),
+        )
+        .await?;
+        Ok(accounts)
     }
 
     pub async fn observe_accounts(
@@ -342,6 +422,7 @@ impl<S: Signer> M10Client<S> {
     }
 
     // Metrics
+
     pub async fn observe_metrics(
         &self,
         filter: AccountFilter,
@@ -356,12 +437,57 @@ impl<S: Signer> M10Client<S> {
         Ok(stream)
     }
 
+    // Transactions
+
+    pub async fn list_transactions(
+        &self,
+        filter: TxnFilter<ContextFilter>,
+    ) -> M10Result<Vec<Transaction>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let txs = self.client.clone().list_transactions(req).await?;
+        let txs = txs
+            .transactions
+            .into_iter()
+            .map(Transaction::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(txs)
+    }
+
+    pub async fn group_transactions(
+        &self,
+        filter: TxnFilter<GroupingFilter>,
+    ) -> M10Result<Vec<Vec<Transaction>>> {
+        let req = self.signer.sign_request(filter.into()).await?;
+        let groups = self.client.clone().group_transactions(req).await?;
+        let groups = groups
+            .groups
+            .into_iter()
+            .map(|txs| {
+                txs.transactions
+                    .into_iter()
+                    .map(Transaction::try_from)
+                    .collect::<M10Result<Vec<_>>>()
+            })
+            .collect::<M10Result<_>>()?;
+        Ok(groups)
+    }
+
     // Banks
+
+    pub async fn get_bank(&self, id: Uuid) -> M10Result<Bank> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetBankRequest { id: id.into_vec() })
+            .await?;
+        let bank = self.client.clone().get_bank(req).await?;
+        Bank::try_from(bank)
+    }
+
     pub async fn list_banks(&self, builder: PageBuilder<Uuid>) -> M10Result<Vec<Bank>> {
         let req = self
             .signer
             .sign_request(sdk::ListBanksRequest {
-                page: Some(builder.into()),
+                page: builder.into(),
             })
             .await?;
         let banks = self.client.clone().list_banks(req).await?;
@@ -441,6 +567,30 @@ impl<S: Signer> M10Client<S> {
             .account_sets
             .into_iter()
             .map(AccountSet::try_from)
+            .collect::<M10Result<_>>()?;
+        Ok(account_sets)
+    }
+    // Account Metadata
+
+    pub async fn get_account_metadata(&self, id: AccountId) -> M10Result<AccountMetadata> {
+        let req = self
+            .signer
+            .sign_request(sdk::GetAccountRequest { id: id.to_vec() })
+            .await?;
+        let metadata = self.client.clone().get_account_metadata(req).await?;
+        AccountMetadata::try_from(metadata)
+    }
+
+    pub async fn list_account_metadata(
+        &self,
+        builder: PageBuilder<Uuid, NameOrOwnerFilter>,
+    ) -> M10Result<Vec<AccountMetadata>> {
+        let req = self.signer.sign_request(builder.into()).await?;
+        let account_metadata = self.client.clone().list_account_metadata(req).await?;
+        let account_sets = account_metadata
+            .accounts
+            .into_iter()
+            .map(AccountMetadata::try_from)
             .collect::<M10Result<_>>()?;
         Ok(account_sets)
     }

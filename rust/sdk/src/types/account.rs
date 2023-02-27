@@ -5,6 +5,7 @@ use crate::TransactionExt;
 use m10_protos::sdk;
 use m10_protos::sdk::transaction_data::Data;
 use m10_protos::sdk::IndexedAccount;
+use serde::Serialize;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
@@ -12,7 +13,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
     feature = "format",
     display("id={id} balance={balance} frozen={frozen} currency={code}({decimals}) limit={balance_limit} issuance={issuance:?}")
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Account {
     pub id: AccountId,
     pub balance: u64,
@@ -28,7 +29,7 @@ pub struct Account {
 feature = "format",
 display("AccountInfo {{ id={id} parent_id={parent_id} public_name={public_name} currency={code}({decimals}) profile_image_url={profile_image_url} }}")
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct AccountInfo {
     pub id: AccountId,
     pub parent_id: AccountId,
@@ -43,14 +44,14 @@ pub struct AccountInfo {
     feature = "format",
     display("balance={balance} issuance_accounts={issuance_accounts} holding_accounts={holding_accounts}")
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Issuance {
     pub balance: u64,
     pub issuance_accounts: u64,
     pub holding_accounts: u64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct AccountUpdate {
     pub tx_id: TxId,
     pub context_id: Vec<u8>,
@@ -74,7 +75,7 @@ impl std::fmt::Display for AccountUpdate {
 }
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum AccountUpdateType {
     #[cfg_attr(
         feature = "format",
@@ -134,23 +135,15 @@ impl TryFrom<sdk::indexed_account::Issuance> for Issuance {
     }
 }
 
-impl TryFrom<sdk::FinalizedTransaction> for AccountUpdate {
+impl TryFrom<(&sdk::transaction_data::Data, &[u8])> for AccountUpdateType {
     type Error = M10Error;
 
-    fn try_from(txn: sdk::FinalizedTransaction) -> Result<Self, Self::Error> {
-        let response = txn.response.as_ref().ok_or(M10Error::InvalidTransaction)?;
-        let context_id = txn
-            .request
-            .as_ref()
-            .ok_or(M10Error::InvalidTransaction)?
-            .context_id
-            .clone();
-        let success = response.error.is_none();
-        let timestamp = UNIX_EPOCH + Duration::from_micros(response.timestamp);
-        let tx_id = response.tx_id;
-        let update_type = match txn.data().ok_or(M10Error::InvalidTransaction)? {
+    fn try_from(
+        (data, account_created): (&sdk::transaction_data::Data, &[u8]),
+    ) -> Result<Self, Self::Error> {
+        match data {
             Data::CreateLedgerAccount(_) => Ok(AccountUpdateType::NewAccount {
-                account_id: AccountId::try_from_be_slice(&response.account_created).ok(),
+                account_id: AccountId::try_from_be_slice(account_created).ok(),
             }),
             Data::SetFreezeState(freeze) => Ok(AccountUpdateType::SetFrozen {
                 is_frozen: freeze.frozen,
@@ -166,7 +159,28 @@ impl TryFrom<sdk::FinalizedTransaction> for AccountUpdate {
                 decimals: instrument.decimal_places,
             }),
             _ => Err(M10Error::InvalidTransaction),
-        }?;
+        }
+    }
+}
+
+impl TryFrom<sdk::FinalizedTransaction> for AccountUpdate {
+    type Error = M10Error;
+
+    fn try_from(txn: sdk::FinalizedTransaction) -> Result<Self, Self::Error> {
+        let response = txn.response.as_ref().ok_or(M10Error::InvalidTransaction)?;
+        let context_id = txn
+            .request
+            .as_ref()
+            .ok_or(M10Error::InvalidTransaction)?
+            .context_id
+            .clone();
+        let success = response.error.is_none();
+        let timestamp = UNIX_EPOCH + Duration::from_micros(response.timestamp);
+        let tx_id = response.tx_id;
+        let update_type = AccountUpdateType::try_from((
+            txn.data().ok_or(M10Error::InvalidTransaction)?,
+            response.account_created.as_slice(),
+        ))?;
         Ok(Self {
             tx_id,
             context_id,
@@ -181,9 +195,14 @@ impl TryFrom<sdk::AccountInfo> for AccountInfo {
     type Error = M10Error;
 
     fn try_from(info: sdk::AccountInfo) -> Result<Self, Self::Error> {
+        let id = AccountId::try_from_be_slice(&info.account_id)?;
         Ok(Self {
-            id: AccountId::try_from_be_slice(&info.account_id)?,
-            parent_id: AccountId::try_from_be_slice(&info.parent_account_id)?,
+            id,
+            parent_id: if !info.parent_account_id.is_empty() {
+                AccountId::try_from_be_slice(&info.parent_account_id)?
+            } else {
+                id
+            },
             public_name: info.public_name,
             profile_image_url: info.profile_image_url,
             code: info.code,

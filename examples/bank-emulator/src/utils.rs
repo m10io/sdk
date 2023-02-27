@@ -1,17 +1,20 @@
 use std::future::Future;
 
 use crate::error::Error;
-use crate::models::TransferChain;
+use crate::models::{AssetType, TransferChain};
 use crate::{context::Context, models::Payment};
 
-use m10_protos::MetadataExt;
-use m10_sdk::account::AccountId;
-use m10_sdk::contract::FinalizedContractExt;
-use m10_sdk::EnhancedTransfer;
+use m10_protos::{
+    prost::Any,
+    sdk::{CreateTransfer, TransferStep},
+    MetadataExt,
+};
 use m10_sdk::{
+    account::AccountId,
+    contract::FinalizedContractExt,
     directory::{alias, Alias},
     sdk::{self, transaction_data::Data},
-    LedgerClient, Signer,
+    EnhancedTransfer, LedgerClient, Signer,
 };
 use tracing::{error, info};
 use uuid::Uuid;
@@ -40,6 +43,7 @@ pub(crate) async fn submit_transaction(
     .map_err(Error::from)
 }
 
+#[allow(dead_code)]
 pub(crate) async fn find_ledger_account(
     account_name: &str,
     owner: Option<&String>,
@@ -51,13 +55,13 @@ pub(crate) async fn find_ledger_account(
     let mut client = context.ledger.clone();
     let request = context
         .signer
-        .sign_request(sdk::ListAccountsRequest {
-            filter: Some(sdk::list_accounts_request::Filter::Owner(owner)),
+        .sign_request(sdk::ListAccountMetadataRequest {
+            filter: Some(sdk::list_account_metadata_request::Filter::Owner(owner)),
             page: None,
         })
         .await?;
     let docs = client
-        .list_accounts(request)
+        .list_account_metadata(request)
         .await
         .map_err(|err| Error::internal_msg(err.to_string()))?;
     let account = docs
@@ -92,7 +96,7 @@ pub(crate) async fn create_account_set(
 }
 
 pub(crate) async fn create_ledger_account(
-    parent_id: &[u8],
+    parent_id: Vec<u8>,
     limit: u64,
     name: String,
     public_name: String,
@@ -100,7 +104,7 @@ pub(crate) async fn create_ledger_account(
     context: &Context,
 ) -> Result<Vec<u8>, Error> {
     let payload = sdk::CreateLedgerAccount {
-        parent_id: parent_id.to_vec(),
+        parent_id,
         balance_limit: limit,
         frozen: false,
         ..Default::default()
@@ -108,7 +112,7 @@ pub(crate) async fn create_ledger_account(
     let ledger_account_id = submit_transaction(payload, vec![], context)
         .await?
         .account_created;
-    let account_doc = sdk::Account {
+    let account_doc = sdk::AccountMetadata {
         id: ledger_account_id.clone(),
         owner: context.signer.public_key().to_vec(),
         name,
@@ -121,10 +125,8 @@ pub(crate) async fn create_ledger_account(
 }
 
 pub(crate) fn check_if_parent(child: &[u8], parent: &[u8]) -> Result<(), Error> {
-    let raw_id = u128::from_be_bytes((&child[0..16]).try_into()?);
-    let child_id = AccountId::from_raw(raw_id)?;
-    let raw_id = u128::from_be_bytes((&parent[0..16]).try_into()?);
-    let parent_id = AccountId::from_raw(raw_id)?;
+    let child_id = AccountId::try_from_be_bytes((&child[0..16]).try_into()?)?;
+    let parent_id = AccountId::try_from_be_bytes((&parent[0..16]).try_into()?)?;
     let expected_parent_id = child_id
         .parent_id()
         .ok_or_else(|| Error::internal_msg("holding account can't be a root account"))?;
@@ -132,6 +134,63 @@ pub(crate) fn check_if_parent(child: &[u8], parent: &[u8]) -> Result<(), Error> 
         return Err(Error::internal_msg("accounts are not of same type"));
     }
     Ok(())
+}
+
+#[allow(dead_code)]
+pub(crate) fn is_parent(child: &[u8], parent: &[u8]) -> Result<bool, Error> {
+    let child_id = AccountId::try_from_be_bytes((&child[0..16]).try_into()?)?;
+    let parent_id = AccountId::try_from_be_bytes((&parent[0..16]).try_into()?)?;
+    Ok(child_id.is_descendant_of(parent_id))
+}
+
+#[allow(dead_code)]
+pub(crate) fn is_common_parent(
+    parent_id: &[u8],
+    child_a: &[u8],
+    child_b: &[u8],
+) -> Result<bool, Error> {
+    let child_a = AccountId::try_from_be_bytes((&child_a[0..16]).try_into()?)?;
+    let child_b = AccountId::try_from_be_bytes((&child_b[0..16]).try_into()?)?;
+    let parent_id = AccountId::try_from_be_bytes((&parent_id[0..16]).try_into()?)?;
+    Ok(child_a.is_descendant_of(parent_id) && child_b.is_descendant_of(parent_id))
+}
+
+pub(crate) fn parent_of(account: &[u8]) -> Result<Vec<u8>, Error> {
+    let child_id = AccountId::try_from_be_bytes((&account[0..16]).try_into()?)?;
+    Ok(child_id
+        .parent_id()
+        .ok_or_else(|| Error::internal_msg("holding account can't be a root account"))?
+        .to_be_bytes()
+        .to_vec())
+}
+
+pub(crate) async fn ledger_transfer(
+    from_account_id: Vec<u8>,
+    to_account_id: Vec<u8>,
+    amount: u64,
+    metadata: Vec<Any>,
+    context: &Context,
+) -> Result<u64, Error> {
+    // create transaction
+    let payload = LedgerClient::transaction_request(
+        m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
+            transfer_steps: vec![TransferStep {
+                from_account_id,
+                to_account_id,
+                amount,
+                metadata,
+            }],
+        }),
+        vec![],
+    );
+    let signed_request = context.signer.sign_request(payload).await?;
+    let mut ledger = context.ledger.clone();
+    let txn = ledger
+        .create_transaction(signed_request)
+        .await?
+        .tx_error()?;
+    info!("Deposit mirrored on ledger: {}", txn.tx_id);
+    Ok(txn.tx_id)
 }
 
 async fn payment_from_transfer(
@@ -234,20 +293,25 @@ pub(crate) async fn list_payments(
     limit: u64,
     include_child_accounts: bool,
     ledger_account_id: Option<Vec<u8>>,
+    asset_type: AssetType,
     context: &Context,
 ) -> Result<Vec<Payment>, Error> {
     let mut ledger = context.ledger.clone();
-    let instrument = instrument.to_lowercase();
-    let currency = context
-        .config
-        .currencies
-        .get(&instrument)
-        .ok_or_else(|| Error::internal_msg("unknown instrument"))?;
+    let ledger_account_id = match ledger_account_id {
+        Some(id) => id,
+        None => match asset_type {
+            AssetType::Regulated => context.get_currency_regulated_account(instrument).await?,
+            AssetType::IndirectCbdc => context.get_currency_cbdc_account(instrument).await?,
+            _ => {
+                return Err(Error::internal_msg("unsupported asset type"));
+            }
+        },
+    };
     let req = context
         .signer
         .sign_request(sdk::ListTransferRequest {
             filter: Some(sdk::list_transfer_request::Filter::AccountId(
-                ledger_account_id.unwrap_or(currency.ledger_account_id(context).await?.to_vec()),
+                ledger_account_id,
             )),
             min_tx_id,
             limit,
@@ -268,7 +332,7 @@ pub(crate) async fn list_payments(
 
     for transfer in transfers.drain(..) {
         payments.push(
-            payment_from_transfer(transfer, &currency.code, context)
+            payment_from_transfer(transfer, instrument, context)
                 .await
                 .map_err(|_| Error::internal_msg("getting transfers"))?,
         );

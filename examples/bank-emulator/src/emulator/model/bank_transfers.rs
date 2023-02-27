@@ -4,7 +4,7 @@ use serde_json::Value;
 use sqlx::{postgres::PgArguments, query::QueryAs, Postgres};
 use uuid::Uuid;
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_transaction_state")]
 pub enum TransactionState {
@@ -14,7 +14,7 @@ pub enum TransactionState {
     Canceled,
 }
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_transaction_type")]
 pub enum TransactionType {
@@ -22,7 +22,7 @@ pub enum TransactionType {
     Debit,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq)]
 pub struct BankTransfer {
     pub txn_id: Uuid,
     pub refernce: String,

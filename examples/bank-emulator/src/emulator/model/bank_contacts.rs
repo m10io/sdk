@@ -4,7 +4,7 @@ use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 
 use crate::{error::Error, models::ContactType};
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_contact_status")]
 pub enum BankContactStatus {
@@ -15,7 +15,7 @@ pub enum BankContactStatus {
     Retired,
 }
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "bank_contact_type")]
 pub enum BankContactType {
@@ -32,7 +32,7 @@ impl From<ContactType> for BankContactType {
     }
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq)]
 pub struct BankContact {
     pub id: i64,
     pub account: i64,

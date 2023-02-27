@@ -1,6 +1,9 @@
 use crate::context::Context;
 use clap::Subcommand;
-use m10_sdk::{prost::Message, sdk, Collection, Pack, Signer};
+use m10_sdk::{
+    account::AccountId, error::M10Error, prost::Message, sdk, Collection, DocumentBuilder, Pack,
+    PublicKey, Signer, WithContext,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use uuid::Uuid;
@@ -27,7 +30,7 @@ pub(super) enum CreateSubCommands {
     /// Create a new account set record on the ledger
     AccountSet(account_sets::CreateAccountSetOptions),
     /// Create a new account metadata record on the ledger
-    Account(accounts::CreateAccountOptions),
+    Account(accounts::CreateAccountMetadataOptions),
     /// Create a new bank metadata record on the ledger
     Bank(banks::CreateBankOptions),
     /// Create a directory entry
@@ -53,7 +56,7 @@ impl CreateSubCommands {
         match self {
             CreateSubCommands::CollectionMetadata(options) => options.create(config).await,
             CreateSubCommands::Account(options) => {
-                store_create::<_, sdk::Account>(options, config).await
+                store_create::<_, sdk::AccountMetadata>(options, config).await
             }
             CreateSubCommands::AccountSet(options) => {
                 store_create::<_, sdk::AccountSet>(options, config).await
@@ -82,7 +85,7 @@ impl CreateSubCommands {
         match self {
             CreateSubCommands::CollectionMetadata(options) => Ok(options.create_operation()),
             CreateSubCommands::Account(options) => {
-                create_operation::<_, sdk::Account>(options, config).await
+                create_operation::<_, sdk::AccountMetadata>(options, config).await
             }
             CreateSubCommands::AccountSet(options) => {
                 create_operation::<_, sdk::AccountSet>(options, config).await
@@ -100,7 +103,8 @@ impl CreateSubCommands {
 
 trait BuildFromOptions {
     type Document: Pack;
-    fn build_from_options(&self, default_owner: Vec<u8>) -> Result<Self::Document, anyhow::Error>;
+    fn build_from_options(&self, default_owner: PublicKey)
+        -> Result<Self::Document, anyhow::Error>;
 }
 
 async fn store_create<O, D>(options: &O, config: &crate::Config) -> anyhow::Result<()>
@@ -108,29 +112,42 @@ where
     O: BuildFromOptions<Document = D> + Debug,
     D: Message + Pack + 'static,
 {
-    let mut context = Context::new(config).await?;
-    let default_owner = context.admin.public_key().to_vec();
-    let document = options.build_from_options(default_owner)?;
+    let context = Context::new(config)?;
+    let default_owner = context.m10_client.signer().public_key().to_vec();
+    let document = options.build_from_options(PublicKey(default_owner))?;
     let id = document.id().to_vec();
     let response = context
-        .submit_transaction(sdk::Operation::insert(document), config.context_id.clone())
-        .await?;
-    if let Err(err) = response {
-        if err.code == sdk::transaction_error::Code::AlreadyExists as i32 {
+        .m10_client
+        .documents(
+            DocumentBuilder::default()
+                .insert(document)
+                .context_id(config.context_id.clone()),
+        )
+        .await;
+    match response {
+        Ok(_) => {
+            eprintln!("Created {} resource:", D::COLLECTION);
+            if D::COLLECTION == Collection::AccountMetadata {
+                println!("{}", AccountId::try_from_be_slice(&id)?);
+            } else {
+                println!("{}", Uuid::from_slice(&id).unwrap());
+            }
+            Ok(())
+        }
+        Err(M10Error::Transaction(err))
+            if err.code() == sdk::transaction_error::Code::AlreadyExists =>
+        {
             eprintln!("Item exists already");
             Ok(())
-        } else {
+        }
+        Err(M10Error::Transaction(err)) => {
             eprintln!("Err {} creating resource: {}", err.code, err.message);
             Err(anyhow::anyhow!("failed resource creation"))
         }
-    } else {
-        eprintln!("Created {} resource:", D::COLLECTION);
-        if D::COLLECTION == Collection::Accounts {
-            println!("{}", hex::encode(&id));
-        } else {
-            println!("{}", Uuid::from_slice(&id).unwrap());
+        Err(err) => {
+            eprintln!("Err {}", err);
+            Err(anyhow::anyhow!("failed resource creation"))
         }
-        Ok(())
     }
 }
 
@@ -142,8 +159,8 @@ where
     O: BuildFromOptions<Document = D>,
     D: Message + Pack + 'static,
 {
-    let context = Context::new(config).await?;
-    let default_owner = context.admin.public_key().to_vec();
-    let document = options.build_from_options(default_owner)?;
+    let context = Context::new(config)?;
+    let default_owner = context.m10_client.signer().public_key().to_vec();
+    let document = options.build_from_options(PublicKey(default_owner))?;
     Ok(sdk::Operation::insert(document))
 }

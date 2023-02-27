@@ -3,17 +3,19 @@ use crate::error::M10Error;
 use crate::types::PublicKey;
 use m10_protos::sdk;
 use m10_protos::sdk::Rule;
+use serde::Serialize;
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
     feature = "format",
     display("Role{{ id={id} owner={owner} name={name} rules={rules:?} }}")
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Role {
     pub id: ResourceId,
     pub owner: PublicKey,
     pub name: String,
+    #[serde(skip)]
     pub rules: Vec<Rule>,
 }
 

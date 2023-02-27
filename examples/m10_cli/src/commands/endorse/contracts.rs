@@ -1,6 +1,7 @@
 use clap::Parser;
 use m10_sdk::contract::FinalizedContractExt;
-use m10_sdk::{prost::Message, sdk::Contract, Signer};
+use m10_sdk::Signer;
+use m10_sdk::{prost::Message, sdk::Contract};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -19,7 +20,7 @@ pub(crate) struct EndorseContractOptions {
 
 impl EndorseContractOptions {
     pub(in crate::commands) async fn endorse(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let context = Context::new(config).await?;
+        let context = Context::new(config)?;
 
         let output = self
             .output
@@ -36,13 +37,14 @@ impl EndorseContractOptions {
             .endorsements
             .iter()
             .filter_map(|e| e.signature.as_ref())
-            .any(|sig| sig.public_key == context.admin.public_key())
+            .any(|sig| sig.public_key == context.m10_client.signer().public_key())
         {
             println!("Contract {} is already endorsed by you", contract_id);
             return Ok(());
         }
         context
-            .admin
+            .m10_client
+            .signer()
             .endorse(&mut contract, ledger_id.to_string())
             .await?;
         let buf = contract.encode_to_vec();

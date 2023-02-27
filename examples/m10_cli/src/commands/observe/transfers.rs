@@ -1,37 +1,28 @@
-use crate::commands::{
-    observe::{parse_account_id, print_doc},
-    Format,
-};
 use crate::context::Context;
 use futures_lite::StreamExt;
-use m10_sdk::{sdk, Signer};
+use m10_sdk::account::AccountId;
+use m10_sdk::{AccountFilter, Format, PrettyPrint, TxId};
 
 pub(crate) async fn observe(
-    ids: &[String],
-    starting_from: Option<sdk::TxId>,
+    ids: &[AccountId],
+    starting_from: Option<TxId>,
     format: Format,
     config: &crate::Config,
 ) -> anyhow::Result<()> {
-    let context = Context::new(config).await?;
-    let ids = ids
+    let context = Context::new(config)?;
+    let mut filter = ids
         .iter()
-        .map(|x| parse_account_id(x))
-        .collect::<Result<Vec<_>, _>>()?;
-    let request = context
-        .admin
-        .sign_request(sdk::ObserveAccountsRequest {
-            involved_accounts: ids.iter().map(|id| id.to_be_bytes().to_vec()).collect(),
-            starting_from,
-        })
-        .await?;
-    let mut transfers = context.m10_client.observe_transfers(request).await?;
+        .copied()
+        .fold(AccountFilter::default(), |filter, id| filter.involves(id));
+    if let Some(start) = starting_from {
+        filter = filter.starting_from(start);
+    }
+    let mut stream = context.m10_client.observe_transfers(filter).await?;
 
-    while let Some(message) = transfers.next().await {
+    while let Some(message) = stream.next().await {
         match message {
-            Ok(sdk::FinalizedTransactions { transactions }) => {
-                for tx in transactions {
-                    print_doc(tx, format)?;
-                }
+            Ok(transfers) => {
+                transfers.print(format)?;
             }
             Err(err) => {
                 eprintln!("Error while receiving message: {}", err);

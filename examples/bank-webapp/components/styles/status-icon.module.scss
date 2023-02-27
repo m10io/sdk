@@ -32,7 +32,8 @@
 
   &.statusIconTypeError,
   &statusIconTypeUnknown,
-  &.statusIconTypeFailed {
+  &.statusIconTypeFailed,
+  &.statusIconTypeFraud {
     color: #ffffff;
     background: $color-red-dark;
   }

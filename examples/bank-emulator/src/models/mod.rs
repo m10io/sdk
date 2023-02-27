@@ -3,18 +3,23 @@ use serde::{Deserialize, Serialize};
 pub use accounts::*;
 pub use assets::*;
 pub use contacts::*;
+pub use currencies::*;
 pub use fees::*;
 pub use notification_preferences::*;
 pub use payments::*;
+#[allow(unused_imports)]
+pub use transfers::*;
 
 mod accounts;
 mod assets;
 mod contacts;
+mod currencies;
 mod fees;
 mod notification_preferences;
 mod payments;
+mod transfers;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListResponse<I, D> {
     pub data: Vec<D>,
 
@@ -28,7 +33,7 @@ impl<I, D> ListResponse<I, D> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct NextPageToken<I> {
     pub id: I,
 }

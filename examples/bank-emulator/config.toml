@@ -7,9 +7,11 @@ prometheus_port = "27777"
 
 key_pair = "MFMCAQEwBQYDK2VwBCIEIFX1/JTSaE+IV9aM3SWMLhh6Gi8G3+Uu8rfQG4+jmqmfoSMDIQAYsbQ3kBzKG2ijScMH9jnRYg7JUCL+QQkum+Sc1NIPEg=="
 bank_name = "M10 Bank"
+short_name = "MTB"
+swift_code = "MTBUSM10SB"
 
 [oauth]
-issuer   = "https://keycloak-develop.m10.net/"
+issuer   = "https://keycloak-app.m10.net/"
 audience = "https://api.m10.net"
 
 [bank]
@@ -18,18 +20,21 @@ currencies = [{currency = "USD", account_name = "holding-usd", pre_fund_range = 
 checking_account_start = 500000000
 
 [currencies.usd]
-ledger_account_name = "M10 Bank D-USD"
-cbdc = {ledger_account_name = "M10 Bank USD", customer_limit = 100000, reserve_balance = 10000000, reserve_threshold = 20}
 code = "usd"
-rtgs = {addr = "http://0.0.0.0:50052", institute_name = "M10 Reserve", reserve_balance = 1000000000, reserve_threshold = 20}
+rtgs_addr = "http://0.0.0.0:50052"
+cb_name = "M10 Reserve"
+reserve_config = {nominal_balance = 1000000000, balance_threshold = 20}
+cbdc_config = {customer_limit = 100000, nominal_margin = 10000000, margin_threshold = 20}
+drc_config = {nominal_fraction = 20, fraction_threshold = 10}
 asset = false
 
 [currencies.ttt]
-ledger_account_name = "Bank A"
-account_owner = "6qot3U5hJXqxqzX6/k1ZgukkN3cbmtq3RG3oHRgym88="
 code = "ttt"
+rtgs_addr = "http://0.0.0.0:50052"
+cb_name = "M10 Reserve"
+reserve_config = {nominal_balance = 1000000000, balance_threshold = 20}
 asset = false
-test = true
+test = {account_owner = "6qot3U5hJXqxqzX6/k1ZgukkN3cbmtq3RG3oHRgym88=", ledger_account_name = "Bank A TTT"}
 
 [notification]
 type = "Mock"

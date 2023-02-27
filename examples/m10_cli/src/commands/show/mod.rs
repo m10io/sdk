@@ -1,6 +1,6 @@
 use crate::collections::contracts::show_contract;
-use crate::commands::Format;
 use clap::{Parser, Subcommand};
+use m10_sdk::Format;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

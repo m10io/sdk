@@ -1,7 +1,7 @@
 use crate::context::Context;
 use clap::Parser;
-use m10_sdk::DocumentUpdate;
 use m10_sdk::{prost::Message, sdk, Pack};
+use m10_sdk::{DocumentBuilder, DocumentUpdate, WithContext};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use uuid::Uuid;
@@ -77,14 +77,18 @@ where
     O: BuildFromOptions<Document = M>,
     M: Message + Pack + Default,
 {
-    let mut context = Context::new(config).await?;
+    let context = Context::new(config)?;
     let mut builder = DocumentUpdate::<M>::new(id);
 
     options.build_from_options(&mut builder)?;
     context
-        .submit_transaction(builder.operation(), config.context_id.clone())
-        .await??;
-
+        .m10_client
+        .documents(
+            DocumentBuilder::default()
+                .update(&builder)
+                .context_id(config.context_id.clone()),
+        )
+        .await?;
     Ok(())
 }
 

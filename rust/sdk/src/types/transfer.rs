@@ -8,13 +8,16 @@ use core::time::Duration;
 use m10_protos::prost::Any;
 use m10_protos::sdk::transaction_data::Data;
 use m10_protos::{sdk, MetadataExt, MetadataType};
+use serde::Serialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct TransferStep {
     pub from: AccountId,
     pub to: AccountId,
     pub amount: u64,
+    // TODO @sadroeck - Fixme
+    #[serde(skip)]
     pub metadata: Vec<Any>,
 }
 
@@ -64,7 +67,7 @@ impl TryFrom<sdk::TransferStep> for TransferStep {
 }
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, Serialize)]
 pub enum TransferStatus {
     Pending,
     Accepted,
@@ -83,7 +86,7 @@ impl From<sdk::finalized_transfer::TransferState> for TransferStatus {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Transfer {
     pub tx_id: TxId,
     pub context_id: Vec<u8>,
@@ -213,7 +216,7 @@ impl MetadataExt for Transfer {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ExpandedTransfer {
     pub tx_id: TxId,
     pub context_id: Vec<u8>,
@@ -247,7 +250,7 @@ impl std::fmt::Display for ExpandedTransfer {
     feature = "format",
     display("Account{{ id={id} name={public_name} image={profile_image_url} currency={code}({decimals}) }}")
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ExpandedAccount {
     pub id: AccountId,
     pub public_name: String,
@@ -256,11 +259,13 @@ pub struct ExpandedAccount {
     pub decimals: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ExpandedTransferStep {
     pub from: ExpandedAccount,
     pub to: ExpandedAccount,
     pub amount: u64,
+    // TODO @sadroeck - fixme
+    #[serde(skip)]
     pub metadata: Vec<Any>,
 }
 

@@ -1,4 +1,3 @@
-use crate::commands::top_level_cmds::Format;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

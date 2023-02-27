@@ -1,6 +1,7 @@
 @import 'shared.module.scss';
 
 .containerWrapper {
+  box-shadow: 0px 0px 25px rgba(0,0,0,0.1);
   flex: 1;
   max-width: $max-content-width;
 

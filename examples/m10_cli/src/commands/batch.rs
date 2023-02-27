@@ -1,6 +1,8 @@
 use crate::context::Context;
 use clap::{ArgGroup, Parser};
-use m10_protos::sdk::transaction_error::Code;
+use m10_protos::sdk;
+use m10_protos::sdk::TransactionError;
+use m10_sdk::{error::M10Error, DocumentBuilder, WithContext};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufReader};
 
@@ -27,18 +29,20 @@ impl BatchOptions {
                 op.dry_run(self.migration)?;
             }
         } else if self.migration {
-            let mut operations = Vec::default();
+            let mut operations = DocumentBuilder::default();
             for op in data {
-                operations.push(op.document_operation(config).await?);
+                operations = operations.insert_operation(op.document_operation(config).await?);
             }
-            let mut context = Context::new(config).await?;
-            let response = context
-                .submit_transaction(operations, config.context_id.clone())
-                .await?;
-            if let Err(err) = response {
-                if err.code() != Code::AlreadyExists {
-                    anyhow::bail!(err);
-                }
+            let context = Context::new(config)?;
+            let result = context
+                .m10_client
+                .documents(operations.context_id(config.context_id.clone()))
+                .await;
+            match result {
+                Ok(_) => {}
+                Err(M10Error::Transaction(TransactionError { code, .. }))
+                    if code == sdk::transaction::transaction_error::Code::AlreadyExists as i32 => {}
+                Err(err) => anyhow::bail!(err),
             }
         } else {
             for op in data {

@@ -22,9 +22,9 @@ pub use resource_id::ResourceId;
 ///
 /// ```rust
 /// use m10_sdk::DocumentUpdate;
-/// use m10_sdk::sdk::Account;
+/// use m10_sdk::sdk::AccountMetadata;
 ///
-/// let mut update: DocumentUpdate<Account> = DocumentUpdate::new(uuid::Uuid::new_v4());
+/// let mut update: DocumentUpdate<AccountMetadata> = DocumentUpdate::new(uuid::Uuid::new_v4());
 /// update.name("Test".to_string());
 /// let operation = update.operation();
 /// ```

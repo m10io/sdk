@@ -1,3 +1,5 @@
+#![allow(clippy::derive_partial_eq_without_eq)]
+
 /// Includes generated protocol buffer code.
 macro_rules! include_proto {
     ($package:tt) => {
@@ -147,8 +149,8 @@ pub mod sdk {
         }
     }
 
-    impl Pack for Account {
-        const COLLECTION: Collection = Collection::Accounts;
+    impl Pack for AccountMetadata {
+        const COLLECTION: Collection = Collection::AccountMetadata;
         fn set_id(&mut self, id: Vec<u8>) {
             self.id = id;
         }

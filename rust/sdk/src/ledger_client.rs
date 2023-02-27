@@ -1,9 +1,10 @@
 use futures_core::Stream;
-use m10_protos::sdk::AccountInfo;
 use m10_protos::sdk::{
     self, m10_query_service_client::M10QueryServiceClient,
-    m10_tx_service_client::M10TxServiceClient, transaction_data::Data, TransactionData,
+    m10_tx_service_client::M10TxServiceClient, transaction_data::Data, BulkTransactions,
+    TransactionData,
 };
+use m10_protos::sdk::{AccountInfo, RequestEnvelope};
 use m10_signing::SignedRequest;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Response};
@@ -79,10 +80,20 @@ impl LedgerClient {
 
     pub async fn create_transaction(
         &mut self,
-        payload: SignedRequest<sdk::TransactionRequestPayload>,
+        payload: impl Into<RequestEnvelope>,
     ) -> Result<sdk::TransactionResponse, Status> {
         self.tx_client
             .create_transaction(Request::new(payload.into()))
+            .await
+            .map(|res| res.into_inner())
+    }
+
+    pub async fn bulk_create_transactions(
+        &mut self,
+        payload: impl Into<BulkTransactions>,
+    ) -> Result<sdk::BulkTransactionsResponse, Status> {
+        self.tx_client
+            .bulk_create_transactions(Request::new(payload.into()))
             .await
             .map(|res| res.into_inner())
     }
@@ -192,12 +203,12 @@ impl LedgerClient {
     }
 
     // Accounts
-    pub async fn get_account(
+    pub async fn get_account_metadata(
         &mut self,
         request: SignedRequest<sdk::GetAccountRequest>,
-    ) -> Result<sdk::Account, Status> {
+    ) -> Result<sdk::AccountMetadata, Status> {
         self.query_client
-            .get_account(Request::new(request.into()))
+            .get_account_metadata(Request::new(request.into()))
             .await
             .map(|res| res.into_inner())
     }
@@ -212,12 +223,12 @@ impl LedgerClient {
             .map(|res| res.into_inner())
     }
 
-    pub async fn list_accounts(
+    pub async fn list_account_metadata(
         &mut self,
-        request: SignedRequest<sdk::ListAccountsRequest>,
-    ) -> Result<sdk::ListAccountsResponse, Status> {
+        request: SignedRequest<sdk::ListAccountMetadataRequest>,
+    ) -> Result<sdk::ListAccountMetadataResponse, Status> {
         self.query_client
-            .list_accounts(Request::new(request.into()))
+            .list_account_metadata(Request::new(request.into()))
             .await
             .map(|res| res.into_inner())
     }
@@ -459,6 +470,17 @@ impl LedgerClient {
         self.query_client
             .clone()
             .list_banks(Request::new(request.into()))
+            .await
+            .map(tonic::Response::into_inner)
+    }
+
+    pub async fn get_bank(
+        &self,
+        request: SignedRequest<sdk::GetBankRequest>,
+    ) -> Result<sdk::Bank, Status> {
+        self.query_client
+            .clone()
+            .get_bank(Request::new(request.into()))
             .await
             .map(tonic::Response::into_inner)
     }

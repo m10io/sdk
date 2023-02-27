@@ -1,4 +1,4 @@
-pub(crate) use top_level_cmds::{Commands, Format};
+pub(crate) use top_level_cmds::Commands;
 
 mod auth;
 mod batch;

@@ -15,7 +15,7 @@ impl<T> TxnFilter<T> {
         self
     }
 
-    pub fn max(mut self, tx_id: TxId) -> Self {
+    pub fn max_tx(mut self, tx_id: TxId) -> Self {
         self.max = tx_id;
         self
     }

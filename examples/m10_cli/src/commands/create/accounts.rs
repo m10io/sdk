@@ -1,12 +1,12 @@
 use super::ledger_accounts::CreateLedgerAccountOptions;
 use clap::Parser;
-use m10_sdk::sdk;
+use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
 #[clap(about)]
-pub(crate) struct CreateAccountOptions {
+pub(crate) struct CreateAccountMetadataOptions {
     /// Ignore error if item exists
     #[clap(short = 'e', long)]
     #[serde(default)]
@@ -16,7 +16,7 @@ pub(crate) struct CreateAccountOptions {
     pub(super) id: Option<Uuid>,
     /// Set owner of the account record
     #[clap(short, long)]
-    owner: Option<String>,
+    owner: Option<PublicKey>,
     /// Set an account name
     #[clap(short, long)]
     name: Option<String>,
@@ -28,15 +28,15 @@ pub(crate) struct CreateAccountOptions {
     profile_image_url: Option<String>,
 }
 
-impl super::BuildFromOptions for CreateAccountOptions {
-    type Document = sdk::Account;
-    fn build_from_options(&self, default_owner: Vec<u8>) -> Result<Self::Document, anyhow::Error> {
+impl super::BuildFromOptions for CreateAccountMetadataOptions {
+    type Document = sdk::AccountMetadata;
+    fn build_from_options(
+        &self,
+        default_owner: PublicKey,
+    ) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self
-            .owner
-            .as_ref()
-            .map_or::<Result<Vec<u8>, _>, _>(Ok(default_owner), base64::decode)?;
-        Ok(sdk::Account {
+        let owner = self.owner.clone().unwrap_or(default_owner).0;
+        Ok(sdk::AccountMetadata {
             id,
             owner,
             name: self.name.clone().unwrap_or_default(),
@@ -46,8 +46,8 @@ impl super::BuildFromOptions for CreateAccountOptions {
     }
 }
 
-impl From<&CreateLedgerAccountOptions> for CreateAccountOptions {
-    fn from(other: &CreateLedgerAccountOptions) -> CreateAccountOptions {
+impl From<&CreateLedgerAccountOptions> for CreateAccountMetadataOptions {
+    fn from(other: &CreateLedgerAccountOptions) -> CreateAccountMetadataOptions {
         let CreateLedgerAccountOptions {
             owner,
             name,
@@ -55,7 +55,7 @@ impl From<&CreateLedgerAccountOptions> for CreateAccountOptions {
             profile_image_url,
             ..
         } = other;
-        CreateAccountOptions {
+        CreateAccountMetadataOptions {
             if_not_exists: false,
             id: None,
             owner: owner.clone(),

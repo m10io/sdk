@@ -25,7 +25,7 @@ pub(crate) struct UpdateAccountOptions {
 }
 
 impl super::BuildFromOptions for UpdateAccountOptions {
-    type Document = sdk::Account;
+    type Document = sdk::AccountMetadata;
 
     fn build_from_options(
         &self,

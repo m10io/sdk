@@ -1,19 +1,24 @@
 @import 'shared.module.scss';
 
 .pageWrapper {
-  position: relative;
-  top: $nav-height;
   display: flex;
   flex-flow: row nowrap;
   align-items: flex-start;
   justify-content: flex-start;
-  min-height: calc(100vh - 90px);
-  background: #EAEDEF;
+  background-color: rgb(238, 238, 238);
+  min-height: 100vh;
 }
+
+@media (max-width: 900px) {
+  .pageContainer {
+    margin-top: 100px;
+  }
+}
+
 
 .pageContainer {
   flex-grow: 1;
-  padding: 30px;
+  padding: 22px 30px 30px 30px;
 
   &.pageContainerFullWidth {
     padding: 0,
@@ -46,4 +51,8 @@
   font-size: 20px;
   line-height: 20px;
   color: $font-color-primary;
+}
+
+.pageErrorContainer {
+  box-shadow: unset;
 }

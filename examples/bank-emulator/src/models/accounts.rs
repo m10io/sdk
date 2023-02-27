@@ -6,7 +6,7 @@ use crate::{auth::AuthScope, error::Error};
 
 use super::{Asset, AssetType, ContactType, NextPageToken};
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "account_status")]
 pub enum AccountStatus {
@@ -22,7 +22,7 @@ impl Default for AccountStatus {
     }
 }
 
-#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Account {
     pub id: i64,
 
@@ -47,7 +47,7 @@ impl From<&Account> for NextPageToken<i64> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateAccountRequest {
     pub tenant: String,
 
@@ -75,7 +75,7 @@ pub struct LedgerAccountQuery {
     pub ledger_account_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AmountRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<String>,
@@ -86,7 +86,7 @@ pub struct AmountRequest {
     pub amount_in_cents: u64,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RedeemRequest {
     pub txn_id: u64,
 

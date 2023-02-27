@@ -3,7 +3,12 @@ use actix_web::{web::Data, FromRequest};
 use biscuit::{jwk::JWKSet, ClaimsSet, Empty, ValidationOptions, JWT};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, convert::TryFrom, future::Ready, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    convert::TryFrom,
+    future::Ready,
+    time::Duration,
+};
 use tokio::sync::watch;
 use tracing::error;
 
@@ -37,6 +42,7 @@ pub struct Resources<T> {
 pub struct PrivateClaims {
     scope: String,
     resource_access: Resources<BankEmulatorRole>,
+    attributes: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Hash, Eq, Debug)]
@@ -68,9 +74,12 @@ pub struct User {
 impl User {
     pub fn new(claims_set: ClaimsSet<PrivateClaims>) -> Result<Self, Error> {
         let user_id = claims_set
-            .registered
-            .subject
-            .ok_or_else(Error::unauthorized)?;
+            .private
+            .attributes
+            .ok_or_else(Error::unauthorized)?
+            .get("m10UserId")
+            .ok_or_else(Error::unauthorized)?
+            .to_owned();
 
         let resource_access = claims_set.private.resource_access;
 

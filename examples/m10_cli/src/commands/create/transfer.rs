@@ -1,10 +1,9 @@
 use crate::context::Context;
 use clap::Parser;
+use m10_sdk::account::AccountId;
 use m10_sdk::contract::FinalizedContractExt;
-use m10_sdk::Signer;
-use m10_sdk::{
-    prost::Message, sdk, sdk::transaction_data::Data, sdk::transaction_error::Code, Metadata,
-};
+use m10_sdk::{prost::Message, sdk};
+use m10_sdk::{StepBuilder, TransferBuilder, WithContext};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -13,10 +12,10 @@ use std::fmt::Debug;
 pub(crate) struct Transfer {
     /// Set sending account
     #[clap(short, long)]
-    from_account: Option<String>,
+    from_account: AccountId,
     /// Set receiving account
     #[clap(short, long)]
-    to_account: Option<String>,
+    to_account: AccountId,
     /// Set amount
     #[clap(short, long)]
     amount: u64,
@@ -36,33 +35,24 @@ pub(crate) struct Transfer {
 
 impl Transfer {
     pub async fn create(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
-
-        let account = hex::decode(
-            self.from_account
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("missing account"))?,
-        )?;
-        let other_account = hex::decode(
-            self.to_account
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("missing target account"))?,
-        )?;
+        let mut context = Context::new(config)?;
 
         if self.rebalance {
-            let request = context
-                .admin
-                .sign_request(sdk::GetAccountRequest {
-                    id: account.clone(),
-                })
-                .await?;
-            let indexed_account = context.m10_client.get_indexed_account(request).await?;
+            let indexed_account = context.m10_client.get_account(self.from_account).await?;
 
             let current_balance = indexed_account.balance;
 
             let (from, to, amount) = match current_balance {
-                b if b > self.amount => (account, other_account, current_balance - self.amount),
-                b if b < self.amount => (other_account, account, self.amount - current_balance),
+                b if b > self.amount => (
+                    self.from_account,
+                    self.to_account,
+                    current_balance - self.amount,
+                ),
+                b if b < self.amount => (
+                    self.to_account,
+                    self.from_account,
+                    self.amount - current_balance,
+                ),
                 _ => {
                     eprintln!("current balance is already at target");
                     return Ok(());
@@ -72,8 +62,8 @@ impl Transfer {
                 .await
         } else {
             self.transfer_funds(
-                account,
-                other_account,
+                self.from_account,
+                self.to_account,
                 self.amount,
                 &mut context,
                 config.context_id.clone(),
@@ -84,8 +74,8 @@ impl Transfer {
 
     async fn transfer_funds(
         &self,
-        from_account: Vec<u8>,
-        to_account: Vec<u8>,
+        from_account: AccountId,
+        to_account: AccountId,
         amount: u64,
         context: &mut Context,
         mut context_id: Vec<u8>,
@@ -108,32 +98,22 @@ impl Transfer {
             }
         }
 
-        let memo = self.memo.as_ref().map(|message| m10_sdk::memo(message));
-        let contract = contract.map(|c| c.any());
-        let metadata = memo.into_iter().chain(contract.into_iter()).collect();
-        let transfer = sdk::CreateTransfer {
-            transfer_steps: vec![sdk::TransferStep {
-                from_account_id: from_account,
-                to_account_id: to_account,
-                amount,
-                metadata,
-            }],
-        };
-        let transfer = if self.no_commit {
-            Data::InitiateTransfer(transfer)
+        let mut step = StepBuilder::new(from_account, to_account, amount);
+        if let Some(memo) = &self.memo {
+            step = step.metadata(m10_sdk::memo(memo));
+        }
+        if let Some(contract) = contract {
+            step = step.metadata(contract);
+        }
+        let builder = TransferBuilder::default().step(step).context_id(context_id);
+
+        let tx_id = if self.no_commit {
+            context.m10_client.initiate_transfer(builder).await
         } else {
-            Data::Transfer(transfer)
-        };
-        let response = context.submit_transaction(transfer, context_id).await?;
-        response
-            .map(|res| {
-                eprintln!("created transfer:");
-                println!("{}", res.tx_id);
-            })
-            .map_err(|err| {
-                let err_type = Code::from_i32(err.code).unwrap_or(Code::Unknown);
-                eprintln!("Could not create transfer: {:?} {}", err_type, err.message);
-                anyhow::anyhow!("failed transfer")
-            })
+            context.m10_client.transfer(builder).await
+        }?;
+        eprintln!("created transfer:");
+        println!("{}", tx_id);
+        Ok(())
     }
 }

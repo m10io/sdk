@@ -1,17 +1,15 @@
+use core::fmt;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 
-use crate::{
-    auth::AuthScope, config::CurrencyConfig, context::Context, error::Error,
-    utils::create_ledger_account,
-};
+use crate::{auth::AuthScope, context::Context, error::Error, utils::create_ledger_account};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AssetTypeQuery {
     pub r#type: Option<AssetType>,
 }
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "asset_type")]
@@ -24,6 +22,15 @@ pub enum AssetType {
 impl Default for AssetType {
     fn default() -> Self {
         AssetType::Regulated
+    }
+}
+
+impl fmt::Display for AssetType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Self::Regulated => f.write_str("DRM"),
+            _ => f.write_str("CBDC"),
+        }
     }
 }
 
@@ -48,7 +55,7 @@ impl TryFrom<&str> for AssetType {
     }
 }
 
-#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Asset {
     pub id: i64,
 
@@ -71,17 +78,19 @@ pub struct Asset {
 
 impl Asset {
     pub(crate) async fn new_for_currency(
-        currency: &CurrencyConfig,
+        currency_code: &str,
         context: &Context,
         name: &str,
         profile_image_url: Option<&str>,
     ) -> Result<Self, Error> {
-        let parent_id = currency.ledger_account_id(context).await?;
+        let parent_id = context
+            .get_currency_regulated_account(currency_code)
+            .await?;
         let ledger_account_id = create_ledger_account(
             parent_id,
             0,
-            format!("{} Wallet", currency.code.to_uppercase()),
-            name.into(),
+            "DRM".to_string(),
+            format!("{} (DRM)", name),
             profile_image_url,
             context,
         )
@@ -94,32 +103,26 @@ impl Asset {
     }
 
     pub(crate) async fn new_cbdc_for_currency(
-        currency: &CurrencyConfig,
+        currency_code: &str,
         context: &Context,
         name: &str,
         profile_image_url: Option<&str>,
-    ) -> Result<Option<Self>, Error> {
-        if let Some(cbdc_config) = &currency.cbdc {
-            let parent_id = cbdc_config
-                .ledger_account_id(currency.account_owner.as_ref(), context)
-                .await?;
-            let ledger_account_id = create_ledger_account(
-                parent_id,
-                cbdc_config.customer_limit,
-                format!("{} CBDC", currency.code.to_uppercase()),
-                name.into(),
-                profile_image_url,
-                context,
-            )
-            .await?;
-            Ok(Some(Asset {
-                id: -1,
-                ledger_account_id,
-                ..Default::default()
-            }))
-        } else {
-            Ok(None)
-        }
+    ) -> Result<Self, Error> {
+        let parent_id = context.get_currency_cbdc_account(currency_code).await?;
+        let ledger_account_id = create_ledger_account(
+            parent_id,
+            0,
+            "CBDC".to_string(),
+            format!("{} (CBDC)", name),
+            profile_image_url,
+            context,
+        )
+        .await?;
+        Ok(Asset {
+            id: -1,
+            ledger_account_id,
+            ..Default::default()
+        })
     }
 
     pub async fn insert(
@@ -259,6 +262,23 @@ impl Asset {
             ) AND instrument = $2 AND asset_type = $3",
         )
         .bind(user_id)
+        .bind(instrument.to_lowercase())
+        .bind(asset_type)
+    }
+
+    pub fn find_by_account_id_instrument_type(
+        account_id: i64,
+        instrument: &str,
+        asset_type: AssetType,
+    ) -> QueryAs<'_, Postgres, Self, PgArguments> {
+        sqlx::query_as(
+            "
+        SELECT * FROM assets
+        WHERE
+            linked_account = $1 AND
+            instrument = $2 AND asset_type = $3",
+        )
+        .bind(account_id)
         .bind(instrument.to_lowercase())
         .bind(asset_type)
     }

@@ -1,5 +1,5 @@
 use clap::Parser;
-use m10_sdk::sdk;
+use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use uuid::Uuid;
@@ -20,17 +20,17 @@ pub(crate) struct CreateAccountSetOptions {
     accounts: Vec<sdk::AccountRef>,
     /// Set owner of the account set record
     #[clap(short, long)]
-    owner: Option<String>,
+    owner: Option<PublicKey>,
 }
 
 impl super::BuildFromOptions for CreateAccountSetOptions {
     type Document = sdk::AccountSet;
-    fn build_from_options(&self, default_owner: Vec<u8>) -> Result<Self::Document, anyhow::Error> {
+    fn build_from_options(
+        &self,
+        default_owner: PublicKey,
+    ) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self
-            .owner
-            .as_ref()
-            .map_or::<Result<Vec<u8>, _>, _>(Ok(default_owner), base64::decode)?;
+        let owner = self.owner.clone().unwrap_or(default_owner).0;
         Ok(sdk::AccountSet {
             id,
             owner,

@@ -1,4 +1,4 @@
-FROM node:12.22.9-buster
+FROM node:14-buster
 LABEL maintainer "M10 Networks, Inc."
 
 EXPOSE 3000

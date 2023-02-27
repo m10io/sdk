@@ -12,7 +12,7 @@ pub(crate) struct GetImageOptions {
 
 impl GetImageOptions {
     pub(super) async fn get(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
+        let mut context = Context::new(config)?;
         let image = context.image_client.get_image(&self.name).await?;
         if image.is_empty() {
             eprintln!("Image {} not found", self.name);

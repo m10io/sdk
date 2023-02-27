@@ -1,6 +1,10 @@
 use crate::context::Context;
 use clap::Parser;
-use m10_sdk::sdk::{transaction_error::Code, Operation};
+use m10_sdk::{
+    error::M10Error,
+    sdk::{transaction_error::Code, Operation},
+    DocumentBuilder, WithContext,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -17,15 +21,22 @@ pub(crate) struct CreateCollectionMetadataOptions {
 
 impl CreateCollectionMetadataOptions {
     pub(super) async fn create(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config).await?;
+        let context = Context::new(config)?;
         let response = context
-            .submit_transaction(self.create_operation(), config.context_id.clone())
-            .await?;
-        if let Err(err) = response {
-            if err.code() == Code::AlreadyExists {
+            .m10_client
+            .documents(
+                DocumentBuilder::default()
+                    .insert_operation(self.create_operation())
+                    .context_id(config.context_id.clone()),
+            )
+            .await;
+        match response {
+            Ok(_) => {}
+            Err(M10Error::Transaction(err)) if err.code() == Code::AlreadyExists => {
                 eprintln!("ignoring existing collection: {}", self.name);
-            } else {
-                anyhow::bail!("{} code={:?}", err.message, err.code);
+            }
+            Err(err) => {
+                anyhow::bail!("{}", err);
             }
         }
         Ok(())

@@ -12,27 +12,75 @@ const BANK_ASSET = publicRuntimeConfig.bankAsset
 
 class PaymentsPage extends Component {
   state = {
-    isLoading: false,
-    loadError: null,
-    hasLoaded: false,
-    data: [],
-    nextPageToken: '',
+    isLoadingCbdcPayments: false,
+    hasLoadedCbdcPayments: false,
+    isLoadingDrmPayments: false,
+    hasLoadedDrmPayments: false,
+    cbdcPaymentsLoadError: null,
+    cbdcPayments: [],
+    drmPaymentsLoadError: null,
+    drmPayments: [],
+    nextCbdcPageToken: '',
+    nextDrmPageToken: '',
   }
 
-  loadTableData = async query => {
-    this.setState({ isLoading: true, loadError: null })
+  getCbdcPayments = async() => {
+    const { hasLoadedCbdcPayments, cbdcPaymentsLoadError } = this.state
+    this.setState({
+      isLoadingCbdcPayments: true,
+      cbdcPaymentsLoadError: (hasLoadedCbdcPayments && cbdcPaymentsLoadError) ?? null,
+    })
     try {
-      const res = await getPaymentsByAsset(BANK_ASSET)
+      const res = await getPaymentsByAsset(BANK_ASSET, 'indirect_cbdc')
       const payments = parsePaymentsApi(res?.data?.data || [])
-      this.setState({ data: payments, nextPageToken: res?.data?.next?.id, isLoading: false, hasLoaded: true })
+      this.setState({
+        cbdcPayments: payments,
+        nextCbdcPageToken: res?.data?.next?.id,
+        isLoadingCbdcPayments: false,
+        hasLoadedCbdcPayments: true,
+        cbdcPaymentsLoadError: null,
+      })
     } catch (e) {
-      this.setState({ isLoading: false, loadError: e })
+      this.setState({
+        cbdcPaymentsLoadError: e,
+        isLoadingCbdcPayments: false,
+        hasLoadedCbdcPayments: true,
+      })
+    }
+  }
+
+  getDrmPayments = async() => {
+    const { hasLoadedDrmPayments, drmPaymentsLoadError } = this.state
+    this.setState({
+      isLoadingDrmPayments: true,
+      drmPaymentsLoadError: (hasLoadedDrmPayments && drmPaymentsLoadError) ?? null,
+    })
+    try {
+      const res = await getPaymentsByAsset(BANK_ASSET, 'regulated')
+      const payments = parsePaymentsApi(res?.data?.data || [])
+      this.setState({
+        drmPayments: payments,
+        nextDrmPageToken: res?.data?.next?.id,
+        isLoadingDrmPayments: false,
+        hasLoadedDrmPayments: true,
+        drmPaymentsLoadError: null,
+      })
+    } catch (e) {
+      this.setState({
+        drmPaymentsLoadError: e,
+        isLoadingDrmPayments: false,
+        hasLoadedDrmPayments: true,
+      })
     }
   }
 
   async componentDidMount() {
-    await this.loadTableData()
-    this.timerId = setInterval(() => this.loadTableData(), 3000)
+    await this.getCbdcPayments()
+    await this.getDrmPayments()
+    this.timerId = setInterval(() => {
+      this.getCbdcPayments()
+      this.getDrmPayments()
+    }, 3000)
   }
 
   componentWillUnmount() {
@@ -41,28 +89,45 @@ class PaymentsPage extends Component {
 
   render() {
     const {
-      isLoading,
-      loadError,
-      data,
-      hasLoaded,
-      nextPageToken,
+      isLoadingCbdcPayments,
+      hasLoadedCbdcPayments,
+      cbdcPayments,
+      cbdcPaymentsLoadError,
+      isLoadingDrmPayments,
+      hasLoadedDrmPayments,
+      drmPayments,
+      drmPaymentsLoadError,
+      nextCbdcPageToken,
+      nextDrmPageToken,
     } = this.state
     const { router, windowWidth } = this.props
     return (
       <Page
         withSidebar
         withGlobalNav
-        loadError={loadError}
+        loadError={cbdcPaymentsLoadError || drmPaymentsLoadError}
         windowWidth={windowWidth}
       >
         <TablePayments
-          payments={data || []}
-          isLoading={!hasLoaded && isLoading}
+          payments={cbdcPayments || []}
+          isLoading={!hasLoadedCbdcPayments && isLoadingCbdcPayments}
           router={router}
-          tableName={'Payments'}
+          tableName={'CBDC Payments'}
           windowWidth={windowWidth}
-          loadData={this.loadTableData}
-          nextPageToken={nextPageToken}
+          loadData={this.getCbdcPayments}
+          nextPageToken={nextCbdcPageToken}
+          noLinkArrows
+          noPagination
+          limit={50}
+        />
+        <TablePayments
+          payments={drmPayments || []}
+          isLoading={!hasLoadedDrmPayments && isLoadingDrmPayments}
+          router={router}
+          tableName={'DRM Payments'}
+          windowWidth={windowWidth}
+          loadData={this.getDrmPayments}
+          nextPageToken={nextDrmPageToken}
           noLinkArrows
           noPagination
           limit={50}

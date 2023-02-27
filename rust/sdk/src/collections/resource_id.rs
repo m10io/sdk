@@ -1,8 +1,10 @@
 use crate::account::AccountIdError;
 use crate::error::M10Error;
+use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
 pub enum ResourceId {
     Hex(bytes::Bytes),
     Uuid(Uuid),

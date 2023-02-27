@@ -1,5 +1,5 @@
 use clap::Parser;
-use m10_sdk::sdk;
+use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt::Debug, str::FromStr};
 use uuid::Uuid;
@@ -16,7 +16,7 @@ pub(crate) struct CreateBankOptions {
     pub(super) id: Option<Uuid>,
     /// Set owner of the account record
     #[clap(short, long)]
-    owner: Option<String>,
+    owner: Option<PublicKey>,
     /// Set an bank name
     #[clap(short, long)]
     short_name: Option<String>,
@@ -30,12 +30,12 @@ pub(crate) struct CreateBankOptions {
 
 impl super::BuildFromOptions for CreateBankOptions {
     type Document = sdk::Bank;
-    fn build_from_options(&self, default_owner: Vec<u8>) -> Result<Self::Document, anyhow::Error> {
+    fn build_from_options(
+        &self,
+        default_owner: PublicKey,
+    ) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self
-            .owner
-            .as_ref()
-            .map_or::<Result<Vec<u8>, _>, _>(Ok(default_owner), base64::decode)?;
+        let owner = self.owner.clone().unwrap_or(default_owner).0;
         Ok(sdk::Bank {
             id,
             owner,

@@ -36,7 +36,7 @@ pub(crate) struct AccountEntry {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Account {
+pub struct AccountMetadata {
     pub id: String,
     #[serde(skip_serializing_if = "String::is_empty")]
     pub owner: String,
@@ -48,11 +48,11 @@ pub struct Account {
     pub profile_image_url: String,
 }
 
-impl TryFrom<sdk::Account> for Account {
+impl TryFrom<sdk::AccountMetadata> for AccountMetadata {
     type Error = anyhow::Error;
 
-    fn try_from(other: sdk::Account) -> Result<Account, Self::Error> {
-        let sdk::Account {
+    fn try_from(other: sdk::AccountMetadata) -> Result<AccountMetadata, Self::Error> {
+        let sdk::AccountMetadata {
             id,
             owner,
             name,
@@ -60,7 +60,7 @@ impl TryFrom<sdk::Account> for Account {
             profile_image_url,
             ..
         } = other;
-        Ok(Account {
+        Ok(AccountMetadata {
             id: hex::encode(id),
             owner: base64::encode(owner),
             name,

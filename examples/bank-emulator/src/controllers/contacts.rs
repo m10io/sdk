@@ -14,7 +14,7 @@ use crate::{
     context::Context,
     error::Error,
     models::{
-        Account, Asset, AssetTypeQuery, Contact, CreateContactRequest, ListResponse,
+        Account, Asset, AssetType, AssetTypeQuery, Contact, CreateContactRequest, ListResponse,
         NotificationPreferences, Page, Payment, PaymentQuery,
     },
     rbac,
@@ -267,10 +267,11 @@ async fn list_payments(
 ) -> Result<Json<ListResponse<u64, Payment>>, Error> {
     let (id, instrument) = ids.into_inner();
     let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
+    let asset_type = AssetType::from(&asset_type.into_inner());
     let query = Asset::find_by_contact_id_instrument_type_scoped(
         id,
         &instrument,
-        (&*asset_type).into(),
+        asset_type.clone(),
         scope,
     )?;
     let mut conn = context.db_pool.get().await?;
@@ -289,6 +290,7 @@ async fn list_payments(
         limit as u64,
         include_child_accounts,
         Some(asset.ledger_account_id),
+        asset_type,
         &context,
     )
     .await?;

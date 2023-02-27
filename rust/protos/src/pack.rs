@@ -18,7 +18,7 @@ pub trait Pack: Default + Message + Sized {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Collection {
-    Accounts,
+    AccountMetadata,
     AccountSets,
     RoleBindings,
     Roles,
@@ -30,7 +30,7 @@ impl Deref for Collection {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Collection::Accounts => "accounts",
+            Collection::AccountMetadata => "account-metadata",
             Collection::AccountSets => "account-sets",
             Collection::RoleBindings => "role-bindings",
             Collection::Roles => "roles",
@@ -56,7 +56,7 @@ impl FromStr for Collection {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "accounts" => Ok(Collection::Accounts),
+            "account-metadata" => Ok(Collection::AccountMetadata),
             "account-sets" => Ok(Collection::AccountSets),
             "role-bindings" => Ok(Collection::RoleBindings),
             "roles" => Ok(Collection::Roles),

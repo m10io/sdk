@@ -1,20 +1,29 @@
 #![allow(dead_code)]
 pub use config::{ConfigError, File};
-use m10_bank_emulator_protos::rtgs::{
-    open_account_request::HolderType, rtgs_service_client::RtgsServiceClient, AccountRequest,
-    AccountType, AquireFundsRequest, BalanceRequest, OpenAccountRequest,
+use m10_bank_emulator_protos::emulator::rtgs::{
+    bank_registration_request::BankAccountType, open_account_request::HolderType,
+    requisition_funds_request::RequisitionType, rtgs_service_client::RtgsServiceClient,
+    AccountRequest, AccountType, BankRegistrationRequest, OpenAccountRequest,
+    RequisitionFundsRequest,
 };
+use m10_protos::sdk::GetBankRequest;
+use m10_sdk::Signer;
 use rust_decimal::Decimal;
 use serde::Deserialize;
+use sqlx::Acquire;
 use std::{collections::HashMap, convert::TryFrom, net::SocketAddr, path::Path, sync::Arc};
 use tokio::sync::OnceCell;
-use tonic::{Code, Request};
+use tonic::{
+    transport::{Channel, Endpoint},
+    Code, Request,
+};
 use uuid::Uuid;
 
 use crate::{
+    bank::Bank,
     context::Context,
     error::{Error, ResultExt},
-    utils::find_ledger_account,
+    models::Currency,
 };
 
 #[derive(Clone, Debug, Deserialize)]
@@ -24,12 +33,14 @@ pub struct Config {
     pub log_filter: String,
     pub oauth: OAuthConfig,
     pub bank_name: String,
+    pub short_name: String,
+    pub swift_code: String,
     pub bank: BankConfig,
     pub currencies: HashMap<String, CurrencyConfig>,
     #[serde(with = "serde_with::rust::display_fromstr")]
-    pub ledger_addr: tonic::transport::Endpoint,
+    pub ledger_addr: Endpoint,
     #[serde(with = "serde_with::rust::display_fromstr")]
-    pub directory_addr: tonic::transport::Endpoint,
+    pub directory_addr: Endpoint,
     pub key_pair: Arc<m10_sdk::Ed25519>,
     pub prometheus_port: u16,
 }
@@ -43,109 +54,133 @@ pub struct OAuthConfig {
 #[derive(Clone, Debug, Deserialize)]
 pub struct CurrencyConfig {
     pub code: String,
-    pub rtgs: Option<RtgsConfig>,
-    pub ledger_account_name: String,
-    pub account_owner: Option<String>,
-    #[serde(skip)]
-    pub ledger_account_id: OnceCell<[u8; 16]>,
-    pub cbdc: Option<CbdcConfig>,
+    #[serde(with = "serde_with::rust::display_fromstr")]
+    pub rtgs_addr: Endpoint,
+    pub cb_name: String,
+    pub reserve_config: ReserveConfig,
+    pub cbdc_config: Option<CbdcConfig>,
+    pub drc_config: Option<DrcConfig>,
     #[serde(default = "CurrencyConfig::default_decimals")]
     pub decimals: u32,
     pub asset: bool,
     #[serde(skip)]
     pub asset_id: OnceCell<Uuid>,
-    #[serde(default)]
-    pub test: bool,
+    pub test: Option<TestConfig>,
 }
 
 impl CurrencyConfig {
+    #[cfg(test)]
+    pub(crate) fn new_test() -> Self {
+        Self {
+            code: "usd".to_string(),
+            rtgs_addr: Endpoint::from_static("localhost"),
+            cb_name: String::new(),
+            reserve_config: ReserveConfig::default(),
+            cbdc_config: None,
+            drc_config: None,
+            decimals: 2,
+            asset: false,
+            asset_id: OnceCell::default(),
+            test: None,
+        }
+    }
+
     const fn default_decimals() -> u32 {
         2
     }
 
-    pub(crate) async fn ledger_account_id(&self, context: &Context) -> Result<&[u8; 16], Error> {
-        self.ledger_account_id
-            .get_or_try_init(|| async {
-                let id = find_ledger_account(
-                    &self.ledger_account_name,
-                    self.account_owner.as_ref(),
-                    context,
-                )
-                .await?
-                .try_into()
-                .map_err(|_| Error::internal_msg("invalid account id"))?;
-                Ok(id)
+    pub(crate) async fn get_or_register(&self, context: &Context) -> Result<Currency, Error> {
+        if self.test.is_some() {
+            return Ok(Currency::default());
+        }
+        let mut conn = context.db_pool.get().await?;
+        let mut txn = conn.begin().await?;
+        sqlx::query("SELECT pg_advisory_xact_lock($1)")
+            .bind(0xBE000C)
+            .execute(&mut txn)
+            .await?;
+        let mut currency = Currency::get(&self.code, &mut txn).await?;
+        if currency.bank_id.is_some() {
+            txn.rollback().await?;
+            return Ok(currency);
+        }
+
+        let mut rtgs = RtgsServiceClient::new(self.rtgs_addr.connect_lazy()?);
+        let mut accounts = vec![BankAccountType::Drm as i32];
+        if self.cbdc_config.is_some() {
+            accounts.push(BankAccountType::Cbdc as i32);
+        }
+        let registration_request = BankRegistrationRequest {
+            institute: context.config.bank_name.clone(),
+            swift_code: context.config.swift_code.clone(),
+            public_key: context.signer.public_key().to_vec(),
+            currency_code: self.code.to_uppercase(),
+            display_name: context.config.bank_name.clone(),
+            short_display: context.config.short_name.clone(),
+            accounts,
+        };
+        let bank_data = rtgs.register_bank(registration_request).await?.into_inner();
+        currency.bank_id = Some(bank_data.bank_meta_data.to_vec());
+        let request = context
+            .signer
+            .sign_request(GetBankRequest {
+                id: bank_data.bank_meta_data,
             })
-            .await
+            .await?;
+        let bank_meta_data = context.ledger.clone().get_bank(request).await?;
+        for a in bank_meta_data.accounts {
+            let account_type = BankAccountType::from_i32(a.account_type)
+                .ok_or_else(|| Error::validation("accounts", "unknown account type"))?;
+            match account_type {
+                BankAccountType::Cbdc => currency.cbdc_account = Some(a.account_id),
+                BankAccountType::Drm => currency.regulated_account = Some(a.account_id),
+            };
+        }
+        currency.update(&mut txn).await?;
+        txn.commit().await?;
+        Ok(currency)
     }
 
     pub(crate) async fn reserve_account_id(
         &self,
         context: &crate::context::Context,
     ) -> Result<&i32, Error> {
-        let rtgs_config = self
-            .rtgs
-            .as_ref()
-            .ok_or_else(|| Error::internal_msg("no rtgs configured"))?;
-
-        rtgs_config
+        self.reserve_config
             .reserve_account_id
             .get_or_try_init(|| async {
-                let mut rtgs = RtgsServiceClient::new(rtgs_config.addr.connect_lazy()?);
+                let mut rtgs = RtgsServiceClient::new(self.rtgs_addr.connect_lazy()?);
 
                 let account_req = AccountRequest {
                     institute: context.config.bank_name.clone(),
                     account_type: AccountType::Reserve as i32,
-                    currency_symbol: self.code.to_uppercase(),
+                    currency_code: self.code.to_uppercase(),
                 };
 
                 let reserve_account_id = match rtgs.find_account(Request::new(account_req)).await {
                     Ok(resp) => {
                         let account = resp.into_inner();
+                        let bank = context.bank.clone();
+                        let loan_account = bank
+                            .find_account_by_name(&format!(
+                                "{} reserve loans",
+                                self.code.to_uppercase()
+                            ))
+                            .await?;
+                        self.reserve_config
+                            .reserve_loan_account_id
+                            .set(loan_account.id)?;
+
                         account.account_number
                     }
                     // Open reserve account if it doesn't exists
                     Err(s) if s.code() == Code::NotFound => {
-                        let open_req = OpenAccountRequest {
-                            institute: context.config.bank_name.clone(),
-                            holder_type: HolderType::Bank as i32,
-                            account_type: AccountType::Reserve as i32,
-                            currency_symbol: self.code.to_uppercase(),
-                            name: format!(
-                                "{} {} Reserves",
-                                context.config.bank_name,
-                                self.code.to_uppercase()
-                            ),
-                            cbdc_account: self.ledger_account_id(context).await?.to_vec(),
-                        };
-
-                        let resp = rtgs.open_account(Request::new(open_req)).await?;
-                        let account = resp.into_inner();
-                        account.account_number
+                        self.open_reserve_account(&self.reserve_config, rtgs.clone(), context)
+                            .await?
                     }
                     // propagate all other errors up
                     Err(err) => return Err(err.into()),
                 };
 
-                let balance_req = BalanceRequest {
-                    account_number: reserve_account_id,
-                };
-
-                let balance = rtgs
-                    .get_balance(Request::new(balance_req))
-                    .await?
-                    .into_inner();
-
-                if balance.balance < rtgs_config.reserve_balance_low_bound() {
-                    let fund_req = AquireFundsRequest {
-                        account: reserve_account_id,
-                        amount: rtgs_config.reserve_balance_high_bound() - balance.balance,
-                        currency_symbol: self.code.to_uppercase(),
-                        instructions: "".into(),
-                    };
-
-                    rtgs.aquire_funds(Request::new(fund_req)).await?;
-                }
                 Ok(reserve_account_id)
             })
             .await
@@ -162,63 +197,123 @@ impl CurrencyConfig {
         decimal.rescale(self.decimals);
         u64::try_from(decimal.mantissa()).internal_error("decimal too large")
     }
+
+    async fn open_reserve_account(
+        &self,
+        rtgs_config: &ReserveConfig,
+        mut rtgs_client: RtgsServiceClient<Channel>,
+        context: &Context,
+    ) -> Result<i32, Error> {
+        // open internal loan account to track loans
+        let mut bank = context.bank.clone();
+        let loan_account = bank
+            .create_loan_account(&format!("{} reserve loans", self.code.to_uppercase()))
+            .await?;
+        rtgs_config.reserve_loan_account_id.set(loan_account.id)?;
+
+        // Open account at CB
+        let open_req = OpenAccountRequest {
+            institute: context.config.bank_name.clone(),
+            holder_type: HolderType::Bank as i32,
+            account_type: AccountType::Reserve as i32,
+            currency_code: self.code.to_uppercase(),
+            name: format!(
+                "{} {} Reserves",
+                context.config.bank_name,
+                self.code.to_uppercase()
+            ),
+            cbdc_account: context.get_currency_regulated_account(&self.code).await?,
+            reference: serde_json::Value::from(loan_account).to_string(),
+        };
+
+        let resp = rtgs_client.open_account(Request::new(open_req)).await?;
+        let account = resp.into_inner();
+
+        // Self fund account with initial amount as given in config.
+        // This represents the traditional money the bank has already at the CB
+        let fund_req = RequisitionFundsRequest {
+            account: account.account_number,
+            amount: rtgs_config.nominal_balance.try_into()?,
+            currency_code: self.code.to_uppercase(),
+            instructions: "".into(),
+            requisition_type: RequisitionType::Initial as i32,
+        };
+
+        rtgs_client
+            .requisition_funds(Request::new(fund_req))
+            .await?;
+
+        Ok(account.account_number)
+    }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct RtgsConfig {
-    pub institute_name: String,
-    #[serde(with = "serde_with::rust::display_fromstr")]
-    pub addr: tonic::transport::Endpoint,
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct ReserveConfig {
     #[serde(skip)]
     reserve_account_id: OnceCell<i32>,
-    pub reserve_balance: i64,
-    pub reserve_threshold: i64,
+    #[serde(skip)]
+    pub(crate) reserve_loan_account_id: OnceCell<i64>,
+    pub nominal_balance: u64,
+    pub balance_threshold: u64,
 }
 
-impl RtgsConfig {
-    pub fn reserve_balance_low_bound(&self) -> i64 {
-        (self.reserve_balance / (100 + self.reserve_threshold)) * 100
+impl ReserveConfig {
+    pub fn reserve_balance_low_bound(&self) -> u64 {
+        (self.nominal_balance / (100 + self.balance_threshold)) * 100
     }
 
-    pub fn reserve_balance_high_bound(&self) -> i64 {
-        (self.reserve_balance * (100 + self.reserve_threshold)) / 100
+    pub fn reserve_balance_high_bound(&self) -> u64 {
+        (self.nominal_balance * (100 + self.balance_threshold)) / 100
     }
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct CbdcConfig {
-    pub ledger_account_name: String,
     pub customer_limit: u64,
-    #[serde(skip)]
-    pub ledger_account_id: OnceCell<[u8; 16]>,
-    pub reserve_balance: i64,
-    pub reserve_threshold: i64,
+    pub nominal_margin: u64,
+    margin_threshold: u64,
 }
 
 impl CbdcConfig {
-    pub(crate) async fn ledger_account_id(
-        &self,
-        account_owner: Option<&String>,
-        context: &Context,
-    ) -> Result<&[u8; 16], Error> {
-        self.ledger_account_id
-            .get_or_try_init(|| async {
-                let id = find_ledger_account(&self.ledger_account_name, account_owner, context)
-                    .await?
-                    .try_into()
-                    .map_err(|_| Error::internal_msg("invalid account id"))?;
-                Ok(id)
-            })
-            .await
+    pub fn reserve_balance_low_bound(&self) -> u64 {
+        (self.nominal_margin / (100 + self.margin_threshold)) * 100
     }
 
-    pub fn reserve_balance_low_bound(&self) -> i64 {
-        (self.reserve_balance / (100 + self.reserve_threshold)) * 100
+    pub fn reserve_balance_high_bound(&self) -> u64 {
+        (self.nominal_margin * (100 + self.margin_threshold)) / 100
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct DrcConfig {
+    nominal_fraction: u64,
+    fraction_threshold: u64,
+}
+
+impl DrcConfig {
+    pub fn nominal_reserve(&self, balance: u64) -> u64 {
+        balance / 100 * self.nominal_fraction
     }
 
-    pub fn reserve_balance_high_bound(&self) -> i64 {
-        (self.reserve_balance * (100 + self.reserve_threshold)) / 100
+    pub fn reserve_high_bound(&self, balance: u64) -> u64 {
+        balance / 100
+            * self
+                .nominal_fraction
+                .saturating_add(self.fraction_threshold)
     }
+
+    pub fn reserve_low_bound(&self, balance: u64) -> u64 {
+        balance / 100
+            * self
+                .nominal_fraction
+                .saturating_sub(self.fraction_threshold)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TestConfig {
+    account_owner: Option<String>,
+    ledger_account_name: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

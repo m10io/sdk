@@ -30,7 +30,7 @@ impl RootSpanBuilder for RequestSpan {
                 if let Some(error) = response.response().error() {
                     Self::handle_error(span, error)
                 } else {
-                    span.record("status_code", &response.response().status().as_u16());
+                    span.record("status_code", response.response().status().as_u16());
                 }
             }
             Err(error) => Self::handle_error(span, error),
@@ -47,7 +47,7 @@ impl RequestSpan {
         span.record("error", &tracing::field::display(display));
 
         let status_code = response_error.status_code();
-        span.record("status_code", &status_code.as_u16());
+        span.record("status_code", status_code.as_u16());
     }
 }
 

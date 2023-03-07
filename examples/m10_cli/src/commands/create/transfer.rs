@@ -81,7 +81,7 @@ impl Transfer {
         mut context_id: Vec<u8>,
     ) -> anyhow::Result<()> {
         let contract = if let Some(contract) = &self.contract {
-            let file = std::fs::read(&contract)?;
+            let file = std::fs::read(contract)?;
             let contract = sdk::Contract::decode(file.as_slice())?;
             Some(contract)
         } else {

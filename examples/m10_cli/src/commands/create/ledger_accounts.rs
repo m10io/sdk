@@ -81,7 +81,7 @@ impl CreateLedgerAccountOptions {
             super::store_create::<_, sdk::AccountMetadata>(&account_options, config).await?;
         } else {
             eprintln!("Created ledger account");
-            println!("{}", hex::encode(&account_id.as_raw().to_be_bytes()));
+            println!("{}", hex::encode(account_id.as_raw().to_be_bytes()));
         }
         Ok(())
     }

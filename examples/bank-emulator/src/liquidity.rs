@@ -205,7 +205,7 @@ pub(crate) async fn reserve_cbdc(
         "requested {}{} CBDC/{}",
         amount,
         currency.code.to_uppercase(),
-        hex::encode(&resp.into_inner().txn_id),
+        hex::encode(resp.into_inner().txn_id),
     );
     Ok(())
 }
@@ -287,7 +287,7 @@ pub(crate) async fn reserve_drc_holding(
         "requested {}{} DRC backing CBDC/{}",
         amount,
         currency.code.to_uppercase(),
-        hex::encode(&resp.into_inner().txn_id),
+        hex::encode(resp.into_inner().txn_id),
     );
 
     Ok(())

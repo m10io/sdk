@@ -47,7 +47,7 @@ impl TryFrom<&str> for AssetType {
             "regulated" => Ok(AssetType::Regulated),
             "cbdc" => Ok(AssetType::Cbdc),
             "indirect_cbdc" => Ok(AssetType::IndirectCbdc),
-            _ => Err(Error::internal_msg(&format!(
+            _ => Err(Error::internal_msg(format!(
                 "unsupported asset type: {}",
                 v
             ))),

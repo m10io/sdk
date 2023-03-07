@@ -58,13 +58,13 @@ impl TryFrom<sdk::Endorsement> for Endorsement {
 }
 
 pub(crate) async fn show_contract(path: &str, formatter: Format) -> anyhow::Result<()> {
-    let file = std::fs::read(&path)?;
+    let file = std::fs::read(path)?;
     let contract = sdk::Contract::decode(file.as_slice())?;
     let id = contract.id();
     let transfers = contract.transfer_info()?;
     let transfer_requests = sdk::CreateLedgerTransfers::decode(contract.transactions.as_slice())?;
     let content = ContractContent {
-        id: hex::encode(&id).to_uppercase(),
+        id: hex::encode(id).to_uppercase(),
         valid_until: NaiveDateTime::from_timestamp(
             (transfer_requests.valid_until / 1_000_000) as i64,
             ((transfer_requests.valid_until % 1_000_000) * 1000) as u32,

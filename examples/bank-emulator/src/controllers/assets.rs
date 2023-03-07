@@ -48,7 +48,7 @@ async fn get_asset(
     let mut conn = context.db_pool.get().await?;
     let asset = Asset::find_by_user_id_instrument_type(
         &current_user.user_id,
-        &*instrument,
+        &instrument,
         (&*asset_type).into(),
     )
     .fetch_optional(&mut *conn)
@@ -66,12 +66,12 @@ async fn get_bank_account(
     // get bank issuance account
     let asset = match (&*asset_type).into() {
         AssetType::Regulated => Asset {
-            ledger_account_id: context.get_currency_regulated_account(&*instrument).await?,
+            ledger_account_id: context.get_currency_regulated_account(&instrument).await?,
             asset_type: AssetType::Regulated,
             ..Default::default()
         },
         AssetType::IndirectCbdc => Asset {
-            ledger_account_id: context.get_currency_cbdc_account(&*instrument).await?,
+            ledger_account_id: context.get_currency_cbdc_account(&instrument).await?,
             asset_type: AssetType::IndirectCbdc,
             ..Default::default()
         },
@@ -96,7 +96,7 @@ async fn list_payments(
         AuthScope::Own(_) => {
             let asset = Asset::find_by_user_id_instrument_type(
                 &current_user.user_id,
-                &*instrument,
+                &instrument,
                 (&*asset_type).into(),
             )
             .fetch_optional(&mut *conn)
@@ -116,7 +116,7 @@ async fn list_payments(
     let limit = limit.map(|l| if l > 50 { 50 } else { l }).unwrap_or(50);
     let asset_type = AssetType::from(&asset_type.into_inner());
     let payments = utils::list_payments(
-        &*instrument,
+        &instrument,
         id.unwrap_or_default(),
         limit as u64,
         include_child_accounts,
@@ -175,7 +175,7 @@ async fn create_notification_preferences(
     let mut conn = context.db_pool.get().await?;
     let asset = Asset::find_by_user_id_instrument_type(
         &current_user.user_id,
-        &*instrument,
+        &instrument,
         (&*asset_type).into(),
     )
     .fetch_optional(&mut *conn)

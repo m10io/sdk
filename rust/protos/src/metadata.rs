@@ -47,7 +47,7 @@ pub trait MetadataExt {
 
 impl MetadataExt for Any {
     fn with_type<M: MetadataType>(&self) -> Option<&[u8]> {
-        (self.type_url == M::TYPE_URL).then(|| self.value.as_slice())
+        (self.type_url == M::TYPE_URL).then_some(self.value.as_slice())
     }
 }
 

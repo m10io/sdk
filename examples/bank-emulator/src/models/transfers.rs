@@ -63,7 +63,7 @@ impl LedgerTransfer {
         .bind(&self.tx_id)
         .bind(&self.target)
         .bind(&self.currency_code)
-        .bind(&self.handler)
+        .bind(self.handler)
         .bind(self.timestamp);
         let transfer: Self = query.fetch_one(txn).await?;
         *self = transfer;

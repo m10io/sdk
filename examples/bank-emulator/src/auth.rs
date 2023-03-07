@@ -112,7 +112,7 @@ impl User {
     pub fn is_authorized(&self, role: BankEmulatorRole) -> Result<AuthScope, Error> {
         self.roles
             .contains(&role)
-            .then(|| role)
+            .then_some(role)
             .ok_or_else(Error::unauthorized)?;
 
         Ok(self.scope.clone())

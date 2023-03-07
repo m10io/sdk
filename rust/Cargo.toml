@@ -1,7 +1,3 @@
 [workspace]
 
-members = [
-  "sdk",
-  "protos",
-  "signing"
-]
+members = ["sdk","protos","signing"]

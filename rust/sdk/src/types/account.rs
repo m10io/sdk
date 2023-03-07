@@ -70,7 +70,7 @@ impl std::fmt::Display for AccountUpdate {
             timestamp,
             update_type,
         } = self;
-        write!(f, "AccountUpdate{{ tx_id={tx_id} context_id={} success=${success} timestamp={timestamp:?} update_type=${update_type} }}", hex::encode(&context_id))
+        write!(f, "AccountUpdate{{ tx_id={tx_id} context_id={} success=${success} timestamp={timestamp:?} update_type=${update_type} }}", hex::encode(context_id))
     }
 }
 

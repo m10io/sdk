@@ -41,7 +41,7 @@ impl Deref for Collection {
 
 impl fmt::Display for Collection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&**self)
+        f.write_str(self)
     }
 }
 

@@ -1,0 +1,13 @@
+
+# build
+out
+.yarn/
+index.d.ts
+
+# tests
+.nyc_output
+coverage
+
+# generated documentation
+docs
+

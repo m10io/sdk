@@ -31,7 +31,7 @@ impl EndorseContractOptions {
 
         // TODO: fetch ledger-id
         let ledger_id = "usd.m10";
-        let contract_id = hex::encode(&contract.id()).to_uppercase();
+        let contract_id = hex::encode(contract.id()).to_uppercase();
 
         if contract
             .endorsements

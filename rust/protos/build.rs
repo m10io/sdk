@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     prost_config
-        .bytes(&[".m10.sdk.RoleBinding", ".m10.sdk.Role", "Value"])
+        .bytes([".m10.sdk.RoleBinding", ".m10.sdk.Role", "Value"])
         .file_descriptor_set_path(out_dir.join("m10.sdk.bin"));
 
     let service_protos = with_additional_protos(

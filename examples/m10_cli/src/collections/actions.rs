@@ -27,7 +27,7 @@ impl TryFrom<sdk::Action> for Action {
         Ok(Action {
             tx_id,
             name,
-            from_account_id: hex::encode(&from_account),
+            from_account_id: hex::encode(from_account),
             target: Target::try_from(
                 target.ok_or_else(|| anyhow::anyhow!("No target specified"))?,
             )?,

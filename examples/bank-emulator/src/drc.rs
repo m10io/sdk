@@ -113,7 +113,7 @@ impl DrcReserveHandler {
                 let indexed_account = client.get_indexed_account(request).await?;
                 debug!(
                     "account {} balance {}",
-                    hex::encode(&target),
+                    hex::encode(target),
                     indexed_account.balance
                 );
                 let issued = indexed_account.issuance.map(|i| i.issued_balance);

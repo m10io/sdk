@@ -805,7 +805,7 @@ impl Serialize for AccountId {
     {
         use serde::ser::Error;
         let mut buffer = [0u8; 32];
-        hex::encode_to_slice(&self.to_be_bytes(), &mut buffer).map_err(S::Error::custom)?;
+        hex::encode_to_slice(self.to_be_bytes(), &mut buffer).map_err(S::Error::custom)?;
         serializer.serialize_str(std::str::from_utf8(&buffer).map_err(S::Error::custom)?)
     }
 }
@@ -858,7 +858,7 @@ impl From<AccountId> for RawAccountId {
 #[cfg(feature = "format")]
 impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", hex::encode(&self.to_be_bytes()))
+        write!(f, "{}", hex::encode(self.to_be_bytes()))
     }
 }
 

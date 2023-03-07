@@ -62,7 +62,7 @@ async fn main() -> Result<(), eyre::Report> {
         .currencies
         .values()
         .filter_map(|v| {
-            let cc = (&context).clone();
+            let cc = context.clone();
             v.cbdc_config.as_ref().map(|_| {
                 let observer = transfer_observer::TransferObserver::new(
                     cbdc_adjustment_tx.clone(),
@@ -73,7 +73,7 @@ async fn main() -> Result<(), eyre::Report> {
                     loop {
                         if let Err(err) = observer
                             .run(
-                                (&cc).clone(),
+                                cc.clone(),
                                 cbdc::CbdcAdjustmentHandler::find_matching_transfer,
                             )
                             .instrument(info_span!("cbdc-balance-limit-observer"))
@@ -89,7 +89,7 @@ async fn main() -> Result<(), eyre::Report> {
         .collect();
 
     let cbdc_adjustment_task = tokio::spawn(
-        cbdc::CbdcAdjustmentHandler::new(cbdc_adjustment_rx.into_stream(), (&context).clone())
+        cbdc::CbdcAdjustmentHandler::new(cbdc_adjustment_rx.into_stream(), context.clone())
             .start()
             .instrument(info_span!("cbdc_adjustment")),
     );
@@ -99,7 +99,7 @@ async fn main() -> Result<(), eyre::Report> {
         .currencies
         .values()
         .filter_map(|v| {
-            let cc = (&context).clone();
+            let cc = context.clone();
             v.cbdc_config.as_ref().map(|_| {
                 let observer = transfer_observer::TransferObserver::new(
                     cbdc_reserve_adjustment_tx.clone(),
@@ -109,10 +109,7 @@ async fn main() -> Result<(), eyre::Report> {
                 tokio::spawn(async move {
                     loop {
                         if let Err(err) = observer
-                            .run(
-                                (&cc).clone(),
-                                cbdc::CbdcReserveHandler::find_matching_transfer,
-                            )
+                            .run(cc.clone(), cbdc::CbdcReserveHandler::find_matching_transfer)
                             .instrument(info_span!("cbdc-liquidity-observer"))
                             .await
                         {
@@ -126,7 +123,7 @@ async fn main() -> Result<(), eyre::Report> {
         .collect();
 
     let cbdc_reserve_adjustment_task = tokio::spawn(
-        cbdc::CbdcReserveHandler::new(cbdc_reserve_adjustment_rx.into_stream(), (&context).clone())
+        cbdc::CbdcReserveHandler::new(cbdc_reserve_adjustment_rx.into_stream(), context.clone())
             .start()
             .instrument(info_span!("cbdc_reserve_adjustment")),
     );
@@ -136,7 +133,7 @@ async fn main() -> Result<(), eyre::Report> {
         .currencies
         .values()
         .filter_map(|v| {
-            let cc = (&context).clone();
+            let cc = context.clone();
             v.cbdc_config.as_ref().map(|_| {
                 let observer = transfer_observer::TransferObserver::new(
                     drc_reserve_adjustment_tx.clone(),
@@ -146,10 +143,7 @@ async fn main() -> Result<(), eyre::Report> {
                 tokio::spawn(async move {
                     loop {
                         if let Err(err) = observer
-                            .run(
-                                (&cc).clone(),
-                                drc::DrcReserveHandler::find_matching_transfer,
-                            )
+                            .run(cc.clone(), drc::DrcReserveHandler::find_matching_transfer)
                             .instrument(info_span!("drc-transfer-observer"))
                             .await
                         {
@@ -163,7 +157,7 @@ async fn main() -> Result<(), eyre::Report> {
         .collect();
 
     let drc_reserve_adjustment_task = tokio::spawn(
-        drc::DrcReserveHandler::new(drc_reserve_adjustment_rx.into_stream(), (&context).clone())
+        drc::DrcReserveHandler::new(drc_reserve_adjustment_rx.into_stream(), context.clone())
             .start()
             .instrument(info_span!("drc_reserve_adjustment")),
     );

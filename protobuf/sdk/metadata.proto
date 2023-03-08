@@ -53,8 +53,8 @@ message PaymentRequest {
   PaymentRequestStatus status = 2;
 }
 
-// A request for quoted FX transfer of [`base`] <-> [`target`]
-// Note: Amount should be provided exclusively for either [`base`] or [`target`]
+// A request for quoted FX transfer of `base` <-> `target`
+// Note: Amount should be provided exclusively for either `base` or `target`
 message QuoteRequest {
   AccountCurrency base = 1;
   AccountCurrency target = 2;

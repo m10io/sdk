@@ -763,10 +763,10 @@ impl TryFrom<&[u8]> for AccountId {
 ///
 /// Returns one of the following [`AccountIdError`] variants if account ID creation fails:
 ///
-/// - [`InvalidDepth`] if the account ID depth exceeds [`MAX_DEPTH`].
-/// - [`InvalidSpecialBits`] if any non-index bits (i.e. bits reserved for identifying issuance
+/// - [`InvalidDepth`](../error/enum.AccountIdError.html#variant.InvalidDepth) if the account ID depth exceeds [`MAX_DEPTH`](#associatedconstant.MAX_DEPTH).
+/// - [`InvalidSpecialBits`](../error/enum.AccountIdError.html#variant.InvalidSpecialBits) if any non-index bits (i.e. bits reserved for identifying issuance
 ///   account indexes and unused bits within the ID) are set incorrectly.
-/// - [`InvalidLen`] if the slice length does not equal the size of [`RawAccountId`].
+/// - [`InvalidLen`](../error/enum.AccountIdError.html#variant.InvalidLen) if the slice length does not equal the size of [`RawAccountId`].
 ///
 /// # Examples
 ///

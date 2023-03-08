@@ -14,7 +14,7 @@ message TransactionRequestPayload {
   // UNIX timestamp in microseconds
   uint64 timestamp = 2;
 
-  // [optional] unique Context ID, allowing linking of multiple requests
+  // \[optional\] unique Context ID, allowing linking of multiple requests
   bytes context_id = 5;
 
   // Request payload data.
@@ -221,7 +221,7 @@ message Action {
   uint64 tx_id = 1;
   // Unique name of the action to invoke
   string name = 2;
-  // [optional] unique Context ID, allowing linking of multiple requests
+  // \[optional\] unique Context ID, allowing linking of multiple requests
   bytes context_id = 3;
   // Invoking account ID
   bytes from_account = 4;

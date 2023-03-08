@@ -134,7 +134,7 @@ impl<S: Signer> M10Client<S> {
         Ok(response.tx_id)
     }
 
-    /// Sets the [`Account`] [`frozen`] status.
+    /// Sets the [`Account`] `frozen` status.
     /// Frozen accounts cannot participate in transactions.
     pub async fn freeze_account(
         &self,

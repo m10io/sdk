@@ -30,7 +30,7 @@ service M10QueryService {
   rpc ListTransfers(RequestEnvelope)
       returns (m10.sdk.transaction.FinalizedTransfers) {}
   // Request to observe all transfers processed by the M10 ledger
-  // Param: [`RequestEnvelope`] should contain [`ObserveAccountsRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveAccountsRequest`](../struct.ObserveAccountsRequest.html)
   rpc ObserveTransfers(RequestEnvelope) returns (stream FinalizedTransactions);
 
   // Accounts
@@ -40,14 +40,14 @@ service M10QueryService {
   rpc GetAccountInfo(RequestEnvelope) returns (m10.sdk.model.AccountInfo);
   rpc ListAccountMetadata(RequestEnvelope) returns (m10.sdk.ListAccountMetadataResponse);
   // Request to observe all account changes processed by the M10 ledger
-  // Param: [`RequestEnvelope`] should contain [`ObserveAccountsRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveAccountsRequest`](../struct.ObserveAccountsRequest.html)
   rpc ObserveAccounts(RequestEnvelope) returns (stream FinalizedTransactions);
 
   // Actions
   rpc GetAction(RequestEnvelope) returns (m10.sdk.transaction.Action) {}
   rpc ListActions(RequestEnvelope) returns (m10.sdk.transaction.Actions) {}
   // Request to observe all actions processed by the M10 ledger
-  // Param: [`RequestEnvelope`] should contain [`ObserveActionsRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveActionsRequest`](../struct.ObserveActionsRequest.html)
   rpc ObserveActions(RequestEnvelope) returns (stream FinalizedTransactions) {}
 
   // ChainInfo
@@ -55,13 +55,13 @@ service M10QueryService {
 
   // Transactions
   // Request a specific transaction by ID
-  // Param: [`RequestEnvelope`] should contain [`GetTransactionsRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`GetTransactionRequest`](../struct.GetTransactionRequest.html)
   rpc GetTransaction(RequestEnvelope) returns (FinalizedTransaction) {}
   // Request to list all transactions by context ID
-  // Param: [`RequestEnvelope`] should contain [`ListTransactionsRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ListTransactionsRequest`](../struct.ListTransactionsRequest.html)
   rpc ListTransactions(RequestEnvelope) returns (FinalizedTransactions) {}
   // Request to group all transactions related to a specific account by context
-  // ID Param: [`RequestEnvelope`] should contain [`GroupTransactionsRequest`]
+  // ID Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`GroupTransactionsRequest`](../struct.GroupTransactionsRequest.html)
   rpc GroupTransactions(RequestEnvelope)
       returns (GroupedFinalizedTransactions) {}
 
@@ -81,18 +81,18 @@ service M10QueryService {
 
   // Resources
   // Request to observe all resources processed by the M10 ledger
-  // Param: [`RequestEnvelope`] should contain [`ObserveResourcesRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveResourcesRequest`](../struct.ObserveResourcesRequest.html)
   rpc ObserveResources(RequestEnvelope) returns (stream FinalizedTransactions);
 
   // Metrics
   // Request to observe metrics data processed by the M10 ledger
-  // Param: [`RequestEnvelope`] should contgain [`ObserveAccountsRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveAccountsRequest`](../struct.ObserveAccountsRequest.html)
   rpc ObserveMetrics(RequestEnvelope) returns (stream TransactionMetrics);
 
   // Banks
-  // Param: [`RequestEnvelope`] should contain [`ListBankRequest`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ListBanksRequest`](../struct.ListBanksRequest.html)
   rpc  ListBanks(RequestEnvelope) returns (m10.sdk.ListBanksResponse);
-  // Param: [`RequestEnvelope`] should contain [`Bank`]
+  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`Bank`](../model/struct.Bank.html)
   rpc  GetBank(RequestEnvelope) returns (m10.sdk.model.Bank);
 }
 

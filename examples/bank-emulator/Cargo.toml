@@ -41,7 +41,7 @@ tonic = "0.5"
 uuid = { version = "0.8", features = ["serde"] }
 
 m10-bank-emulator-protos = { path = "../../shared/rust/bank-emulator-protos", features = ["client"] }
-m10-protos = { version = "0.29.6", features = ["dynamic2"] }
+m10-protos = { version = "0.29.7", features = ["dynamic2"] }
 m10-rds-pool = { path = "../rds-pool" }
-m10-sdk = "0.29.6"
+m10-sdk = "0.29.7"
 pala-types = { path = "../../shared/rust/pala-types" }

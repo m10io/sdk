@@ -1,6 +1,6 @@
 {
   "name": "m10-sdk",
-  "version": "0.29.6",
+  "version": "0.29.7",
   "description": "M10 SDK",
   "repository": {
     "type": "git",
@@ -35,11 +35,11 @@
     "statements": 65
   },
   "scripts": {
-    "build": "npm run proto:ts && npx --package typescript tsc --build tsconfig.build.json",
+    "build": "npm run proto:ts && tsc --build tsconfig.build.json",
     "purge": "rm -rf out node_modules",
     "prepare": "npm run build",
-    "proto:js": "npx --package protobufjs-cli pbjs -t static-module -w commonjs -o protobufs/index.js  './protobuf/sdk/**/*.proto' '../../protobuf/directory/api.proto'",
-    "proto:ts": "npm run proto:js && npx --package protobufjs-cli pbts -o protobufs/index.d.ts protobufs/index.js",
+    "proto:js": "pbjs -t static-module -w commonjs -o protobufs/index.js '../../protobuf/sdk/**/*.proto' '../../protobuf/directory/api.proto'",
+    "proto:ts": "npm run proto:js && pbts -o protobufs/index.d.ts protobufs/index.js",
     "lint": "npx eslint .",
     "docs": "npx typedoc",
     "test": "mocha -r ts-node/register 'tests/**/*.test.ts' --require tests/hooks.ts",

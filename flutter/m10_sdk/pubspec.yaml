@@ -1,6 +1,6 @@
 name: m10_sdk
 description: SDK for interacting with M10 platform.
-version: 0.29.6
+version: 0.29.7
 
 environment:
   sdk: ">=2.12.0 <3.0.0"

@@ -10,34 +10,16 @@ env:
 
 jobs:
 
-  release:
+  # NOTE: Currently artifact compilation split into multiple jobs because GH Actions don't support matrix outputs
 
-    name: Create Release
+  artifact-windows:
+
+    name: Compile x86_64-pc-windows-gnu
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - uses: softprops/action-gh-release@v1
-        with:
-          prerelease: true
-
-  add-artifacts:
-
-    name: Compile ${{ matrix.target }}
-    runs-on: ubuntu-latest
-
-    needs: release
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-pc-windows-gnu
-            archive: zip
-          - target: x86_64-unknown-linux-musl
-            archive: tar.gz tar.xz tar.zst
-          - target: x86_64-apple-darwin
-            archive: zip
+    outputs:
+      archive: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+      checksum: ${{ steps.compile.outputs.BUILT_CHECKSUM }}
 
     steps:
       - uses: actions/checkout@v3
@@ -49,8 +31,8 @@ jobs:
         with:
           SRC_DIR: examples/m10_cli
           PRE_BUILD: .github/utils/setup-rust-builder.sh
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
+          RUSTTARGET: x86_64-pc-windows-gnu
+          ARCHIVE_TYPES: zip
           UPLOAD_MODE: none
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -59,6 +41,90 @@ jobs:
           path: |
             ${{ steps.compile.outputs.BUILT_ARCHIVE }}
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+  artifact-linux:
+
+    name: Compile x86_64-unknown-linux-musl
+    runs-on: ubuntu-latest
+
+    outputs:
+      archive: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+      checksum: ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          SRC_DIR: examples/m10_cli
+          PRE_BUILD: .github/utils/setup-rust-builder.sh
+          RUSTTARGET: x86_64-unknown-linux-musl
+          ARCHIVE_TYPES: tar.gz tar.xz tar.zst
+          UPLOAD_MODE: none
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+  artifact-mac:
+
+    name: Compile x86_64-apple-darwin
+    runs-on: ubuntu-latest
+
+    outputs:
+      archive: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+      checksum: ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          SRC_DIR: examples/m10_cli
+          PRE_BUILD: .github/utils/setup-rust-builder.sh
+          RUSTTARGET: x86_64-apple-darwin
+          ARCHIVE_TYPES: zip
+          UPLOAD_MODE: none
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+  release:
+
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    needs:
+      - artifact-linux
+      - artifact-mac
+      - artifact-windows
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          files: |
+            ${{needs.artifact-linux.outputs.archive}}
+            ${{needs.artifact-linux.outputs.checksum}}
+            ${{needs.artifact-mac.outputs.archive}}
+            ${{needs.artifact-mac.outputs.checksum}}
+            ${{needs.artifact-windows.outputs.archive}}
+            ${{needs.artifact-windows.outputs.checksum}}
+
 
   # publish-rust:
   

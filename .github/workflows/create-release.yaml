@@ -20,6 +20,7 @@ jobs:
       - uses: softprops/action-gh-release@v1
         with:
           prerelease: true
+          # NOTE: Custom token is used so release event will be emitted
           token: ${{ secrets.OPS_GITHUB_TOKEN }}
 
   publish-rust:

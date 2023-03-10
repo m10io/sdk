@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  M10_PROTOBUFS: "protobuf"
+  M10_PROTOBUFS: $GITHUB_WORKSPACE/protobuf
 
 jobs:
 

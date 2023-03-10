@@ -23,6 +23,8 @@ jobs:
     name: Compile ${{ matrix.target }}
     runs-on: ubuntu-latest
 
+    needs: release
+
     strategy:
       fail-fast: false
       matrix:
@@ -36,12 +38,51 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: arduino/setup-protoc@v1
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           SRC_DIR: examples/m10_cli
+          PRE_BUILD: .github/utils/setup-protoc.sh
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
+
+  # publish-rust:
+  
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     M10_PROTOBUFS: "${{ github.workspace }}/protobuf"
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         override: true
+  #     - uses: katyo/publish-crates@v2
+  #       with:
+  #         path: "./rust"
+  #         registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+  #         ignore-unpublished-changes: true
+
+  # publish-node:
+
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "16.x"
+  #         registry-url: "https://registry.npmjs.org"
+  #     - run: npm install
+  #     - run: npm publish
+  #       env:
+  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # publish-dart:
+
+  #   uses: dart-lang/setup-dart/.github/workflows/publish.yml@main
+  #   with:
+  #     working-directory: flutter/m10_sdk

@@ -41,7 +41,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Compile and release
+      - name: Compile
+        id: compile
         uses: rust-build/rust-build.action@v1.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,6 +51,14 @@ jobs:
           PRE_BUILD: .github/utils/setup-rust-builder.sh
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
+          UPLOAD_MODE: none
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
 
   # publish-rust:
   

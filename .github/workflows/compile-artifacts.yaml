@@ -1,0 +1,39 @@
+name: Compile Artifacts
+
+on:
+  release:
+    types: [created]
+
+env:
+  M10_PROTOBUFS: "${{ github.workspace }}/protobuf"
+
+jobs:
+
+  artifacts:
+
+    name: Compile ${{ matrix.target }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-gnu
+            archive: zip
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz tar.xz tar.zst
+          - target: x86_64-apple-darwin
+            archive: zip
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          SRC_DIR: examples/m10_cli
+          PRE_BUILD: .github/utils/setup-rust-builder.sh
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}

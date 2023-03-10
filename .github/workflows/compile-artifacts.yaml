@@ -9,12 +9,21 @@ env:
 
 jobs:
 
-  # NOTE: Currently artifact compilation split into multiple jobs because GH Actions don't support matrix outputs
+  artifacts:
 
-  artifact-windows:
-
-    name: Compile x86_64-pc-windows-gnu
+    name: Compile ${{ matrix.target }}
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-gnu
+            archive: zip
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz tar.xz tar.zst
+          - target: x86_64-apple-darwin
+            archive: zip
 
     steps:
       - uses: actions/checkout@v3
@@ -26,41 +35,5 @@ jobs:
         with:
           SRC_DIR: examples/m10_cli
           PRE_BUILD: .github/utils/setup-rust-builder.sh
-          RUSTTARGET: x86_64-pc-windows-gnu
-          ARCHIVE_TYPES: zip
-
-  artifact-linux:
-
-    name: Compile x86_64-unknown-linux-musl
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Compile
-        id: compile
-        uses: rust-build/rust-build.action@v1.4.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          SRC_DIR: examples/m10_cli
-          PRE_BUILD: .github/utils/setup-rust-builder.sh
-          RUSTTARGET: x86_64-unknown-linux-musl
-          ARCHIVE_TYPES: tar.gz tar.xz tar.zst
-
-  artifact-mac:
-
-    name: Compile x86_64-apple-darwin
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Compile
-        id: compile
-        uses: rust-build/rust-build.action@v1.4.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          SRC_DIR: examples/m10_cli
-          PRE_BUILD: .github/utils/setup-rust-builder.sh
-          RUSTTARGET: x86_64-apple-darwin
-          ARCHIVE_TYPES: zip
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}

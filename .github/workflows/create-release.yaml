@@ -47,7 +47,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           SRC_DIR: examples/m10_cli
-          PRE_BUILD: .github/utils/setup-protoc.sh
+          PRE_BUILD: .github/utils/setup-rust-builder.sh
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
 

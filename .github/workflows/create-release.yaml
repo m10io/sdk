@@ -9,6 +9,7 @@ jobs:
 
   release:
 
+    name: Create Release
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +20,7 @@ jobs:
 
   add-artifacts:
 
-    name: Release ${{ matrix.target }}
+    name: Compile ${{ matrix.target }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -28,13 +29,14 @@ jobs:
         include:
           - target: x86_64-pc-windows-gnu
             archive: zip
-          - target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-musl
             archive: tar.gz tar.xz tar.zst
           - target: x86_64-apple-darwin
             archive: zip
 
     steps:
       - uses: actions/checkout@v3
+      - uses: arduino/setup-protoc@v1
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.4.0
         env:

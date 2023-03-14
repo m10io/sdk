@@ -45,6 +45,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: node/m10-sdk
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

@@ -5,6 +5,7 @@ mod batch;
 mod call;
 mod convert;
 mod create;
+mod csv;
 mod delete;
 mod endorse;
 mod find;

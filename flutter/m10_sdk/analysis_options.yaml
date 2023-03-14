@@ -1,0 +1,50 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    - lib/**.pb.dart
+    - lib/**.pbenum.dart
+    - lib/**.pbgrpc.dart
+    - lib/**.pbjson.dart
+linter:
+  rules:
+    - always_use_package_imports
+    - cancel_subscriptions
+    - empty_statements
+    - sort_constructors_first
+    - throw_in_finally
+    - unnecessary_statements
+    - always_declare_return_types
+    - always_put_required_named_parameters_first
+    - avoid_escaping_inner_quotes
+    - avoid_unused_constructor_parameters
+    - avoid_void_async
+    - cascade_invocations
+    - cast_nullable_to_non_nullable
+    - eol_at_end_of_file
+    - join_return_with_assignment
+    - lines_longer_than_80_chars
+    - missing_whitespace_between_adjacent_strings
+    - noop_primitive_operations
+    - omit_local_variable_types
+    - parameter_assignments
+    - prefer_asserts_with_message
+    - prefer_expression_function_bodies
+    - prefer_final_in_for_each
+    - prefer_final_locals
+    - prefer_int_literals
+    - prefer_mixin
+    - prefer_single_quotes
+    - require_trailing_commas
+    - type_annotate_public_apis
+    - unawaited_futures
+    - unnecessary_await_in_return
+    - unnecessary_lambdas
+    - unnecessary_parenthesis
+    - unnecessary_raw_strings
+    - unnecessary_to_list_in_spreads
+    - use_enums
+    - use_if_null_to_convert_nulls_to_bools
+    - use_is_even_rather_than_modulo
+    - use_named_constants
+    - sort_pub_dependencies

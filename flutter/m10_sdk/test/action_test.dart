@@ -15,8 +15,8 @@ void main() {
   group('Actions', () {
     final account = parentAccountId;
     final targetAccount = bobsAccountId;
-    final actionName = "m10.Request";
-    final payload = "This is a test action";
+    final actionName = 'm10.Request';
+    final payload = 'This is a test action';
 
     test('it should send an action to a specific account', () async {
       final response = await bankAdmin.invokeAction(
@@ -87,15 +87,15 @@ void main() {
           name: actionName,
           accountId: account,
           minTxId: first.txId,
-          maxTxId: second.txId);
+          maxTxId: second.txId,);
 
       expect(actions.length, 2);
-      actions.forEach((action) {
+      for (final action in actions) {
         expect(action.fromAccountId, account);
         expect(action.targetAccountId, targetAccount);
         expect(action.name, actionName);
         expect(action.contextId, null);
-      });
+      }
       expect(actions[0].payload, [2], reason: "First payload should be '2'");
       expect(actions[1].payload, [1], reason: "First payload should be '1'");
     });
@@ -117,7 +117,7 @@ void main() {
         operator: operator,
       );
 
-      bool didFail = false;
+      var didFail = false;
       try {
         await alice.getAction(
           txId: first.txId,
@@ -126,16 +126,16 @@ void main() {
       } catch (e) {
         didFail = true;
       }
-      expect(didFail, true, reason: "Retrieving action did not fail");
+      expect(didFail, true, reason: 'Retrieving action did not fail');
 
       final actions = await alice.listActions(
           operator: operator,
-          name: "not-a-request",
+          name: 'not-a-request',
           accountId: account,
           minTxId: first.txId,
-          maxTxId: second.txId);
+          maxTxId: second.txId,);
 
-      expect(actions.isEmpty, true, reason: "Listed actions were not empty");
+      expect(actions.isEmpty, true, reason: 'Listed actions were not empty');
     });
 
     test('it should cancel a request', () async {
@@ -146,9 +146,9 @@ void main() {
               TransferStep(
                   fromAccountId: hex.decode(targetAccount),
                   toAccountId: hex.decode(account),
-                  amount: Int64(100))
+                  amount: Int64(100),)
             ],
-          ));
+          ),);
       expect(requestResponse.hasError, false);
 
       final requestAction =
@@ -159,15 +159,15 @@ void main() {
           operator: operator,
           fromAccountId: targetAccount,
           targetAccountId: account,
-          contextId: requestAction.contextId!);
+          contextId: requestAction.contextId!,);
       expect(cancelResponse.hasError, false);
 
       final cancelAction = await bankAdmin.getAction(
-          txId: cancelResponse.txId, operator: operator);
+          txId: cancelResponse.txId, operator: operator,);
       expect(cancelAction.name, M10Actions.requestActionName);
       final cancelPayload = PaymentRequest.fromBuffer(cancelAction.payload);
       expect(
-          cancelPayload.status, PaymentRequest_PaymentRequestStatus.CANCELED);
+          cancelPayload.status, PaymentRequest_PaymentRequestStatus.CANCELED,);
       expect(cancelAction.contextId, requestAction.contextId);
     });
 
@@ -179,53 +179,54 @@ void main() {
             amount: Int64(2000),
             fromAccountId: rawTargetAccount,
             toAccountId: rawAccount,
-            metadata: [Metadata.memo("First")])
-      ]);
+            metadata: [Metadata.memo('First')],)
+      ],);
       final first = await bankAdmin.request(
-          operator: operator, transferRequest: request1);
+          operator: operator, transferRequest: request1,);
 
       final request2 = CreateTransfer(transferSteps: [
         TransferStep(
             amount: Int64(2500),
             fromAccountId: rawTargetAccount,
             toAccountId: rawAccount,
-            metadata: [Metadata.memo("Second")])
-      ]);
+            metadata: [Metadata.memo('Second')],)
+      ],);
       final second = await bankAdmin.request(
-          operator: operator, transferRequest: request2);
+          operator: operator, transferRequest: request2,);
 
       final request3 = CreateTransfer(transferSteps: [
         TransferStep(
             amount: Int64(2600),
             fromAccountId: rawAccount,
             toAccountId: rawTargetAccount,
-            metadata: [Metadata.memo("Third")])
-      ]);
+            metadata: [Metadata.memo('Third')],)
+      ],);
       final third = await bankAdmin.request(
-          operator: operator, transferRequest: request3);
+          operator: operator, transferRequest: request3,);
 
       await bankAdmin.cancel(
           operator: operator,
           fromAccountId: account,
           targetAccountId: targetAccount,
-          contextId: second.contextId!);
+          contextId: second.contextId!,);
 
       final completion = await bankAdmin.createTransfer(
         fromAccountId: account,
         toAccountId: targetAccount,
         amount: 2600,
-        memo: "Funds",
+        memo: 'Funds',
         operator: operator,
         contextId: third.contextId!,
       );
       sleep(Duration(seconds: 2));
 
-      final List<PaymentRequestDoc> requests = await bankAdmin.listRequests(
-          operator: operator,
-          accountId: account,
-          minTxId: first.txId,
-          maxTxId: completion.txId,
-          limit: 3);
+      final requests = await bankAdmin.listRequests(
+        operator: operator,
+        accountId: account,
+        minTxId: first.txId,
+        maxTxId: completion.txId,
+        limit: 3,
+      );
 
       final pendingReq =
           requests.firstWhere((req) => req.contextId == first.contextId);
@@ -235,11 +236,11 @@ void main() {
           requests.firstWhere((req) => req.contextId == third.contextId);
 
       expect(pendingReq.status, RequestStatus.pending,
-          reason: "First request should be 'pending'");
+          reason: "First request should be 'pending'",);
       expect(cancledReq.status, RequestStatus.canceled,
-          reason: "Second request should be 'canceled'");
+          reason: "Second request should be 'canceled'",);
       expect(completedReq.status, RequestStatus.completed,
-          reason: "Third request should be 'completed'");
+          reason: "Third request should be 'completed'",);
     });
   });
 }

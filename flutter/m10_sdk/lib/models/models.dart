@@ -15,27 +15,20 @@ import 'package:collection/collection.dart';
 import 'package:m10_sdk/metadata.dart';
 
 abstract class _Document<T> {
-  final T _model;
-
   _Document(this._model);
+  final T _model;
 
   T get model => _model;
 }
 
 class AccountMetadataDoc extends _Document<AccountMetadata> {
-  IndexedAccount? _indexedAccount;
-
   AccountMetadataDoc(AccountMetadata model) : super(model);
 
   factory AccountMetadataDoc.fromModel(
     AccountMetadata model,
     IndexedAccount indexedAccount,
-  ) {
-    final accountDoc = AccountMetadataDoc(model);
-    accountDoc._indexedAccount = indexedAccount;
-
-    return accountDoc;
-  }
+  ) =>
+      AccountMetadataDoc(model).._indexedAccount = indexedAccount;
 
   factory AccountMetadataDoc.fromJson(Map<String, dynamic> json) {
     final model = AccountMetadata.fromJson(json['model'] as String);
@@ -44,13 +37,12 @@ class AccountMetadataDoc extends _Document<AccountMetadata> {
     );
     return AccountMetadataDoc.fromModel(model, indexedAccount);
   }
+  IndexedAccount? _indexedAccount;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'model': _model.writeToJson(),
-      'indexedAccount': _indexedAccount?.writeToJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'model': _model.writeToJson(),
+        'indexedAccount': _indexedAccount?.writeToJson(),
+      };
 
   String get owner => base64.encode(_model.owner);
   String get id => hex.encode(_model.id);
@@ -79,25 +71,29 @@ class AccountSetDoc extends _Document<AccountSet> {
 class RuleDoc extends _Document<Rule> {
   RuleDoc(Rule model) : super(model);
   RuleDoc.fromStrings(
-      String collection, List<String> verbs, List<String> instanceKeys)
-      : super(Rule(
+    String collection,
+    List<String> verbs,
+    List<String> instanceKeys,
+  ) : super(
+          Rule(
             collection: collection,
             instanceKeys: instanceKeys
                 .map((i) => document.Value(bytesValue: hex.decode(i))),
-            verbs: verbs.map((v) => v.asVerb())));
+            verbs: verbs.map((v) => v.asVerb()),
+          ),
+        );
 
   String get collection => _model.collection;
   List<String> get verbs => _model.verbs.map((v) => v.toString()).toList();
   List<String> get instanceKeys =>
       _model.instanceKeys.map((i) => hex.encode(i.bytesValue)).toList();
 
-  Rule asRule() {
-    return Rule(
+  Rule asRule() => Rule(
         collection: collection,
         instanceKeys:
             instanceKeys.map((i) => document.Value(bytesValue: hex.decode(i))),
-        verbs: verbs.map((v) => v.asVerb()));
-  }
+        verbs: verbs.map((v) => v.asVerb()),
+      );
 }
 
 class RoleDoc extends _Document<Role> {
@@ -129,9 +125,8 @@ class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
     return TransferDoc(model, operator);
   }
 
-  Map<String, dynamic> toJson() {
-    return {'model': _model.writeToJson(), 'operator': operator};
-  }
+  Map<String, dynamic> toJson() =>
+      {'model': _model.writeToJson(), 'operator': operator};
 
   final String operator;
 
@@ -160,11 +155,14 @@ class TransferStepDoc extends _Document<TransferStep> {
     required String toAccountId,
     required int amount,
     List<Any> metadata = const [],
-  }) : super(TransferStep(
+  }) : super(
+          TransferStep(
             fromAccountId: hex.decode(fromAccountId),
             toAccountId: hex.decode(toAccountId),
             amount: Int64(amount),
-            metadata: metadata));
+            metadata: metadata,
+          ),
+        );
 
   String get fromAccountId => hex.encode(_model.fromAccountId);
   String get toAccountId => hex.encode(_model.toAccountId);
@@ -211,15 +209,13 @@ class EnhancedTransferStepDoc extends _Document<TransferStep>
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'step': _model.writeToJson(),
-      'from': _from.writeToJson(),
-      'to': _to.writeToJson(),
-      'from_bank': _fromBank?.writeToJson(),
-      'to_bank': _toBank?.writeToJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'step': _model.writeToJson(),
+        'from': _from.writeToJson(),
+        'to': _to.writeToJson(),
+        'from_bank': _fromBank?.writeToJson(),
+        'to_bank': _toBank?.writeToJson(),
+      };
 
   final AccountInfo _from;
   final AccountInfo _to;
@@ -236,10 +232,10 @@ class EnhancedTransferStepDoc extends _Document<TransferStep>
   List<Any> get metadata => _model.metadata;
 
   String get senderName => _from.publicName;
-  String get senderBankName => _fromBank?.publicName ?? "";
+  String get senderBankName => _fromBank?.publicName ?? '';
   String get senderProfileImageUrl => _from.profileImageUrl;
   String get receiverName => _to.publicName;
-  String get receiverBankName => _toBank?.publicName ?? "";
+  String get receiverBankName => _toBank?.publicName ?? '';
   String get receiverProfileImageUrl => _to.profileImageUrl;
 
   @override
@@ -281,11 +277,10 @@ class InvokeActionDoc extends _Document<InvokeAction> {
 }
 
 class PaymentRequestDoc {
-  PaymentRequestDoc._(RequestDoc requestDoc, RequestStatus _status)
-      : _requestDoc = requestDoc,
-        status = _status;
+  PaymentRequestDoc._(RequestDoc requestDoc, this.status)
+      : _requestDoc = requestDoc;
 
-  RequestDoc _requestDoc;
+  final RequestDoc _requestDoc;
   RequestStatus status;
   CreateTransfer get request => _requestDoc.request!.transfer;
   String get fromAccountId => _requestDoc.fromAccountId;
@@ -301,15 +296,14 @@ class PaymentRequestDoc {
     // Extract requests
     final requestTxs = transactions
         .where((t) => t.error == null)
-        .map((t) => RequestDoc.from(t))
+        .map(RequestDoc.from)
         .whereNotNull()
-        .toList();
-
-    // Sort by txId
-    requestTxs.sort((left, right) => left.txId.compareTo(right.txId));
+        .toList()
+      // Sort by txId
+      ..sort((left, right) => left.txId.compareTo(right.txId));
 
     // Extract initial request
-    final RequestDoc? invokedRequest =
+    final invokedRequest =
         requestTxs.firstWhereOrNull((tx) => tx.request != null);
 
     if (invokedRequest == null) {
@@ -326,15 +320,15 @@ class PaymentRequestDoc {
         .where((t) => t.error == null && t.txId > invokedRequest.txId)
         .whereNotNull();
 
-    final int requestValue = invokedRequest.amount;
+    final requestValue = invokedRequest.amount;
 
     // Check if single or multi-phase transfer is complete
-    final isComplete = transfers
-        .map((t) => t.commitTransfer ?? t.transfer)
-        .whereNotNull()
-        .any((transfer) => transfer.steps
-            .where((step) => !step.metadata.isFee)
-            .any((step) => step.amount == requestValue));
+    final isComplete =
+        transfers.map((t) => t.commitTransfer ?? t.transfer).whereNotNull().any(
+              (transfer) => transfer.steps
+                  .where((step) => !step.metadata.isFee)
+                  .any((step) => step.amount == requestValue),
+            );
 
     late final RequestStatus requestStatus;
     if (isComplete) {
@@ -368,11 +362,9 @@ class PaymentRequestDoc {
 }
 
 class RequestDoc {
-  RequestDoc(TransactionDoc model, PaymentRequest? request)
-      : _model = model,
-        request = request;
+  RequestDoc(TransactionDoc model, this.request) : _model = model;
 
-  TransactionDoc _model;
+  final TransactionDoc _model;
   PaymentRequest? request;
 
   static RequestDoc? from(TransactionDoc tx) {
@@ -428,25 +420,26 @@ class TransactionResponseDoc {
   final TransactionResponse _response;
   final String? _contextId;
 
-  int get txId => this._response.txId.toInt();
-  String get accountCreated => hex.encode(this._response.accountCreated);
-  bool get hasError => this._response.hasError();
-  String? get contextId => this._contextId;
-  TransactionError_Code get errorCode => this._response.error.code;
+  int get txId => _response.txId.toInt();
+  String get accountCreated => hex.encode(_response.accountCreated);
+  bool get hasError => _response.hasError();
+  String? get contextId => _contextId;
+  TransactionError_Code get errorCode => _response.error.code;
 }
 
 class TransactionDoc extends _Document<FinalizedTransaction> {
   TransactionDoc(FinalizedTransaction model) : super(model);
 
   int get txId => _model.response.txId.toInt();
-  DateTime get timestamp =>
-      DateTime.fromMicrosecondsSinceEpoch(_model.response.timestamp.toInt(),
-          isUtc: true);
+  DateTime get timestamp => DateTime.fromMicrosecondsSinceEpoch(
+        _model.response.timestamp.toInt(),
+        isUtc: true,
+      );
   int get nonce => _model.request.nonce.toInt();
   List<int>? get contextId =>
       _model.request.contextId.isEmpty ? null : _model.request.contextId;
   String? get error => _model.response.hasError()
-      ? "${_model.response.error.message} (code ${_model.response.error.code})"
+      ? '${_model.response.error.message} (code ${_model.response.error.code})'
       : null;
   TransferRequestDoc? get transfer => _model.request.data.hasTransfer()
       ? TransferRequestDoc(_model.request.data.transfer)
@@ -476,8 +469,23 @@ class TransactionDoc extends _Document<FinalizedTransaction> {
   RequestDoc? asRequestDoc() => RequestDoc.from(this);
 
   @override
-  String toString() =>
-      '${transfer ?? action ?? (accountCreated != null ? 'Account $accountCreated Created' : null) ?? accountFrozen ?? documentOperations ?? 'Unknown transaction'} [error=$error]';
+  String toString() {
+    final buf = StringBuffer();
+    if (transfer != null) {
+      buf.write(transfer);
+    } else if (action != null) {
+      buf.write(action);
+    } else if (accountCreated != null) {
+      buf.write('Account $accountCreated Created');
+    } else if (accountFrozen != null) {
+      buf.write(accountFrozen);
+    } else if (documentOperations != null) {
+      buf.write(documentOperations);
+    } else {
+      buf.write('Unknown transaction');
+    }
+    return (buf..write('[error=$error]')).toString();
+  }
 }
 
 class AccountFrozenDoc extends _Document<SetFreezeState> {
@@ -505,7 +513,7 @@ class AliasDoc {
     try {
       return Uuid.unparse(_alias.accountSetId);
     } catch (e) {
-      return "";
+      return '';
     }
   }
 
@@ -514,58 +522,55 @@ class AliasDoc {
 }
 
 extension ContractExt on Contract {
-  Uint8List get _contractId => LocalDigest().hash(this.transactions);
+  Uint8List get _contractId => LocalDigest().hash(transactions);
   String get contractId => hex.encode(_contractId);
   CreateLedgerTransfers get requests =>
-      CreateLedgerTransfers.fromBuffer(this.transactions);
+      CreateLedgerTransfers.fromBuffer(transactions);
 
   // Checks if the contract has at least one signature for every ledger involved
-  bool get isFullyEndorsed {
-    return requests.transfers.any((transfer) => !this
-        .endorsements
-        .any((signature) => signature.ledgerId == transfer.ledgerId));
-  }
+  bool get isFullyEndorsed => requests.transfers.any(
+        (transfer) => !endorsements
+            .any((signature) => signature.ledgerId == transfer.ledgerId),
+      );
 
   // Extracts a list of the proposed transfers
-  List<TransferInfo> get transferInfo {
-    return requests.transfers
-        .map((transferRequest) =>
-            transferRequest.transfer.transferSteps.map((step) => TransferInfo(
-                  ledgerId: transferRequest.ledgerId,
-                  nonce: transferRequest.nonce.toInt(),
-                  fromAccountId: hex.encode(step.fromAccountId),
-                  toAccountId: hex.encode(step.toAccountId),
-                  amount: step.amount.toInt(),
-                  metadata: step.metadata,
-                )))
-        .expand((e) => e)
-        .toList();
-  }
+  List<TransferInfo> get transferInfo => requests.transfers
+      .map(
+        (transferRequest) => transferRequest.transfer.transferSteps.map(
+          (step) => TransferInfo(
+            ledgerId: transferRequest.ledgerId,
+            nonce: transferRequest.nonce.toInt(),
+            fromAccountId: hex.encode(step.fromAccountId),
+            toAccountId: hex.encode(step.toAccountId),
+            amount: step.amount.toInt(),
+            metadata: step.metadata,
+          ),
+        ),
+      )
+      .expand((e) => e)
+      .toList();
 
   // Gets the validUntil date time
-  DateTime get validUntil {
-    return DateTime.fromMicrosecondsSinceEpoch(
-      requests.validUntil.toInt(),
-    );
-  }
+  DateTime get validUntil => DateTime.fromMicrosecondsSinceEpoch(
+        requests.validUntil.toInt(),
+      );
 
   // Adds a signature to the contract, thereby approving the contents
   Future<void> endorse({
     required String ledgerId,
     required security.Signing signer,
   }) async {
-    final signature = await signer.signPayload(this.transactions);
+    final signature = await signer.signPayload(transactions);
     final endorsement = Endorsement(ledgerId: ledgerId, signature: signature);
-    this.endorsements.add(endorsement);
+    endorsements.add(endorsement);
   }
 }
 
 class TransferResultDoc extends _Document<FinalizedTransaction> {
   TransferResultDoc(FinalizedTransaction model) : super(model);
 
-  factory TransferResultDoc.fromModel(FinalizedTransaction model) {
-    return TransferResultDoc(model);
-  }
+  factory TransferResultDoc.fromModel(FinalizedTransaction model) =>
+      TransferResultDoc(model);
 
   bool get hasError => _model.response.hasError();
   int get txId => _model.response.txId.toInt();
@@ -605,9 +610,8 @@ class TransferInfo {
 class ResourceResultDoc extends _Document<FinalizedTransaction> {
   ResourceResultDoc(FinalizedTransaction model) : super(model);
 
-  factory ResourceResultDoc.fromModel(FinalizedTransaction model) {
-    return ResourceResultDoc(model);
-  }
+  factory ResourceResultDoc.fromModel(FinalizedTransaction model) =>
+      ResourceResultDoc(model);
 
   int get txId => _model.response.txId.toInt();
   List<document.Operation> get operations =>
@@ -616,7 +620,7 @@ class ResourceResultDoc extends _Document<FinalizedTransaction> {
   List<int>? get contextId =>
       _model.request.contextId.isEmpty ? null : _model.request.contextId;
   String? get error => failed
-      ? "${_model.response.error.message} (code ${_model.response.error.code})"
+      ? '${_model.response.error.message} (code ${_model.response.error.code})'
       : null;
 }
 
@@ -632,7 +636,7 @@ class AccountRefDoc extends _Document<AccountRef> {
     var intAccountId = <int>[];
     if (accountId is String) {
       intAccountId = hex.decode(accountId);
-    } else if (!(accountId is List<int>)) {
+    } else if (accountId is! List<int>) {
       throw ArgumentError('Invalid type for account ID');
     } else {
       intAccountId = accountId;
@@ -647,12 +651,14 @@ class AccountRefDoc extends _Document<AccountRef> {
   String get ledgerId => _model.ledgerId;
   String get accountId => hex.encode(_model.accountId);
 
-  AccountRef intoInner() {
-    return _model;
-  }
+  AccountRef intoInner() => _model;
 
-  bool operator ==(o) =>
-      o is AccountRefDoc && o.ledgerId == ledgerId && o.accountId == accountId;
+  @override
+  bool operator ==(Object other) =>
+      other is AccountRefDoc &&
+      other.ledgerId == ledgerId &&
+      other.accountId == accountId;
+  @override
   int get hashCode => ledgerId.hashCode ^ accountId.hashCode;
 
   @override
@@ -662,9 +668,8 @@ class AccountRefDoc extends _Document<AccountRef> {
 class TransactionMetricsDoc extends _Document<TransactionMetrics> {
   TransactionMetricsDoc(TransactionMetrics model) : super(model);
 
-  factory TransactionMetricsDoc.fromModel(TransactionMetrics model) {
-    return TransactionMetricsDoc(model);
-  }
+  factory TransactionMetricsDoc.fromModel(TransactionMetrics model) =>
+      TransactionMetricsDoc(model);
 
   int get transferVolume => model.transferVolume.toInt();
   int get transferCount => model.transferCount.toInt();
@@ -675,15 +680,15 @@ class TransactionMetricsDoc extends _Document<TransactionMetrics> {
 extension ParseAccountRef on String {
   AccountRef parse() {
     final split = this.split('/');
-    final accountRef = AccountRef();
-    accountRef.ledgerId = split.first;
-    accountRef.accountId = hex.decode(split.last);
+    final accountRef = AccountRef()
+      ..ledgerId = split.first
+      ..accountId = hex.decode(split.last);
     return accountRef;
   }
 }
 
 extension LedgerExt on Ledger {
-  String get id => '$operator';
+  String get id => operator;
   String get host => Uri.parse(url).host;
 
   Map<String, dynamic> asMap() => {
@@ -700,22 +705,22 @@ extension AccountInfoExt on AccountInfo {
 extension ParseVerb on String {
   Rule_Verb asVerb() {
     switch (this) {
-      case "READ":
+      case 'READ':
         return Rule_Verb.READ;
-      case "CREATE":
+      case 'CREATE':
         return Rule_Verb.CREATE;
-      case "UPDATE":
+      case 'UPDATE':
         return Rule_Verb.UPDATE;
-      case "DELETE":
+      case 'DELETE':
         return Rule_Verb.DELETE;
-      case "TRANSACT":
+      case 'TRANSACT':
         return Rule_Verb.TRANSACT;
-      case "INITIATE":
+      case 'INITIATE':
         return Rule_Verb.INITIATE;
-      case "COMMIT":
+      case 'COMMIT':
         return Rule_Verb.COMMIT;
       default:
-        throw "unknown verb";
+        throw 'unknown verb';
     }
   }
 }

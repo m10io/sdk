@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-enum Algorithm { P256, Ed25519 }
+enum Algorithm { p256, ed25519 }
 
 abstract class Signing {
   Future<List<int>> sign(List<int> data);
@@ -12,10 +12,10 @@ abstract class Signing {
 extension AlgorithmName on Algorithm {
   String get name {
     switch (this) {
-      case Algorithm.P256:
-        return "ecdsaP256Sha256";
-      case Algorithm.Ed25519:
-        return "ed25519";
+      case Algorithm.p256:
+        return 'ecdsaP256Sha256';
+      case Algorithm.ed25519:
+        return 'ed25519';
     }
   }
 }

@@ -15,19 +15,19 @@ void main() {
           displayName: '',
           accountSetId: aliceId,
           aliasType: Alias_Type.HANDLE,
-          operator: operator);
+          operator: operator,);
     });
 
     test('it should resolve an alias', () async {
       final accountId = await bob.createAccount(
         parentId: parentAccountId,
-        name: "Spending Account",
+        name: 'Spending Account',
         operator: operator,
       );
-      final ledgerId = "m10";
+      final ledgerId = 'm10';
       final accountRef = AccountRefDoc.fromIds(ledgerId, accountId);
       await bob.updateUser(
-          userId: bobId, operator: operator, accounts: [accountRef.model]);
+          userId: bobId, operator: operator, accounts: [accountRef.model],);
 
       final handle = randomAlpha(10);
 
@@ -36,7 +36,7 @@ void main() {
           displayName: '',
           accountSetId: bobId,
           aliasType: Alias_Type.HANDLE,
-          operator: operator);
+          operator: operator,);
 
       final alias = await directory.getAlias(handle);
       expect(alias?.accountSetId, bobId);

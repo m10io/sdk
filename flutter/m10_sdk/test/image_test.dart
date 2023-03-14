@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:m10_sdk/object_client.dart';
 import 'package:test/test.dart';
@@ -8,8 +7,8 @@ import 'utilities/utility.dart';
 
 void main() {
   group('Images', () {
-    ObjectClient objectClient = ObjectClient();
-    String base64EncodedImage =
+    final objectClient = ObjectClient();
+    final base64EncodedImage =
         'R0lGODlhPQBEAPeoAJosM//AwO/AwHVYZ/z595kzAP/s7P+goOXMv8+fhw/v739/f+8PD9'
         '8fH/8mJl+fn/9ZWb8/PzWlwv///6wWGbImAPgTEMImIN9gUFCEm/gDALULDN8PAD6atYdC'
         'TX9gUNKlj8wZAKUsAOzZz+UMAOsJAP/Z2ccMDA8PD/95eX5NWvsJCOVNQPtfX/8zM8+QeP'
@@ -50,9 +49,12 @@ void main() {
         '+0pCZbEhAAOw==';
 
     test('it should get an image', () async {
-      final imageUrlResponse = await directory.createImageUrl("image/jpeg");
-      await objectClient.putObject(imageUrlResponse.presignedUrl, base64Decode(base64EncodedImage));
-      final Uint8List imageBytes = await objectClient.getObject(imageUrlResponse.url);
+      final imageUrlResponse = await directory.createImageUrl('image/jpeg');
+      await objectClient.putObject(
+        imageUrlResponse.presignedUrl,
+        base64Decode(base64EncodedImage),
+      );
+      final imageBytes = await objectClient.getObject(imageUrlResponse.url);
       expect(base64EncodedImage, base64Encode(imageBytes));
     });
   });

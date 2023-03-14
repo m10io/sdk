@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 class ObjectClient {
+  ObjectClient() : _dio = Dio();
   final Dio _dio;
-  ObjectClient() : _dio = new Dio();
 
   Future<void> putObject(
     String url,
@@ -24,11 +24,13 @@ class ObjectClient {
   }
 
   Future<Uint8List> getObject(String url) async {
-    final response = await _dio.get(url,
-        options: Options(responseType: ResponseType.stream));
-    ResponseBody body = response.data;
-    var imageBytes = BytesBuilder();
-    await body.stream.forEach((bytes) => imageBytes.add(bytes));
+    final response = await _dio.get(
+      url,
+      options: Options(responseType: ResponseType.stream),
+    );
+    final body = response.data;
+    final imageBytes = BytesBuilder();
+    await body.stream.forEach(imageBytes.add);
     return imageBytes.toBytes();
   }
 }

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:m10_sdk/library.dart';
 import 'package:test/test.dart';
 import 'utilities/utility.dart';
 
@@ -20,17 +19,17 @@ void main() {
     });
 
     test('it should get an existing account', () async {
-      final AccountMetadataDoc account = await alice.getAccountMetadata(
+      final account = await alice.getAccountMetadata(
         id: accountId,
         operator: operator,
       );
 
       expect(account.id, accountId);
-    }, skip: false);
+    }, skip: false,);
 
     test('it should update an existing account', () async {
-      final publicName = "Alice R.";
-      final profileImageUrl = "https://fake.m10.net/images/alice";
+      final publicName = 'Alice R.';
+      final profileImageUrl = 'https://fake.m10.net/images/alice';
       await bankAdmin.updateAccount(
         id: accountId,
         operator: operator,
@@ -40,13 +39,13 @@ void main() {
 
       sleep(Duration(milliseconds: 200));
 
-      final AccountMetadataDoc account = await alice.getAccountMetadata(
+      final account = await alice.getAccountMetadata(
         id: accountId,
         operator: operator,
       );
 
       expect(account.publicName, publicName);
       expect(account.profileImageUrl, profileImageUrl);
-    }, skip: false);
+    }, skip: false,);
   });
 }

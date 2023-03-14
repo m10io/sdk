@@ -1,7 +1,7 @@
 use super::{
     call::CallSubCommands, convert::ConvertSubCommands, create::CreateSubCommands,
-    delete::DeleteSubCommands, endorse::EndorsementSubCommands, find::FindSubCommands,
-    get::GetSubCommands, show::ShowSubCommands, update::UpdateSubCommands,
+    csv::CsvSubcommands, delete::DeleteSubCommands, endorse::EndorsementSubCommands,
+    find::FindSubCommands, get::GetSubCommands, show::ShowSubCommands, update::UpdateSubCommands,
 };
 use crate::commands::observe::ObserveSubcommands;
 use clap::{Parser, Subcommand};
@@ -47,6 +47,8 @@ pub(crate) enum Commands {
     Observe(ObserveOptions),
     /// Authenticate
     Auth(AuthOptions),
+    /// Get data in csv format
+    Csv(CsvOptions),
 }
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
@@ -199,6 +201,19 @@ pub(crate) struct AuthOptions {
     pub(crate) stdout: bool,
 }
 
+#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
+pub(crate) struct CsvOptions {
+    #[clap(subcommand)]
+    #[serde(flatten)]
+    cmd: CsvSubcommands,
+}
+
+impl CsvOptions {
+    async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
+        self.cmd.csv(config).await
+    }
+}
+
 impl Commands {
     pub(crate) async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
         match self {
@@ -214,6 +229,7 @@ impl Commands {
             Commands::Endorse(op) => op.run(config).await,
             Commands::Observe(op) => op.run(config).await,
             Commands::Auth(op) => op.run(config).await,
+            Commands::Csv(op) => op.run(config).await,
         }
     }
 

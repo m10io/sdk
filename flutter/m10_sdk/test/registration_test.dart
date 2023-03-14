@@ -14,8 +14,8 @@ void main() {
     });
 
     test(
-        'it should register a new user, create an account, activate the account and issue funds to the new account',
-        () async {
+        'it should register a new user, create an account, activate the account'
+        ' and issue funds to the new account', () async {
       final userId = await userSdk.createUser(
         operator: operator,
       );
@@ -40,7 +40,7 @@ void main() {
         accounts: [accountRef.model],
       );
 
-      print("Get user");
+      print('Get user');
 
       final user = await userSdk.getUser(
         userId: userId,
@@ -48,12 +48,12 @@ void main() {
       );
       expect(user.model.accounts.length, 1);
 
-      print("Update account status");
+      print('Update account status');
 
       await bankAdmin.updateAccountStatus(
-          id: accountRef.accountId, operator: operator, frozen: false);
+          id: accountRef.accountId, operator: operator, frozen: false,);
 
-      print("creating transfer");
+      print('creating transfer');
 
       await bankAdmin.createTransfer(
         fromAccountId: issuanceAccount.id,
@@ -66,6 +66,6 @@ void main() {
         accountId: accountRef.accountId,
         operator: operator,
       );
-    }, timeout: Timeout(Duration(seconds: 60)));
+    }, timeout: Timeout(Duration(seconds: 60)),);
   });
 }

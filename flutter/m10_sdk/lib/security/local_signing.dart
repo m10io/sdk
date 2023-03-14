@@ -5,7 +5,9 @@ import 'package:cryptography/cryptography.dart';
 import 'package:collection/collection.dart';
 
 class LocalSigning implements Signing {
-  static const Ed25519Asn1Prefix = [
+  LocalSigning(this._keyPair);
+
+  static const ed25519Asn1Prefix = [
     0x30,
     0x53,
     0x02,
@@ -23,21 +25,20 @@ class LocalSigning implements Signing {
     0x04,
     0x20
   ];
-  static const Ed25519Length = 32;
+  static const ed25519Length = 32;
 
   final KeyPair _keyPair;
-  LocalSigning(this._keyPair);
 
   static Future<LocalSigning> ed25519(List<int> pkcs8Bytes) async {
     if (!ListEquality().equals(
-      pkcs8Bytes.sublist(0, Ed25519Asn1Prefix.length),
-      Ed25519Asn1Prefix,
+      pkcs8Bytes.sublist(0, ed25519Asn1Prefix.length),
+      ed25519Asn1Prefix,
     )) {
-      throw ('invalid Ed25519 PKCS #8 ASN.1 DER prefix');
+      throw Exception('invalid Ed25519 PKCS #8 ASN.1 DER prefix');
     }
     final bytes = pkcs8Bytes.sublist(
-      Ed25519Asn1Prefix.length,
-      Ed25519Asn1Prefix.length + Ed25519Length,
+      ed25519Asn1Prefix.length,
+      ed25519Asn1Prefix.length + ed25519Length,
     );
     return LocalSigning(await Ed25519().newKeyPairFromSeed(bytes));
   }
@@ -53,9 +54,8 @@ class LocalSigning implements Signing {
   }
 
   @override
-  Future<List<int>> publicKey() async {
-    return (await _keyPair.extractPublicKey() as SimplePublicKey).bytes;
-  }
+  Future<List<int>> publicKey() async =>
+      (await _keyPair.extractPublicKey() as SimplePublicKey).bytes;
 
   @override
   Future<List<int>?> existingPublicKey() async => publicKey();
@@ -67,5 +67,5 @@ class LocalSigning implements Signing {
   }
 
   @override
-  Algorithm get algorithm => Algorithm.Ed25519;
+  Algorithm get algorithm => Algorithm.ed25519;
 }

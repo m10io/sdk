@@ -21,31 +21,40 @@ void main() {
       expect(userId.isNotEmpty, true);
     });
 
-    test('it should get an existing user', () async {
-      await userSdk.getUser(
-        userId: userId,
-        operator: operator,
-      );
-    }, skip: false);
+    test(
+      'it should get an existing user',
+      () async {
+        await userSdk.getUser(
+          userId: userId,
+          operator: operator,
+        );
+      },
+      skip: false,
+    );
 
-    test('it should update an existing user', () async {
-      await userSdk.updateUser(
-        userId: userId,
-        accounts: ["ttt.m10/05800002000000003d00000000000003".parse()],
-        operator: operator,
-      );
+    test(
+      'it should update an existing user',
+      () async {
+        await userSdk.updateUser(
+          userId: userId,
+          accounts: ['ttt.m10/05800002000000003d00000000000003'.parse()],
+          operator: operator,
+        );
 
-      sleep(Duration(milliseconds: 200));
+        sleep(Duration(milliseconds: 200));
 
-      final AccountSetDoc alice = await userSdk.getUser(
-        userId: userId,
-        operator: operator,
-      );
+        final alice = await userSdk.getUser(
+          userId: userId,
+          operator: operator,
+        );
 
-      final found = alice.accounts.any(
-          (account) => account.accountId == "05800002000000003d00000000000003");
-      expect(found, true);
-    }, skip: false);
+        final found = alice.accounts.any(
+          (account) => account.accountId == '05800002000000003d00000000000003',
+        );
+        expect(found, true);
+      },
+      skip: false,
+    );
 
     test('it should delete a user', () async {
       // Note: A regular user has no permission to delete
@@ -59,11 +68,12 @@ void main() {
       // the permission. Admin still can try to get the record.
       // Checks for error "gRPC Error (5, user not found)"
       expect(
-          () async => await bankAdmin.getUser(
-                userId: userId,
-                operator: operator,
-              ),
-          throwsA(predicate((e) => e is GrpcError && e.code == 5)));
+        () async => bankAdmin.getUser(
+          userId: userId,
+          operator: operator,
+        ),
+        throwsA(predicate((e) => e is GrpcError && e.code == 5)),
+      );
     });
   });
 }

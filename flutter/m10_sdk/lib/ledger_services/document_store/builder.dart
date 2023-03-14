@@ -3,22 +3,22 @@ import 'package:recase/recase.dart';
 import 'package:m10_sdk/src/generated/google/protobuf/field_mask.pb.dart';
 
 class DocumentUpdate<D extends GeneratedMessage> {
-  D _document;
-  FieldMask _mask = FieldMask();
-
   DocumentUpdate(D document) : _document = document;
+
+  final D _document;
+  final FieldMask _mask = FieldMask();
 
   FieldMask get mask => _mask;
   D get document => _document;
 
   @override
-  noSuchMethod(Invocation invocation) {
+  DocumentUpdate<D> noSuchMethod(Invocation invocation) {
     final fields = invocation.memberName.toString().split('"');
     var field = fields[1];
     if (invocation.isSetter) {
       field = field.substring(0, field.length - 1);
     }
-    final normalizedPath = new ReCase(field).snakeCase;
+    final normalizedPath = ReCase(field).snakeCase;
     _mask.paths.add(normalizedPath);
     final tag = _document.getTagNumber(field)!;
 
@@ -31,13 +31,13 @@ class DocumentUpdate<D extends GeneratedMessage> {
   }
 
   DocumentUpdate<D> owner(List<int> owner) {
-    final tag = _document.getTagNumber("Owner");
+    final tag = _document.getTagNumber('Owner');
     if (tag == null) {
       throw ArgumentError('Document does not have tag "Owner"');
     }
 
     _document.setField(tag, owner);
-    _mask.paths.add("owner");
+    _mask.paths.add('owner');
     return this;
   }
 
@@ -50,7 +50,7 @@ class DocumentUpdate<D extends GeneratedMessage> {
         _document.getField(tag).addAll(entry.value);
       }
 
-      final normalizedPath = new ReCase(entry.key).snakeCase;
+      final normalizedPath = ReCase(entry.key).snakeCase;
       _mask.paths.add(normalizedPath);
     });
     return this;

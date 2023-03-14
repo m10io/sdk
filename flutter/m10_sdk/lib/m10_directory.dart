@@ -21,7 +21,7 @@ class M10Directory {
             options: ChannelOptions(
                 credentials: disableTls
                     ? const ChannelCredentials.insecure()
-                    : const ChannelCredentials.secure())));
+                    : const ChannelCredentials.secure(),),),);
 
   final DirectoryServiceClient _client;
   final TokenProvider? _tokenProvider;
@@ -65,14 +65,12 @@ class M10Directory {
   }
 
   Future<Iterable<AliasDoc>> findAliasesOfUser([int pageSize = 20]) async {
-    if (_tokenProvider == null) throw Exception("missing token provider");
+    if (_tokenProvider == null) throw Exception('missing token provider');
     final subject = _tokenProvider!.subject;
     final request = SearchAliasesRequest(pageSize: pageSize, subject: subject);
     final response =
         await _client.searchAliases(request, options: await _fetchOptions());
-    final entries = response.aliases.map((alias) {
-      return AliasDoc(alias);
-    });
+    final entries = response.aliases.map((alias) => AliasDoc(alias));
     return entries;
   }
 
@@ -84,36 +82,31 @@ class M10Directory {
         SearchAliasesRequest(handlePrefix: handlePrefix, pageSize: pageSize);
     final response =
         await _client.searchAliases(request, options: await _fetchOptions());
-    final entries = response.aliases.map((alias) {
-      return AliasDoc(alias);
-    });
+    final entries = response.aliases.map((alias) => AliasDoc(alias));
     return entries;
   }
 
-  Future<ObjectUrlResponse> createObjectUrl() async {
-    return await _client.createObjectUrl(
-      Empty(),
-      options: await _fetchOptions(),
-    );
-  }
+  Future<ObjectUrlResponse> createObjectUrl() async =>
+      await _client.createObjectUrl(
+        Empty(),
+        options: await _fetchOptions(),
+      );
 
-  Future<ObjectUrlResponse> createImageUrl(String mimeType) async {
-    return await _client.createImageUrl(
-      CreateImageUrlRequest(mimeType: mimeType),
-      options: await _fetchOptions(),
-    );
-  }
+  Future<ObjectUrlResponse> createImageUrl(String mimeType) async =>
+      await _client.createImageUrl(
+        CreateImageUrlRequest(mimeType: mimeType),
+        options: await _fetchOptions(),
+      );
 
-  Future<ObjectUrlResponse> getObjectUrl(String objectId) async {
-    return await _client.getObjectUrl(
-      GetObjectUrlRequest(objectId: objectId),
-      options: await _fetchOptions(),
-    );
-  }
+  Future<ObjectUrlResponse> getObjectUrl(String objectId) async =>
+      await _client.getObjectUrl(
+        GetObjectUrlRequest(objectId: objectId),
+        options: await _fetchOptions(),
+      );
 
   Future<CallOptions> _fetchOptions() async {
     if (_tokenProvider == null) throw Exception('missing token provider');
     final accessToken = await _tokenProvider!.accessToken;
-    return CallOptions(metadata: {'Authorization': 'Bearer ${accessToken}'});
+    return CallOptions(metadata: {'Authorization': 'Bearer $accessToken'});
   }
 }

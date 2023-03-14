@@ -1,25 +1,23 @@
 import 'package:m10_sdk/library.dart';
 
-const String ATTACHMENT_TYPE_URL = "m10.sdk.metadata.Attachment";
-const String MEMO_TYPE_URL = "m10.sdk.metadata.Memo";
-const String FEE_TYPE_URL = "m10.sdk.metadata.Fee";
-const String WITHDRAW_TYPE_URL = "m10.sdk.metadata.Withdraw";
-const String DEPOSIT_TYPE_URL = "m10.sdk.metadata.Deposit";
-const String CONTRACT_TYPE_URL = "m10.sdk.metadata.Contract";
-const String SELF_TRANSFER_TYPE_URL = "m10.sdk.metadata.SelfTransfer";
-const String REBALANCE_TRANSFER_TYPE_URL = "m10.sdk.metadata.RebalanceTransfer";
+const attachmentTypeUrl = 'm10.sdk.metadata.Attachment';
+const memoTypeUrl = 'm10.sdk.metadata.Memo';
+const feeTypeUrl = 'm10.sdk.metadata.Fee';
+const withdrawTypeUrl = 'm10.sdk.metadata.Withdraw';
+const depositTypeUrl = 'm10.sdk.metadata.Deposit';
+const contractTypeUrl = 'm10.sdk.metadata.Contract';
+const selfTransferTypeUrl = 'm10.sdk.metadata.SelfTransfer';
+const rebalanceTransferTypeUrl = 'm10.sdk.metadata.RebalanceTransfer';
 
 extension MetadataExt on List<Any> {
-  List<Attachment> get attachments {
-    return this
-        .where((a) => a.typeUrl == ATTACHMENT_TYPE_URL)
-        .map((a) => Attachment.fromBuffer(a.value))
-        .toList();
-  }
+  List<Attachment> get attachments =>
+      where((a) => a.typeUrl == attachmentTypeUrl)
+          .map((a) => Attachment.fromBuffer(a.value))
+          .toList();
 
   String get memo {
     for (final a in this) {
-      if (a.typeUrl == MEMO_TYPE_URL) {
+      if (a.typeUrl == memoTypeUrl) {
         return Attachment.fromBuffer(a.value).objectId;
       }
     }
@@ -28,7 +26,7 @@ extension MetadataExt on List<Any> {
 
   SelfTransfer? get selfTransfer {
     for (final a in this) {
-      if (a.typeUrl == SELF_TRANSFER_TYPE_URL) {
+      if (a.typeUrl == selfTransferTypeUrl) {
         return SelfTransfer.fromBuffer(a.value);
       }
     }
@@ -38,9 +36,9 @@ extension MetadataExt on List<Any> {
   String? get bankId {
     for (final a in this) {
       switch (a.typeUrl) {
-        case WITHDRAW_TYPE_URL:
+        case withdrawTypeUrl:
           return Withdraw.fromBuffer(a.value).bankAccountId;
-        case DEPOSIT_TYPE_URL:
+        case depositTypeUrl:
           return Deposit.fromBuffer(a.value).bankAccountId;
       }
     }
@@ -49,62 +47,60 @@ extension MetadataExt on List<Any> {
 
   Contract? get contract {
     for (final a in this) {
-      if (a.typeUrl == CONTRACT_TYPE_URL) {
+      if (a.typeUrl == contractTypeUrl) {
         return Contract.fromBuffer(a.value);
       }
     }
     return null;
   }
 
-  bool get isFee => this.where((a) => a.typeUrl == FEE_TYPE_URL).isNotEmpty;
+  bool get isFee => where((a) => a.typeUrl == feeTypeUrl).isNotEmpty;
 
-  bool get isDeposit =>
-      this.where((a) => a.typeUrl == DEPOSIT_TYPE_URL).isNotEmpty;
+  bool get isDeposit => where((a) => a.typeUrl == depositTypeUrl).isNotEmpty;
 
-  bool get isWithdraw =>
-      this.where((a) => a.typeUrl == WITHDRAW_TYPE_URL).isNotEmpty;
+  bool get isWithdraw => where((a) => a.typeUrl == withdrawTypeUrl).isNotEmpty;
 
   bool get isSelfTransfer => selfTransfer != null;
 
   bool get isRebalanceTransfer =>
-      where((a) => a.typeUrl == REBALANCE_TRANSFER_TYPE_URL).isNotEmpty;
+      where((a) => a.typeUrl == rebalanceTransferTypeUrl).isNotEmpty;
 
-  bool get isFx => this.where((a) => a.typeUrl == CONTRACT_TYPE_URL).isNotEmpty;
+  bool get isFx => where((a) => a.typeUrl == contractTypeUrl).isNotEmpty;
 }
 
 abstract class Metadata {
   static Any attachment(Attachment attachment) => Any(
-        typeUrl: ATTACHMENT_TYPE_URL,
+        typeUrl: attachmentTypeUrl,
         value: attachment.writeToBuffer(),
       );
 
   static Any memo(String plaintext) => Any(
-        typeUrl: MEMO_TYPE_URL,
+        typeUrl: memoTypeUrl,
         value: Memo(plaintext: plaintext).writeToBuffer(),
       );
 
   static Any fee() => Any(
-        typeUrl: FEE_TYPE_URL,
+        typeUrl: feeTypeUrl,
         value: Fee().writeToBuffer(),
       );
 
   static Any contract(Contract contract) => Any(
-        typeUrl: CONTRACT_TYPE_URL,
+        typeUrl: contractTypeUrl,
         value: contract.writeToBuffer(),
       );
 
   static Any withdraw(String bankAccountId) => Any(
-        typeUrl: WITHDRAW_TYPE_URL,
+        typeUrl: withdrawTypeUrl,
         value: Withdraw(bankAccountId: bankAccountId).writeToBuffer(),
       );
 
   static Any deposit(String bankAccountId) => Any(
-        typeUrl: DEPOSIT_TYPE_URL,
+        typeUrl: depositTypeUrl,
         value: Deposit(bankAccountId: bankAccountId).writeToBuffer(),
       );
 
   static Any selfTransfer(SelfTransfer selfTransfer) => Any(
-        typeUrl: SELF_TRANSFER_TYPE_URL,
+        typeUrl: selfTransferTypeUrl,
         value: selfTransfer.writeToBuffer(),
       );
 }

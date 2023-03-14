@@ -14,7 +14,7 @@ void main() {
         fromAccountId: account,
         toAccountId: targetAccount,
         amount: 100,
-        memo: "Funds",
+        memo: 'Funds',
         operator: operator,
       );
 
@@ -26,7 +26,7 @@ void main() {
 
       expect(step.fromAccountId, account);
       expect(step.toAccountId, targetAccount);
-      expect(step.senderName, "DartTB TTT");
+      expect(step.senderName, 'DartTB TTT');
       expect(step.receiverName, bobsName);
     });
 
@@ -42,7 +42,7 @@ void main() {
     test('transfer with fees', () async {
       // response from GET https://develop.m10.net/trust-oxide/api/v1/fees/usd/48000:
       // ignore: unused_local_variable
-      final feeResponse = """
+      final feeResponse = '''
 {
   "fees": {
     "Diapay": {
@@ -54,24 +54,24 @@ void main() {
       "amount": 2450
     }
   }
-}""";
+}''';
 
       final steps = [
         TransferStepDoc.fromFields(
             fromAccountId: aliceAccountId,
             toAccountId: bobsAccountId,
             amount: 48000,
-            metadata: [Metadata.memo("transfer")]),
+            metadata: [Metadata.memo('transfer')],),
         TransferStepDoc.fromFields(
             fromAccountId: aliceAccountId,
             toAccountId: parentAccountId,
             amount: 2450,
-            metadata: [Metadata.fee()]),
+            metadata: [Metadata.fee()],),
         TransferStepDoc.fromFields(
             fromAccountId: aliceAccountId,
             toAccountId: parentAccountId,
             amount: 2450,
-            metadata: [Metadata.fee()])
+            metadata: [Metadata.fee()],)
       ];
       final response = await alice.transfer(
         steps: steps,

@@ -5,8 +5,8 @@ import 'utilities/utility.dart';
 
 void main() {
   group('Observations', () {
-    final account = "00800001800000000000000000000004";
-    final targetAccount = "00800001800000000000000000000005";
+    final account = '00800001800000000000000000000004';
+    final targetAccount = '00800001800000000000000000000005';
 
     test('it should observe a successful transfer', () async {
       final stream = await bankAdmin
@@ -16,40 +16,40 @@ void main() {
         fromAccountId: account,
         toAccountId: targetAccount,
         amount: 100,
-        memo: "observation test",
+        memo: 'observation test',
         operator: operator,
       );
 
-      await stream.timeout(new Duration(seconds: 10), onTimeout: (sink) {
+      await stream.timeout(Duration(seconds: 10), onTimeout: (sink) {
         sink.close();
-        fail("Did not observe message in time");
-      }).any((transferResults) =>
-          transferResults.any((result) => result.txId == transaction.txId));
+        fail('Did not observe message in time');
+      },).any((transferResults) =>
+          transferResults.any((result) => result.txId == transaction.txId),);
     });
 
     test('it should observe a resource change', () async {
       final dennisAccountId =
-          await Utility.createAccount(bankAdmin, publicName: "Dennis V1");
+          await Utility.createAccount(bankAdmin, publicName: 'Dennis V1');
 
       final stream = await bankAdmin.observeResources(
           operator: operator,
-          collection: "account-metadata",
-          expression: "|id, doc| id == account",
+          collection: 'account-metadata',
+          expression: '|id, doc| id == account',
           variables: {
-            "account": new Value(bytesValue: hex.decode(dennisAccountId)),
-          });
+            'account': Value(bytesValue: hex.decode(dennisAccountId)),
+          },);
 
       final updateTxnId = await bankAdmin.updateAccount(
-          id: dennisAccountId, operator: operator, publicName: "Dennis V2");
+          id: dennisAccountId, operator: operator, publicName: 'Dennis V2',);
 
-      final operations = await stream.timeout(new Duration(seconds: 10),
+      final operations = await stream.timeout(Duration(seconds: 10),
           onTimeout: (sink) {
         sink.close();
-        fail("Did not observe resource change in time");
-      }).firstWhere((resourceResults) =>
-          resourceResults.any((result) => result.txId == updateTxnId));
+        fail('Did not observe resource change in time');
+      },).firstWhere((resourceResults) =>
+          resourceResults.any((result) => result.txId == updateTxnId),);
 
-      assert(operations.length == 1);
+      expect(operations.length, 1);
     });
   });
 }

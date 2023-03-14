@@ -19,7 +19,7 @@ final _directoryHost =
     Platform.environment['DIRECTORY_HOST'] ?? 'develop.m10.net';
 final _ledgerHost =
     Platform.environment['LEDGER_API_HOST'] ?? 'develop.m10.net';
-final _disableTls = Platform.environment['DISABLE_TLS'] == "true";
+final _disableTls = Platform.environment['DISABLE_TLS'] == 'true';
 final operator = 'm10';
 final instrument = Platform.environment['CURRENCY'] ?? 'ttt';
 final ledgerId = '$instrument.m10';
@@ -29,11 +29,11 @@ final _ledgers = [
     ..url = 'https://$_ledgerHost/',
 ];
 
-printLedgerInfo() {
-  print("Directory host: $_directoryHost");
-  print("Ledger host: $_ledgerHost");
-  print("Disable TLS: $_disableTls");
-  print("Instrument: $instrument");
+void printLedgerInfo() {
+  print('Directory host: $_directoryHost');
+  print('Ledger host: $_ledgerHost');
+  print('Disable TLS: $_disableTls');
+  print('Instrument: $instrument');
 }
 
 class UsernamePasswordAuth implements TokenProvider {
@@ -42,7 +42,7 @@ class UsernamePasswordAuth implements TokenProvider {
   final Dio _client = Dio(BaseOptions(baseUrl: 'https://$_directoryHost'));
   final String username;
   final String password;
-  final String _subject = uuid.v4().toString();
+  final String _subject = uuid.v4();
   String? _accessToken;
 
   @override
@@ -68,9 +68,11 @@ class UsernamePasswordAuth implements TokenProvider {
   String get subject => _subject;
 }
 
-final directory = M10Directory(_directoryHost,
-    tokenProvider: UsernamePasswordAuth(testUsername, testPassword),
-    disableTls: _disableTls);
+final directory = M10Directory(
+  _directoryHost,
+  tokenProvider: UsernamePasswordAuth(testUsername, testPassword),
+  disableTls: _disableTls,
+);
 
 // Test Bank
 late final M10Sdk bankAdmin;
@@ -114,7 +116,7 @@ class Utility {
       disableTls: _disableTls,
     );
 
-    aliceName = "alice ${randomAlpha(8)}";
+    aliceName = 'alice ${randomAlpha(8)}';
     aliceId = await createUser(sdk: alice);
     aliceAccountId = await createAccount(alice, publicName: aliceName);
 
@@ -125,18 +127,16 @@ class Utility {
       disableTls: _disableTls,
     );
 
-    bobsName = "bob ${randomAlpha(8)}";
+    bobsName = 'bob ${randomAlpha(8)}';
     bobId = await createUser(sdk: bob);
     bobsAccountId = await createAccount(bob, publicName: bobsName);
   }
 
-  static Future<M10Sdk> newUser() async {
-    return M10Sdk(
-      signer: await LocalSigning.generateKeyPair(),
-      ledgers: _ledgers,
-      disableTls: _disableTls,
-    );
-  }
+  static Future<M10Sdk> newUser() async => M10Sdk(
+        signer: await LocalSigning.generateKeyPair(),
+        ledgers: _ledgers,
+        disableTls: _disableTls,
+      );
 
   static Future<String> createUser({
     required M10Sdk sdk,
@@ -145,23 +145,27 @@ class Utility {
       operator: operator,
     );
     final roleBindings = await bankAdmin.listRoleBindings(
-        name: "dart-test-customer", operator: operator);
+      name: 'dart-test-customer',
+      operator: operator,
+    );
     final roleBinding = roleBindings.first;
     final userKey = await sdk.signer.publicKey();
-    if (!roleBinding.subjects.contains(userKey)) {
+    if (!roleBinding.subjects.contains(base64Encode(userKey))) {
       final subject = base64.encode(userKey);
       await bankAdmin.updateRoleBinding(
-          id: roleBinding.id, operator: operator, subjects: [subject]);
+        id: roleBinding.id,
+        operator: operator,
+        subjects: [subject],
+      );
     }
     return userId;
   }
 
-  static Future<String> createAccount(M10Sdk sdk, {String? publicName}) async {
-    return await sdk.createAccount(
-      parentId: parentAccountId,
-      name: "Dart SDK Test Account",
-      publicName: publicName,
-      operator: operator,
-    );
-  }
+  static Future<String> createAccount(M10Sdk sdk, {String? publicName}) async =>
+      sdk.createAccount(
+        parentId: parentAccountId,
+        name: 'Dart SDK Test Account',
+        publicName: publicName,
+        operator: operator,
+      );
 }

@@ -18,17 +18,17 @@ import 'rbac.pb.dart' as $4;
 export 'api.pb.dart';
 
 class M10TxServiceClient extends $grpc.Client {
+
+  M10TxServiceClient($grpc.ClientChannel channel,
+      {$grpc.CallOptions? options,
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
+      : super(channel, options: options, interceptors: interceptors);
   static final _$createTransaction =
       $grpc.ClientMethod<$0.RequestEnvelope, $1.TransactionResponse>(
           '/m10.sdk.M10TxService/CreateTransaction',
           ($0.RequestEnvelope value) => value.writeToBuffer(),
           ($core.List<$core.int> value) =>
               $1.TransactionResponse.fromBuffer(value));
-
-  M10TxServiceClient($grpc.ClientChannel channel,
-      {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
-      : super(channel, options: options, interceptors: interceptors);
 
   $grpc.ResponseFuture<$1.TransactionResponse> createTransaction(
       $0.RequestEnvelope request,
@@ -38,7 +38,6 @@ class M10TxServiceClient extends $grpc.Client {
 }
 
 abstract class M10TxServiceBase extends $grpc.Service {
-  $core.String get $name => 'm10.sdk.M10TxService';
 
   M10TxServiceBase() {
     $addMethod($grpc.ServiceMethod<$0.RequestEnvelope, $1.TransactionResponse>(
@@ -49,6 +48,7 @@ abstract class M10TxServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) => $0.RequestEnvelope.fromBuffer(value),
         ($1.TransactionResponse value) => value.writeToBuffer()));
   }
+  $core.String get $name => 'm10.sdk.M10TxService';
 
   $async.Future<$1.TransactionResponse> createTransaction_Pre(
       $grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
@@ -60,6 +60,11 @@ abstract class M10TxServiceBase extends $grpc.Service {
 }
 
 class M10QueryServiceClient extends $grpc.Client {
+
+  M10QueryServiceClient($grpc.ClientChannel channel,
+      {$grpc.CallOptions? options,
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
+      : super(channel, options: options, interceptors: interceptors);
   static final _$getTransfer =
       $grpc.ClientMethod<$0.RequestEnvelope, $1.FinalizedTransfer>(
           '/m10.sdk.M10QueryService/GetTransfer',
@@ -197,11 +202,6 @@ class M10QueryServiceClient extends $grpc.Client {
       '/m10.sdk.M10QueryService/GetBank',
       ($0.RequestEnvelope value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $2.Bank.fromBuffer(value));
-
-  M10QueryServiceClient($grpc.ClientChannel channel,
-      {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
-      : super(channel, options: options, interceptors: interceptors);
 
   $grpc.ResponseFuture<$1.FinalizedTransfer> getTransfer(
       $0.RequestEnvelope request,
@@ -359,7 +359,6 @@ class M10QueryServiceClient extends $grpc.Client {
 }
 
 abstract class M10QueryServiceBase extends $grpc.Service {
-  $core.String get $name => 'm10.sdk.M10QueryService';
 
   M10QueryServiceBase() {
     $addMethod($grpc.ServiceMethod<$0.RequestEnvelope, $1.FinalizedTransfer>(
@@ -555,6 +554,7 @@ abstract class M10QueryServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) => $0.RequestEnvelope.fromBuffer(value),
         ($2.Bank value) => value.writeToBuffer()));
   }
+  $core.String get $name => 'm10.sdk.M10QueryService';
 
   $async.Future<$1.FinalizedTransfer> getTransfer_Pre(
       $grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {

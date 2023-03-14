@@ -15,6 +15,11 @@ import '../google/protobuf/empty.pb.dart' as $1;
 export 'api.pb.dart';
 
 class DirectoryServiceClient extends $grpc.Client {
+
+  DirectoryServiceClient($grpc.ClientChannel channel,
+      {$grpc.CallOptions? options,
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
+      : super(channel, options: options, interceptors: interceptors);
   static final _$createLedger = $grpc.ClientMethod<$0.Ledger, $1.Empty>(
       '/m10.directory.DirectoryService/CreateLedger',
       ($0.Ledger value) => value.writeToBuffer(),
@@ -58,11 +63,6 @@ class DirectoryServiceClient extends $grpc.Client {
           ($0.CreateImageUrlRequest value) => value.writeToBuffer(),
           ($core.List<$core.int> value) =>
               $0.ObjectUrlResponse.fromBuffer(value));
-
-  DirectoryServiceClient($grpc.ClientChannel channel,
-      {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
-      : super(channel, options: options, interceptors: interceptors);
 
   $grpc.ResponseFuture<$1.Empty> createLedger($0.Ledger request,
       {$grpc.CallOptions? options}) {
@@ -109,7 +109,6 @@ class DirectoryServiceClient extends $grpc.Client {
 }
 
 abstract class DirectoryServiceBase extends $grpc.Service {
-  $core.String get $name => 'm10.directory.DirectoryService';
 
   DirectoryServiceBase() {
     $addMethod($grpc.ServiceMethod<$0.Ledger, $1.Empty>(
@@ -175,6 +174,7 @@ abstract class DirectoryServiceBase extends $grpc.Service {
                 $0.CreateImageUrlRequest.fromBuffer(value),
             ($0.ObjectUrlResponse value) => value.writeToBuffer()));
   }
+  $core.String get $name => 'm10.directory.DirectoryService';
 
   $async.Future<$1.Empty> createLedger_Pre(
       $grpc.ServiceCall call, $async.Future<$0.Ledger> request) async {

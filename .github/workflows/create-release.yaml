@@ -5,15 +5,14 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
-env:
-  M10_PROTOBUFS: "${{ github.workspace }}/protobuf"
-
 jobs:
 
   release:
 
     name: Create Release
     runs-on: ubuntu-latest
+    # NOTE: Created release will trigger artifact compilation and we need to have SDK published for that
+    needs: publish-rust
 
     steps:
       - uses: actions/checkout@v3
@@ -26,6 +25,9 @@ jobs:
   publish-rust:
   
     runs-on: ubuntu-latest
+
+    env:
+      M10_PROTOBUFS: "${{ github.workspace }}/protobuf"
 
     steps:
       - uses: actions/checkout@v3

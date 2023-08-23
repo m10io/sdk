@@ -16,6 +16,7 @@ mod directory_entry;
 mod images;
 mod key_pair;
 mod ledger_accounts;
+mod offline_token;
 mod role_bindings;
 mod roles;
 mod transfer;
@@ -49,6 +50,8 @@ pub(super) enum CreateSubCommands {
     Uuid(uuid_options::UuidOptions),
     /// Create a new keypair and print the public key
     KeyPair(key_pair::CreateKeyPairOptions),
+    /// Create a offline token from an account
+    OfflineToken(offline_token::CreateTokenOptions),
 }
 
 impl CreateSubCommands {
@@ -75,6 +78,7 @@ impl CreateSubCommands {
             }
             CreateSubCommands::KeyPair(options) => options.create(),
             CreateSubCommands::Bank(options) => store_create::<_, sdk::Bank>(options, config).await,
+            CreateSubCommands::OfflineToken(options) => options.create(config).await,
         }
     }
 

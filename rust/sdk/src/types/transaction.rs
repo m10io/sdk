@@ -31,6 +31,9 @@ impl TryFrom<sdk::FinalizedTransaction> for Transaction {
             Data::InvokeAction(_) => Transaction::Action(Action::try_from(txn)?),
             // TODO @sadroeck - fixme
             Data::DocumentOperations(_) => Transaction::DocumentOperations,
+            Data::CreateToken(_) | Data::RedeemToken(_) => {
+                Transaction::Transfer(Transfer::try_from(txn)?)
+            }
         };
         Ok(tx)
     }

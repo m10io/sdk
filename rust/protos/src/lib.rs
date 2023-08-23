@@ -86,7 +86,8 @@ pub mod sdk {
     use core::{fmt, str};
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-    use crate::{sdk, Collection, Pack};
+    pub use crate::Collection;
+    use crate::{sdk, Pack};
 
     impl str::FromStr for AccountRef {
         type Err = AccountRefParseError;
@@ -138,6 +139,25 @@ pub mod sdk {
     }
 
     impl std::error::Error for AccountRefParseError {}
+
+    impl Eq for RedeemableToken {}
+
+    impl PartialOrd for RedeemableToken {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl Ord for RedeemableToken {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            match (self.data.as_ref(), other.data.as_ref()) {
+                (None, None) => std::cmp::Ordering::Equal,
+                (Some(_), None) => std::cmp::Ordering::Greater,
+                (None, Some(_)) => std::cmp::Ordering::Less,
+                (Some(s), Some(o)) => s.id.cmp(&o.id),
+            }
+        }
+    }
 
     impl Pack for AccountSet {
         const COLLECTION: Collection = Collection::AccountSets;
@@ -210,6 +230,18 @@ pub mod sdk {
     impl From<CommitTransfer> for Data {
         fn from(request: CommitTransfer) -> Self {
             Self::CommitTransfer(request)
+        }
+    }
+
+    impl From<CreateToken> for Data {
+        fn from(request: CreateToken) -> Self {
+            Self::CreateToken(request)
+        }
+    }
+
+    impl From<RedeemToken> for Data {
+        fn from(request: RedeemToken) -> Self {
+            Self::RedeemToken(request)
         }
     }
 
@@ -311,6 +343,34 @@ pub mod sdk {
                     index_metadata,
                 })),
             }
+        }
+    }
+
+    impl Signature {
+        pub fn verify(&self, message: &[u8]) -> Result<(), TransactionError> {
+            let Signature {
+                signature,
+                public_key,
+                algorithm,
+            } = self;
+            let key = match signature::Algorithm::from_i32(*algorithm).ok_or(TransactionError {
+                code: transaction_error::Code::BadRequest.into(),
+                message: "Unsupported Algorithm".to_owned(),
+            })? {
+                signature::Algorithm::P256Sha256Asn1 => ring::signature::UnparsedPublicKey::new(
+                    &ring::signature::ECDSA_P256_SHA256_ASN1,
+                    public_key,
+                ),
+                signature::Algorithm::Ed25519 => {
+                    ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key)
+                }
+            };
+            key.verify(message, signature)
+                .map_err(|_| TransactionError {
+                    code: transaction_error::Code::InvalidSignature.into(),
+                    message: String::new(),
+                })?;
+            Ok(())
         }
     }
 

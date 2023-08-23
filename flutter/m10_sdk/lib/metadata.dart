@@ -8,6 +8,8 @@ const depositTypeUrl = 'm10.sdk.metadata.Deposit';
 const contractTypeUrl = 'm10.sdk.metadata.Contract';
 const selfTransferTypeUrl = 'm10.sdk.metadata.SelfTransfer';
 const rebalanceTransferTypeUrl = 'm10.sdk.metadata.RebalanceTransfer';
+const tokenTransferTypeUrl = 'm10.sdk.metadata.OfflineToken';
+const offlineTransferTypeUrl = 'm10.sdk.metadata.OfflineTransfer';
 
 extension MetadataExt on List<Any> {
   List<Attachment> get attachments =>
@@ -65,6 +67,10 @@ extension MetadataExt on List<Any> {
   bool get isRebalanceTransfer =>
       where((a) => a.typeUrl == rebalanceTransferTypeUrl).isNotEmpty;
 
+  bool get isTokenTransfer => any((a) => a.typeUrl == tokenTransferTypeUrl);
+
+  bool get isOfflineTransfer => any((a) => a.typeUrl == offlineTransferTypeUrl);
+
   bool get isFx => where((a) => a.typeUrl == contractTypeUrl).isNotEmpty;
 }
 
@@ -76,7 +82,7 @@ abstract class Metadata {
 
   static Any memo(String plaintext) => Any(
         typeUrl: memoTypeUrl,
-        value: Memo(plaintext: plaintext).writeToBuffer(),
+        value: (Memo()..plaintext = plaintext).writeToBuffer(),
       );
 
   static Any fee() => Any(
@@ -91,12 +97,12 @@ abstract class Metadata {
 
   static Any withdraw(String bankAccountId) => Any(
         typeUrl: withdrawTypeUrl,
-        value: Withdraw(bankAccountId: bankAccountId).writeToBuffer(),
+        value: (Withdraw()..bankAccountId = bankAccountId).writeToBuffer(),
       );
 
   static Any deposit(String bankAccountId) => Any(
         typeUrl: depositTypeUrl,
-        value: Deposit(bankAccountId: bankAccountId).writeToBuffer(),
+        value: (Deposit()..bankAccountId = bankAccountId).writeToBuffer(),
       );
 
   static Any selfTransfer(SelfTransfer selfTransfer) => Any(

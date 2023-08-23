@@ -19,6 +19,7 @@ import 'package:m10_sdk/security/request_signing.dart';
 import 'package:m10_sdk/security/security.dart';
 import 'package:m10_sdk/library.dart';
 import 'package:collection/collection.dart';
+import 'package:xid/xid.dart';
 
 class M10Sdk {
   M10Sdk({
@@ -79,7 +80,9 @@ class M10Sdk {
     }
     final payload = request.writeToBuffer();
     final signature = await signer.signPayload(payload);
-    return RequestEnvelope(payload: payload, signature: signature);
+    return RequestEnvelope()
+      ..payload = payload
+      ..signature = signature;
   }
 
   Future<String> createUser({
@@ -108,7 +111,7 @@ class M10Sdk {
     required String userId,
     required String operator,
   }) async {
-    final request = GetAccountSetRequest(id: Uuid.parse(userId));
+    final request = GetAccountSetRequest()..id = Uuid.parse(userId);
     final envelop = await requestEnvelope(request: request);
     final user = await getServiceClient(operator).query.getAccountSet(envelop);
     return AccountSetDoc(user);
@@ -249,9 +252,7 @@ class M10Sdk {
     final documents =
         await getServiceClient(operator).query.listAccountMetadata(envelop);
 
-    return documents.accounts
-        .map((account) => AccountMetadataDoc(account))
-        .toList();
+    return documents.accounts.map(AccountMetadataDoc.new).toList();
   }
 
   Future<List<AccountMetadataDoc>> findAccountByName({
@@ -263,9 +264,7 @@ class M10Sdk {
     final documents =
         await getServiceClient(operator).query.listAccountMetadata(envelop);
 
-    return documents.accounts
-        .map((account) => AccountMetadataDoc(account))
-        .toList();
+    return documents.accounts.map(AccountMetadataDoc.new).toList();
   }
 
   Future<int> updateAccount({
@@ -308,7 +307,7 @@ class M10Sdk {
     final envelop = await requestEnvelope(request: request);
     final bindings = await getServiceClient(operator).query.listRoles(envelop);
 
-    return bindings.roles.map((r) => RoleDoc(r)).toList();
+    return bindings.roles.map(RoleDoc.new).toList();
   }
 
   Future<RoleDoc> getRole({
@@ -333,12 +332,16 @@ class M10Sdk {
     final uuid = Uuid();
     final ownerBytes = owner != null ? base64Decode(owner) : null;
 
-    final role = Role(
-      rules: rules != null ? rules.map((r) => r.asRule()) : List.empty(),
-    )
+    final role = Role()
       ..id = (id != null ? hex.decode(id) : uuid.v4buffer(List.filled(16, 0)))
       ..name = name
       ..owner = ownerBytes ?? await signer.publicKey();
+
+    role.rules.clear();
+    if (rules != null) {
+      role.rules.addAll(rules.map((r) => r.asRule()));
+    }
+
     final request = role.createRequest();
     final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
@@ -401,7 +404,7 @@ class M10Sdk {
     final bindings =
         await getServiceClient(operator).query.listRoleBindings(envelop);
 
-    return bindings.roleBindings.map((r) => RoleBindingDoc(r)).toList();
+    return bindings.roleBindings.map(RoleBindingDoc.new).toList();
   }
 
   Future<RoleBindingDoc> getRoleBinding({
@@ -426,14 +429,18 @@ class M10Sdk {
     String? contextId,
   }) async {
     final uuid = Uuid();
-    final roleBinding = RoleBinding(
-      expressions: expressions,
-      subjects: subjects != null
-          ? subjects.map((s) => base64.decode(s))
-          : List.empty(),
-    )
+    final roleBinding = RoleBinding()
       ..id = (id != null ? hex.decode(id) : uuid.v4buffer(List.filled(16, 0)))
       ..name = name;
+
+    roleBinding.expressions.clear();
+    if (expressions != null) {
+      roleBinding.expressions.addAll(expressions);
+    }
+    roleBinding.subjects.clear();
+    if (subjects != null) {
+      roleBinding.subjects.addAll(subjects.map(base64.decode));
+    }
 
     final request = roleBinding.createRequest();
     final client = getServiceClient(operator);
@@ -475,13 +482,15 @@ class M10Sdk {
     bool commit = true,
   }) async {
     final transferSteps = steps.map((step) => step.model).toList();
-    final transfer = CreateTransfer(transferSteps: transferSteps);
+    final transfer = CreateTransfer()..setSteps(transferSteps);
 
-    final request = commit
-        ? TransactionRequestPayload(data: TransactionData(transfer: transfer))
-        : TransactionRequestPayload(
-            data: TransactionData(initiateTransfer: transfer),
-          );
+    final request = TransactionRequestPayload();
+    if (commit) {
+      request.data = (TransactionData()..transfer = transfer);
+    } else {
+      request.data = (TransactionData()..initiateTransfer = transfer);
+    }
+
     final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
       request: request,
@@ -634,17 +643,16 @@ class M10Sdk {
     int maxTxId = 0,
     int limit = 10,
   }) async {
-    final request = ListTransactionsRequest(
-      contextId: hex.decode(contextId),
-      minTxId: Int64(minTxId),
-      maxTxId: Int64(maxTxId),
-      limit: Int64(limit),
-    );
+    final request = ListTransactionsRequest()
+      ..contextId = hex.decode(contextId)
+      ..minTxId = Int64(minTxId)
+      ..maxTxId = Int64(maxTxId)
+      ..limit = Int64(limit);
 
     final envelop = await requestEnvelope(request: request);
     final response =
         await getServiceClient(operator).query.listTransactions(envelop);
-    return response.transactions.map((tx) => TransactionDoc(tx)).toList();
+    return response.transactions.map(TransactionDoc.new).toList();
   }
 
   Future<List<List<TransactionDoc>>> groupTransactions({
@@ -654,20 +662,18 @@ class M10Sdk {
     int maxTxId = 0,
     int limitGroups = 10,
   }) async {
-    final request = GroupTransactionsRequest(
-      accountId: hex.decode(accountId),
-      minTxId: Int64(minTxId),
-      maxTxId: Int64(maxTxId),
-      limitGroups: Int64(limitGroups),
-    );
+    final request = GroupTransactionsRequest()
+      ..accountId = hex.decode(accountId)
+      ..minTxId = Int64(minTxId)
+      ..maxTxId = Int64(maxTxId)
+      ..limitGroups = Int64(limitGroups);
     final envelop = await requestEnvelope(request: request);
     final response =
         await getServiceClient(operator).query.groupTransactions(envelop);
 
     return response.groups
         .map(
-          (group) =>
-              group.transactions.map((tx) => TransactionDoc(tx)).toList(),
+          (group) => group.transactions.map(TransactionDoc.new).toList(),
         )
         .toList();
   }
@@ -684,22 +690,21 @@ class M10Sdk {
   }) async {
     final Target target;
     if (targetAccountId != null) {
-      target = Target(accountId: hex.decode(targetAccountId));
+      target = Target()..accountId = hex.decode(targetAccountId);
     } else if (targetAll) {
-      target = Target(anyAccount: Empty());
+      target = Target()..anyAccount = Empty();
     } else {
       throw 'Missing action target';
     }
 
-    final action = InvokeAction(
-      name: name,
-      fromAccount: hex.decode(fromAccountId),
-      target: target,
-      payload: payload,
-    );
+    final action = InvokeAction()
+      ..name = name
+      ..fromAccount = hex.decode(fromAccountId)
+      ..target = target
+      ..payload = payload;
 
-    final request =
-        TransactionRequestPayload(data: TransactionData(invokeAction: action));
+    final request = TransactionRequestPayload()
+      ..data = (TransactionData()..invokeAction = action);
     final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
       request: request,
@@ -714,7 +719,7 @@ class M10Sdk {
     required int txId,
     required String operator,
   }) async {
-    final request = GetActionRequest(txId: Int64(txId));
+    final request = GetActionRequest()..txId = Int64(txId);
     final envelop = await requestEnvelope(request: request);
     final action = await getServiceClient(operator).query.getAction(envelop);
 
@@ -730,20 +735,26 @@ class M10Sdk {
     int maxTxId = 0,
     int limit = 10,
   }) async {
-    final request = ListActionsRequest(
-      name: name,
-      accountId: (accountId != null) ? hex.decode(accountId) : null,
-      contextId: contextId,
-      minTxId: Int64(minTxId),
-      maxTxId: Int64(maxTxId),
-      limit: Int64(limit),
-    );
+    final request = ListActionsRequest()
+      ..name = name
+      ..minTxId = Int64(minTxId)
+      ..maxTxId = Int64(maxTxId)
+      ..limit = Int64(limit);
+    if (accountId != null) {
+      request.accountId = hex.decode(accountId);
+    } else if (contextId != null) {
+      request.contextId = contextId;
+    } else {
+      throw Exception(
+        'Missing filter, one of `accountId` or `contextId` must be non-null',
+      );
+    }
 
     final envelop = await requestEnvelope(request: request);
     final response =
         await getServiceClient(operator).query.listActions(envelop);
 
-    return response.actions.map((tx) => ActionDoc(tx)).toList();
+    return response.actions.map(ActionDoc.new).toList();
   }
 
   // Accounts
@@ -757,9 +768,8 @@ class M10Sdk {
       ..parentId = hex.decode(parentId)
       ..balanceLimit = Int64(balanceLimit ?? 0);
 
-    final request = TransactionRequestPayload(
-      data: TransactionData(createLedgerAccount: account),
-    );
+    final request = TransactionRequestPayload()
+      ..data = (TransactionData()..createLedgerAccount = account);
     final client = getServiceClient(operator);
     final envelop = await requestEnvelope(
       request: request,
@@ -795,9 +805,8 @@ class M10Sdk {
     final envelop = await requestEnvelope(request: request);
     final stream = getServiceClient(operator).query.observeTransfers(envelop);
     return stream.map(
-      (transactions) => transactions.transactions
-          .map((result) => TransferResultDoc.fromModel(result))
-          .toList(),
+      (transactions) =>
+          transactions.transactions.map(TransferResultDoc.fromModel).toList(),
     );
   }
 
@@ -807,10 +816,10 @@ class M10Sdk {
     required List<String> accounts,
     Int64? startingFrom,
   }) async {
-    final request = ObserveActionsRequest(
-      name: name,
-      involvesAccounts: accounts.map((a) => hex.decode(a)).toList(),
-    );
+    final request = ObserveActionsRequest()..name = name;
+    request.involvesAccounts
+      ..clear()
+      ..addAll(accounts.map(hex.decode));
 
     if (startingFrom != null) {
       request.startingFrom = TxId()..txId = startingFrom;
@@ -822,17 +831,100 @@ class M10Sdk {
       (transactions) => transactions.transactions.map((tx) {
         final action = tx.request.data.invokeAction;
         return ActionDoc(
-          Action(
-            txId: tx.response.txId,
-            name: action.name,
-            contextId: tx.request.contextId,
-            fromAccount: action.fromAccount,
-            target: action.target,
-            payload: action.payload,
-          ),
+          Action()
+            ..txId = tx.response.txId
+            ..name = action.name
+            ..contextId = tx.request.contextId
+            ..fromAccount = action.fromAccount
+            ..target = action.target
+            ..payload = action.payload,
         );
       }).toList(),
     );
+  }
+
+  //
+  // Offline tokens
+  //
+
+  ///
+  /// Creates a transferable offline token by transfering
+  /// from the specified ledger account.
+  ///
+  Future<(Int64, OfflineToken)> createToken({
+    required String accountId,
+    required Int64 value,
+    required String operator,
+    String? address,
+    String? contextId,
+  }) async {
+    final createToken = CreateToken()
+      ..accountId = hex.decode(accountId)
+      ..value = value
+      ..address =
+          address != null ? base64.decode(address) : await signer.publicKey();
+
+    final client = getServiceClient(operator);
+    final request = TransactionRequestPayload()
+      ..data = (TransactionData()..createToken = createToken);
+    final envelope = await requestEnvelope(
+      request: request,
+      contextId: contextId != null ? hex.decode(contextId) : null,
+    );
+
+    final response = await client.tx.createTransaction(envelope);
+    return (response.txId, response.token);
+  }
+
+  ///
+  /// Credits a redeemable offline token to the specified
+  /// ledger account. Returns the transaction ID.
+  ///
+  Future<Int64> redeemToken({
+    required RedeemableToken token,
+    required String accountId,
+    required String operator,
+    String? contextId,
+  }) async {
+    final redeemToken = RedeemToken()
+      ..accountId = hex.decode(accountId)
+      ..token = token;
+
+    final client = getServiceClient(operator);
+    final request = TransactionRequestPayload()
+      ..data = (TransactionData()..redeemToken = redeemToken);
+    final envelope = await requestEnvelope(
+      request: request,
+      contextId: contextId != null ? hex.decode(contextId) : null,
+    );
+
+    final response = await client.tx.createTransaction(envelope);
+    return response.txId;
+  }
+
+  ///
+  /// Issues a signed redeemable token from an existing
+  /// transferable token.
+  ///
+  Future<RedeemableToken> issueToken({
+    required String toAddress,
+    required String currencyCode,
+    required Int64 value,
+    required List<RedeemableToken_TokenInput> tokenInputs,
+  }) async {
+    final tokenData = RedeemableToken_Data()
+      ..id = Xid().toBytes()
+      ..address = base64.decode(toAddress)
+      ..currency = currencyCode;
+    tokenData.inputs
+      ..clear()
+      ..addAll(tokenInputs);
+
+    final redeemableToken = RedeemableToken()
+      ..data = tokenData
+      ..signature = await signer.signPayload(tokenData.writeToBuffer());
+
+    return redeemableToken;
   }
 
   Future<Stream<List<ResourceResultDoc>>> observeResources({
@@ -843,7 +935,7 @@ class M10Sdk {
     Int64? startingFrom,
   }) async {
     final exp = Exp()..exp = expression;
-    exp.vars.addAll(variables.map((key, value) => MapEntry(key, value)));
+    exp.vars.addAll(variables.map(MapEntry.new));
     final request = ObserveResourcesRequest()
       ..collection = collection
       ..expression = exp;
@@ -855,9 +947,8 @@ class M10Sdk {
     final envelop = await requestEnvelope(request: request);
     final stream = getServiceClient(operator).query.observeResources(envelop);
     return stream.map(
-      (transactions) => transactions.transactions
-          .map((result) => ResourceResultDoc.fromModel(result))
-          .toList(),
+      (transactions) =>
+          transactions.transactions.map(ResourceResultDoc.fromModel).toList(),
     );
   }
 
@@ -875,7 +966,7 @@ class M10Sdk {
 
     final envelop = await requestEnvelope(request: request);
     final stream = getServiceClient(operator).query.observeMetrics(envelop);
-    return stream.map((result) => TransactionMetricsDoc.fromModel(result));
+    return stream.map(TransactionMetricsDoc.fromModel);
   }
 
   // Creates a builder object for a Ledger Contract
@@ -893,9 +984,8 @@ class M10Sdk {
 
     if (account.frozen != frozen) {
       freezeState.frozen = frozen;
-      final request = TransactionRequestPayload(
-        data: TransactionData(setFreezeState: freezeState),
-      );
+      final request = TransactionRequestPayload()
+        ..data = (TransactionData()..setFreezeState = freezeState);
       final envelop = await requestEnvelope(
         request: request,
         contextId: contextId != null ? hex.decode(contextId) : null,
@@ -931,10 +1021,10 @@ extension M10Actions on M10Sdk {
         fromAccountId: hex.encode(transferRequest.transferSteps[0].toAccountId),
         targetAccountId:
             hex.encode(transferRequest.transferSteps[0].fromAccountId),
-        payload: PaymentRequest(
-          transfer: transferRequest,
-          status: PaymentRequest_PaymentRequestStatus.PENDING,
-        ).writeToBuffer(),
+        payload: (PaymentRequest()
+              ..transfer = transferRequest
+              ..status = PaymentRequest_PaymentRequestStatus.PENDING)
+            .writeToBuffer(),
         contextId: contextId ?? randomContextId,
       );
 
@@ -949,9 +1039,9 @@ extension M10Actions on M10Sdk {
         name: requestActionName,
         fromAccountId: fromAccountId,
         targetAccountId: targetAccountId,
-        payload:
-            PaymentRequest(status: PaymentRequest_PaymentRequestStatus.CANCELED)
-                .writeToBuffer(),
+        payload: (PaymentRequest()
+              ..status = PaymentRequest_PaymentRequestStatus.CANCELED)
+            .writeToBuffer(),
         contextId: contextId,
       );
 
@@ -966,9 +1056,9 @@ extension M10Actions on M10Sdk {
         name: requestActionName,
         fromAccountId: fromAccountId,
         targetAccountId: targetAccountId,
-        payload:
-            PaymentRequest(status: PaymentRequest_PaymentRequestStatus.DECLINED)
-                .writeToBuffer(),
+        payload: (PaymentRequest()
+              ..status = PaymentRequest_PaymentRequestStatus.DECLINED)
+            .writeToBuffer(),
         contextId: contextId,
       );
 

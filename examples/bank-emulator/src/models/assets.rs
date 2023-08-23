@@ -9,20 +9,15 @@ pub struct AssetTypeQuery {
     pub r#type: Option<AssetType>,
 }
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "asset_type")]
 pub enum AssetType {
+    #[default]
     Regulated,
     Cbdc,
     IndirectCbdc,
-}
-
-impl Default for AssetType {
-    fn default() -> Self {
-        AssetType::Regulated
-    }
 }
 
 impl fmt::Display for AssetType {

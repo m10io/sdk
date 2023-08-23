@@ -7,18 +7,13 @@ use crate::{auth::AuthScope, error::Error};
 
 use super::{Asset, NextPageToken};
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "contact_type")]
 pub enum ContactType {
+    #[default]
     Individual,
     LegalEntity,
-}
-
-impl Default for ContactType {
-    fn default() -> Self {
-        ContactType::Individual
-    }
 }
 
 #[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]

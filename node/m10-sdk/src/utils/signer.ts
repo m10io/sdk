@@ -44,8 +44,8 @@ export class CryptoSigner {
         return this.algorithm;
     }
 
-    public getSignature(payload: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>): m10.sdk.Signature {
-        return new m10.sdk.Signature({
+    public getSignature(payload: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>): m10.sdk.transaction.Signature {
+        return new m10.sdk.transaction.Signature({
             publicKey: this.getPublicKey().toUint8Array(),
             signature: Uint8Array.from(this.sign(payload)),
             algorithm: this.getAlgorithm(),

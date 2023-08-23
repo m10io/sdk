@@ -12,5 +12,6 @@ mod find;
 mod get;
 mod observe;
 mod show;
+mod token;
 mod top_level_cmds;
 mod update;

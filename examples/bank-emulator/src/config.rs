@@ -6,8 +6,7 @@ use m10_bank_emulator_protos::emulator::rtgs::{
     AccountRequest, AccountType, BankRegistrationRequest, OpenAccountRequest,
     RequisitionFundsRequest,
 };
-use m10_protos::sdk::GetBankRequest;
-use m10_sdk::Signer;
+use m10_sdk::{sdk::GetBankRequest, Signer};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::Acquire;

@@ -94,21 +94,14 @@ service M10QueryService {
   rpc  ListBanks(RequestEnvelope) returns (m10.sdk.ListBanksResponse);
   // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`Bank`](../model/struct.Bank.html)
   rpc  GetBank(RequestEnvelope) returns (m10.sdk.model.Bank);
+
+  // Offline
+  rpc GetOfflineKey(google.protobuf.Empty) returns (OfflineKey);
 }
 
 message RequestEnvelope {
   bytes payload = 2;
-  Signature signature = 3;
-}
-
-message Signature {
-  bytes public_key = 2;
-  bytes signature = 3;
-  Algorithm algorithm = 4;
-  enum Algorithm {
-    P256_SHA256_ASN1 = 0;
-    ED25519 = 1;
-  }
+  m10.sdk.transaction.Signature signature = 3;
 }
 
 message Page {
@@ -254,4 +247,8 @@ message ListBanksResponse {
 
 message GetBankRequest {
   bytes id = 1;
+}
+
+message OfflineKey {
+  bytes offline_pk = 1;
 }

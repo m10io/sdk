@@ -6,20 +6,15 @@ use crate::{auth::AuthScope, error::Error};
 
 use super::{Asset, AssetType, ContactType, NextPageToken};
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(sqlx::Type, Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "account_status")]
 pub enum AccountStatus {
+    #[default]
     Pending,
     Open,
     PendingClosure,
     Closed,
-}
-
-impl Default for AccountStatus {
-    fn default() -> Self {
-        AccountStatus::Pending
-    }
 }
 
 #[derive(sqlx::FromRow, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -3,10 +3,13 @@ use actix_web::{
     web::{Data, Json, Path, Query},
     HttpResponse, Scope,
 };
-use m10_protos::sdk::{
-    transaction, CreateTransfer, Deposit, GetTransferRequest, SelfTransfer, TransferStep, Withdraw,
+use m10_sdk::{
+    sdk::{
+        transaction, CreateTransfer, Deposit, GetTransferRequest, SelfTransfer, SetFreezeState,
+        TransferStep, Withdraw,
+    },
+    LedgerClient, Metadata, Signer,
 };
-use m10_sdk::{sdk::SetFreezeState, LedgerClient, Metadata, Signer};
 use serde_json::{json, Value};
 use sqlx::Acquire;
 use tracing::info;

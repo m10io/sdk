@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "sdk/api.proto";
 import "sdk/transaction/transaction.proto";
 
 package m10.sdk.metadata;
@@ -39,7 +38,7 @@ message Contract {
 
 message Endorsement {
   string ledger_id = 1;
-  m10.sdk.Signature signature = 2;
+  m10.sdk.transaction.Signature signature = 2;
 }
 
 message PaymentRequest {
@@ -73,7 +72,7 @@ message QuoteEvent {
   oneof event {
     QuoteRequest request = 1;
     Contract proposal = 2;
-  } 
+  }
 }
 
 message SelfTransfer {
@@ -82,3 +81,9 @@ message SelfTransfer {
 }
 
 message RebalanceTransfer {}
+
+message TokenWithdraw {}
+
+message OfflineTransfer {
+  uint64 input = 1;
+}

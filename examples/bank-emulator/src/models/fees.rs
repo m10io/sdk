@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::{cmp::Ordering, ops::RangeInclusive};
 
 #[cfg(test)]
-use m10_protos::sdk::TransferStep;
+use m10_sdk::sdk::TransferStep;
 use rust_decimal::Decimal;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sqlx::{types::Json, Executor, Postgres};

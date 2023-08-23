@@ -9,37 +9,57 @@ import 'package:m10_sdk/library.dart';
 
 extension DocumentOperation on GeneratedMessage {
   TransactionRequestPayload createTransactionFrom(String collection) {
-    final insertOp = Operation_InsertDocument(
-        collection: collection, document: writeToBuffer(),);
-    final operation = Operation(insertDocument: insertOp);
-    final operations = DocumentOperations(operations: [operation]);
-    return TransactionRequestPayload(
-        data: TransactionData(documentOperations: operations),);
+    final insertOp = Operation_InsertDocument()
+      ..collection = collection
+      ..document = writeToBuffer();
+    final operation = Operation()..insertDocument = insertOp;
+
+    final documentOperations = DocumentOperations();
+    documentOperations.operations
+      ..clear()
+      ..add(operation);
+
+    return TransactionRequestPayload()
+      ..data = (TransactionData()..documentOperations = documentOperations);
   }
 
   TransactionRequestPayload updateTransactionFrom(
-      List<int> id, String collection, FieldMask mask,) {
-    final updateOp = Operation_UpdateDocument(
-        collection: collection,
-        document: writeToBuffer(),
-        primaryKey: Value(bytesValue: id),
-        fieldMask: mask,);
-    final operation = Operation(updateDocument: updateOp);
-    final operations = DocumentOperations(operations: [operation]);
-    return TransactionRequestPayload(
-        data: TransactionData(documentOperations: operations),);
+    List<int> id,
+    String collection,
+    FieldMask mask,
+  ) {
+    final primaryKey = Value()..bytesValue = id;
+    final updateOp = Operation_UpdateDocument()
+      ..collection = collection
+      ..document = writeToBuffer()
+      ..primaryKey = primaryKey
+      ..fieldMask = mask;
+
+    final operation = Operation()..updateDocument = updateOp;
+    final documentOperations = DocumentOperations();
+    documentOperations.operations
+      ..clear()
+      ..add(operation);
+
+    final data = TransactionData()..documentOperations = documentOperations;
+    return TransactionRequestPayload()..data = data;
   }
 
   static TransactionRequestPayload deleteTransactionFrom(
-      List<int> id, String collection,) {
-    final deleteOp = Operation_DeleteDocument(
-      collection: collection,
-      primaryKey: Value(bytesValue: id),
-    );
-    final operation = Operation(deleteDocument: deleteOp);
-    final operations = DocumentOperations(operations: [operation]);
-    return TransactionRequestPayload(
-        data: TransactionData(documentOperations: operations),);
+    List<int> id,
+    String collection,
+  ) {
+    final primaryKey = Value()..bytesValue = id;
+    final deleteOp = Operation_DeleteDocument()
+      ..collection = collection
+      ..primaryKey = primaryKey;
+    final operation = Operation()..deleteDocument = deleteOp;
+    final operations = DocumentOperations();
+    operations.operations
+      ..clear()
+      ..add(operation);
+    return TransactionRequestPayload()
+      ..data = (TransactionData()..documentOperations = operations);
   }
 }
 
@@ -50,7 +70,8 @@ extension AccountMetadataExt on AccountMetadata {
       createTransactionFrom(_collection);
 
   static TransactionRequestPayload updateRequest(
-      DocumentUpdate<AccountMetadata> builder,) {
+    DocumentUpdate<AccountMetadata> builder,
+  ) {
     final account = builder.document;
     return account.updateTransactionFrom(account.id, _collection, builder.mask);
   }
@@ -66,7 +87,8 @@ extension AccountSetExt on AccountSet {
       createTransactionFrom(_collection);
 
   static TransactionRequestPayload updateRequest(
-      DocumentUpdate<AccountSet> builder,) {
+    DocumentUpdate<AccountSet> builder,
+  ) {
     final user = builder.document;
     return user.updateTransactionFrom(user.id, _collection, builder.mask);
   }
@@ -82,10 +104,14 @@ extension RoleBindingExt on RoleBinding {
       createTransactionFrom(_collection);
 
   static TransactionRequestPayload updateRequest(
-      DocumentUpdate<RoleBinding> builder,) {
+    DocumentUpdate<RoleBinding> builder,
+  ) {
     final roleBinding = builder.document;
     return roleBinding.updateTransactionFrom(
-        roleBinding.id, _collection, builder.mask,);
+      roleBinding.id,
+      _collection,
+      builder.mask,
+    );
   }
 
   static TransactionRequestPayload deleteRequest(List<int> id) =>

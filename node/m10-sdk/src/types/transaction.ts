@@ -50,6 +50,8 @@ export class Transaction implements ITransaction {
         );
         switch (unwrap(txnData.data, M10Error.InvalidTransaction())) {
             case "transfer":
+            case "createToken":
+            case "redeemToken":
                 return new Transaction({
                     type: TransactionType.Transfer,
                     value: Transfer.tryFromTxn(txn),

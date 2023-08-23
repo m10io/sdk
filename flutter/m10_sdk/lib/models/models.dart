@@ -62,7 +62,7 @@ class AccountSetDoc extends _Document<AccountSet> {
   String get id => Uuid.unparse(_model.id);
   String get owner => base64.encode(_model.owner);
   List<AccountRefDoc> get accounts =>
-      _model.accounts.map((accountRef) => AccountRefDoc(accountRef)).toList();
+      _model.accounts.map(AccountRefDoc.new).toList();
 
   @override
   String toString() => 'AccountSet $id $owner accounts=$accounts';
@@ -70,30 +70,37 @@ class AccountSetDoc extends _Document<AccountSet> {
 
 class RuleDoc extends _Document<Rule> {
   RuleDoc(Rule model) : super(model);
-  RuleDoc.fromStrings(
+
+  factory RuleDoc.fromStrings(
     String collection,
     List<String> verbs,
     List<String> instanceKeys,
-  ) : super(
-          Rule(
-            collection: collection,
-            instanceKeys: instanceKeys
-                .map((i) => document.Value(bytesValue: hex.decode(i))),
-            verbs: verbs.map((v) => v.asVerb()),
-          ),
-        );
+  ) =>
+      RuleDoc(_fromStrings(collection, verbs, instanceKeys));
 
   String get collection => _model.collection;
   List<String> get verbs => _model.verbs.map((v) => v.toString()).toList();
   List<String> get instanceKeys =>
       _model.instanceKeys.map((i) => hex.encode(i.bytesValue)).toList();
 
-  Rule asRule() => Rule(
-        collection: collection,
-        instanceKeys:
-            instanceKeys.map((i) => document.Value(bytesValue: hex.decode(i))),
-        verbs: verbs.map((v) => v.asVerb()),
+  static Rule _fromStrings(
+    String collection,
+    List<String> verbs,
+    List<String> instanceKeys,
+  ) {
+    final rule = Rule()..collection = collection;
+    rule.instanceKeys
+      ..clear()
+      ..addAll(
+        instanceKeys.map((i) => document.Value()..bytesValue = hex.decode(i)),
       );
+    rule.verbs
+      ..clear()
+      ..addAll(verbs.map((v) => v.asVerb()));
+    return rule;
+  }
+
+  Rule asRule() => _fromStrings(collection, instanceKeys, verbs);
 }
 
 class RoleDoc extends _Document<Role> {
@@ -102,7 +109,7 @@ class RoleDoc extends _Document<Role> {
   String get id => Uuid.unparse(_model.id);
   String get name => _model.name;
   String get owner => base64.encode(_model.owner);
-  List<RuleDoc> get rules => _model.rules.map((r) => RuleDoc(r)).toList();
+  List<RuleDoc> get rules => _model.rules.map(RuleDoc.new).toList();
 }
 
 class RoleBindingDoc extends _Document<RoleBinding> {
@@ -131,7 +138,7 @@ class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
   final String operator;
 
   List<TransferStepDoc> get steps =>
-      _model.transferSteps.map((step) => TransferStepDoc(step)).toList();
+      _model.transferSteps.map(TransferStepDoc.new).toList();
 
   int get id => _model.txId.toInt();
   bool get failed => _model.hasError();
@@ -156,12 +163,11 @@ class TransferStepDoc extends _Document<TransferStep> {
     required int amount,
     List<Any> metadata = const [],
   }) : super(
-          TransferStep(
-            fromAccountId: hex.decode(fromAccountId),
-            toAccountId: hex.decode(toAccountId),
-            amount: Int64(amount),
-            metadata: metadata,
-          ),
+          TransferStep()
+            ..fromAccountId = hex.decode(fromAccountId)
+            ..toAccountId = hex.decode(toAccountId)
+            ..amount = Int64(amount)
+            ..setMetadata(metadata),
         );
 
   String get fromAccountId => hex.encode(_model.fromAccountId);
@@ -173,7 +179,7 @@ class TransferStepDoc extends _Document<TransferStep> {
 class TransferRequestDoc extends _Document<CreateTransfer> {
   TransferRequestDoc(CreateTransfer model) : super(model);
   List<TransferStepDoc> get steps =>
-      _model.transferSteps.map((step) => TransferStepDoc(step)).toList();
+      _model.transferSteps.map(TransferStepDoc.new).toList();
 }
 
 class EnhancedTransferStepDoc extends _Document<TransferStep>
@@ -387,10 +393,10 @@ class RequestDoc {
   String get fromAccountId => _model.action!.fromAccountId;
   String get targetAccountId => _model.action!.targetAccountId!;
   int get amount =>
-      (request?.transfer.transferSteps
+      request?.transfer.transferSteps
           .firstWhereOrNull((step) => !step.metadata.isFee)
           ?.amount
-          .toInt()) ??
+          .toInt() ??
       0;
 
   RequestStatus get status {
@@ -561,7 +567,9 @@ extension ContractExt on Contract {
     required security.Signing signer,
   }) async {
     final signature = await signer.signPayload(transactions);
-    final endorsement = Endorsement(ledgerId: ledgerId, signature: signature);
+    final endorsement = Endorsement()
+      ..ledgerId = ledgerId
+      ..signature = signature;
     endorsements.add(endorsement);
   }
 }
@@ -585,7 +593,7 @@ class TransferResultDoc extends _Document<FinalizedTransaction> {
       : null;
 
   List<TransferStepDoc> get steps => _model.request.data.transfer.transferSteps
-      .map((step) => TransferStepDoc(step))
+      .map(TransferStepDoc.new)
       .toList();
 }
 
@@ -723,4 +731,23 @@ extension ParseVerb on String {
         throw 'unknown verb';
     }
   }
+}
+
+extension CreateTransferExt on CreateTransfer {
+  void setSteps(List<TransferStep> value) => transferSteps
+    ..clear()
+    ..addAll(value);
+}
+
+extension TransferStepExt on TransferStep {
+  void setMetadata(List<Any> value) => metadata
+    ..clear()
+    ..addAll(value);
+}
+
+extension RedeemableTokenExt on RedeemableToken {
+  int get value => data.inputs
+      .map((input) => input.value)
+      .reduce((value, total) => value + total)
+      .toInt();
 }

@@ -484,4 +484,13 @@ impl LedgerClient {
             .await
             .map(tonic::Response::into_inner)
     }
+
+    pub async fn get_offline_key(&mut self) -> Result<Vec<u8>, tonic::Status> {
+        let key = self
+            .query_client
+            .get_offline_key(Request::new(()))
+            .await?
+            .into_inner();
+        Ok(key.offline_pk)
+    }
 }

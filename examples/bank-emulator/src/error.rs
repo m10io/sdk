@@ -216,7 +216,7 @@ impl ResponseError for Error {
     fn error_response(&self) -> actix_web::HttpResponse {
         let mut res = actix_web::HttpResponse::new(self.status_code());
         let resp = ErrorResponse::new(self);
-        let buf: _ = serde_json::to_vec(&resp).unwrap_or_else(|_| resp.msg.into_bytes());
+        let buf = serde_json::to_vec(&resp).unwrap_or_else(|_| resp.msg.into_bytes());
 
         res.headers_mut().insert(
             actix_web::http::header::CONTENT_TYPE,

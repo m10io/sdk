@@ -4,17 +4,13 @@ use crate::error::Error;
 use crate::models::{AssetType, TransferChain};
 use crate::{context::Context, models::Payment};
 
-use m10_protos::{
-    prost::Any,
-    sdk::{CreateTransfer, TransferStep},
-    MetadataExt,
-};
 use m10_sdk::{
     account::AccountId,
     contract::FinalizedContractExt,
     directory::{alias, Alias},
-    sdk::{self, transaction_data::Data},
-    EnhancedTransfer, LedgerClient, Signer,
+    prost::Any,
+    sdk::{self, transaction_data::Data, CreateTransfer, TransferStep},
+    EnhancedTransfer, LedgerClient, MetadataExt, Signer,
 };
 use tracing::{error, info};
 use uuid::Uuid;

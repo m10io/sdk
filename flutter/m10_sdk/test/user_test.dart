@@ -67,13 +67,18 @@ void main() {
       // relation can't be checked anymore, thus the 'user' looses
       // the permission. Admin still can try to get the record.
       // Checks for error "gRPC Error (5, user not found)"
-      expect(
-        () async => bankAdmin.getUser(
+      Object? exception;
+      try {
+        await bankAdmin.getUser(
           userId: userId,
           operator: operator,
-        ),
-        throwsA(predicate((e) => e is GrpcError && e.code == 5)),
-      );
+        );
+      } catch (e) {
+        exception = e;
+      }
+      expect(exception, isNotNull);
+      expect(exception is GrpcError, isTrue);
+      expect((exception as GrpcError?)!.code, 5);
     });
   });
 }

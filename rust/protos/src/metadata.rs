@@ -106,3 +106,11 @@ impl MetadataType for SelfTransfer {
 impl MetadataType for RebalanceTransfer {
     const TYPE_URL: &'static str = "m10.sdk.metadata.RebalanceTransfer";
 }
+
+impl MetadataType for TokenWithdraw {
+    const TYPE_URL: &'static str = "m10.sdk.metadata.OfflineToken";
+}
+
+impl MetadataType for OfflineTransfer {
+    const TYPE_URL: &'static str = "m10.sdk.metadata.OfflineTransfer";
+}

@@ -3,7 +3,7 @@ use m10_bank_emulator_protos::emulator::rtgs::{
     requisition_funds_request::RequisitionType, rtgs_service_client::RtgsServiceClient,
     AccountRequest, AccountType, BalanceRequest, RequisitionFundsRequest, TransferRequest,
 };
-use m10_protos::{sdk::Withdraw, Metadata};
+use m10_sdk::{sdk::Withdraw, Metadata};
 use serde_json::json;
 use tonic::Request;
 use tracing::info;

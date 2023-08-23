@@ -62,6 +62,10 @@ pub(super) enum GetSubCommands {
     /// Display a key pair
     /// stored in a file or in M10_SIGNING_KEY env variable
     KeyPair(key_pair::GetKeyPairOptions),
+    /// Get current block height
+    BlockHeight,
+    /// Get offline public key
+    OfflineKey,
 }
 
 impl GetSubCommands {
@@ -130,6 +134,14 @@ impl GetSubCommands {
                 .print(options.format)?,
             GetSubCommands::KeyPair(options) => options.get(config)?,
             GetSubCommands::PublicKey(_) => unreachable!("No context"),
+            GetSubCommands::BlockHeight => {
+                let height = context.m10_client.get_block_height().await?;
+                println!("{height}");
+            }
+            GetSubCommands::OfflineKey => {
+                let key = context.m10_client.get_offline_key().await?;
+                println!("{}", base64::encode(key));
+            }
         };
         Ok(())
     }

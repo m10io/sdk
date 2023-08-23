@@ -1,8 +1,10 @@
 use crate::context::Context;
 use clap::{ArgGroup, Parser};
-use m10_protos::sdk;
-use m10_protos::sdk::TransactionError;
-use m10_sdk::{error::M10Error, DocumentBuilder, WithContext};
+use m10_sdk::{
+    error::M10Error,
+    sdk::{self, TransactionError},
+    DocumentBuilder, WithContext,
+};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufReader};
 

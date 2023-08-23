@@ -16,12 +16,17 @@ class M10Directory {
     bool disableTls = false,
     int port = 443,
   })  : _tokenProvider = tokenProvider,
-        _client = DirectoryServiceClient(ClientChannel(host,
+        _client = DirectoryServiceClient(
+          ClientChannel(
+            host,
             port: port,
             options: ChannelOptions(
-                credentials: disableTls
-                    ? const ChannelCredentials.insecure()
-                    : const ChannelCredentials.secure(),),),);
+              credentials: disableTls
+                  ? const ChannelCredentials.insecure()
+                  : const ChannelCredentials.secure(),
+            ),
+          ),
+        );
 
   final DirectoryServiceClient _client;
   final TokenProvider? _tokenProvider;
@@ -70,7 +75,7 @@ class M10Directory {
     final request = SearchAliasesRequest(pageSize: pageSize, subject: subject);
     final response =
         await _client.searchAliases(request, options: await _fetchOptions());
-    final entries = response.aliases.map((alias) => AliasDoc(alias));
+    final entries = response.aliases.map(AliasDoc.new);
     return entries;
   }
 
@@ -82,7 +87,7 @@ class M10Directory {
         SearchAliasesRequest(handlePrefix: handlePrefix, pageSize: pageSize);
     final response =
         await _client.searchAliases(request, options: await _fetchOptions());
-    final entries = response.aliases.map((alias) => AliasDoc(alias));
+    final entries = response.aliases.map(AliasDoc.new);
     return entries;
   }
 

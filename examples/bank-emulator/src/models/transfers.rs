@@ -6,19 +6,14 @@ use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 
 use crate::error::Error;
 
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(sqlx::Type, Default, Debug, Clone, Copy, PartialEq, Eq)]
 #[sqlx(rename_all = "snake_case")]
 #[sqlx(type_name = "transfer_handler")]
 pub enum TransferHandler {
+    #[default]
     CbdcLimits,
     CbdcReserves,
     DrcReserves,
-}
-
-impl Default for TransferHandler {
-    fn default() -> Self {
-        TransferHandler::CbdcLimits
-    }
 }
 
 #[derive(sqlx::FromRow, Debug, Clone)]

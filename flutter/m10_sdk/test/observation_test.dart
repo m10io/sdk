@@ -20,11 +20,16 @@ void main() {
         operator: operator,
       );
 
-      await stream.timeout(Duration(seconds: 10), onTimeout: (sink) {
-        sink.close();
-        fail('Did not observe message in time');
-      },).any((transferResults) =>
-          transferResults.any((result) => result.txId == transaction.txId),);
+      await stream.timeout(
+        Duration(seconds: 10),
+        onTimeout: (sink) {
+          sink.close();
+          fail('Did not observe message in time');
+        },
+      ).any(
+        (transferResults) =>
+            transferResults.any((result) => result.txId == transaction.txId),
+      );
     });
 
     test('it should observe a resource change', () async {
@@ -32,22 +37,30 @@ void main() {
           await Utility.createAccount(bankAdmin, publicName: 'Dennis V1');
 
       final stream = await bankAdmin.observeResources(
-          operator: operator,
-          collection: 'account-metadata',
-          expression: '|id, doc| id == account',
-          variables: {
-            'account': Value(bytesValue: hex.decode(dennisAccountId)),
-          },);
+        operator: operator,
+        collection: 'account-metadata',
+        expression: '|id, doc| id == account',
+        variables: {
+          'account': Value()..bytesValue = hex.decode(dennisAccountId),
+        },
+      );
 
       final updateTxnId = await bankAdmin.updateAccount(
-          id: dennisAccountId, operator: operator, publicName: 'Dennis V2',);
+        id: dennisAccountId,
+        operator: operator,
+        publicName: 'Dennis V2',
+      );
 
-      final operations = await stream.timeout(Duration(seconds: 10),
-          onTimeout: (sink) {
-        sink.close();
-        fail('Did not observe resource change in time');
-      },).firstWhere((resourceResults) =>
-          resourceResults.any((result) => result.txId == updateTxnId),);
+      final operations = await stream.timeout(
+        Duration(seconds: 10),
+        onTimeout: (sink) {
+          sink.close();
+          fail('Did not observe resource change in time');
+        },
+      ).firstWhere(
+        (resourceResults) =>
+            resourceResults.any((result) => result.txId == updateTxnId),
+      );
 
       expect(operations.length, 1);
     });

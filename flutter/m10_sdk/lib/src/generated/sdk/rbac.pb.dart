@@ -1,68 +1,40 @@
-///
+//
 //  Generated code. Do not modify.
 //  source: sdk/rbac.proto
 //
 // @dart = 2.12
-// ignore_for_file: annotate_overrides,camel_case_types,constant_identifier_names,directives_ordering,library_prefixes,non_constant_identifier_names,prefer_final_fields,return_of_invalid_type,unnecessary_const,unnecessary_import,unnecessary_this,unused_import,unused_shown_name
+
+// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'document.pb.dart' as $7;
-
 import 'rbac.pbenum.dart';
 
 export 'rbac.pbenum.dart';
 
 class RoleBinding extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'RoleBinding', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'id', $pb.PbFieldType.OY)
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'name')
-    ..a<$core.List<$core.int>>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'role', $pb.PbFieldType.OY)
-    ..p<$core.List<$core.int>>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'subjects', $pb.PbFieldType.PY)
-    ..pc<Expression>(5, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'expressions', $pb.PbFieldType.PM, subBuilder: Expression.create)
-    ..aOB(6, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'isUniversal')
-    ..a<$core.List<$core.int>>(7, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'owner', $pb.PbFieldType.OY)
+  factory RoleBinding() => create();
+  RoleBinding._() : super();
+  factory RoleBinding.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RoleBinding.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RoleBinding', package: const $pb.PackageName(_omitMessageNames ? '' : 'm10.sdk'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..a<$core.List<$core.int>>(3, _omitFieldNames ? '' : 'role', $pb.PbFieldType.OY)
+    ..p<$core.List<$core.int>>(4, _omitFieldNames ? '' : 'subjects', $pb.PbFieldType.PY)
+    ..pc<Expression>(5, _omitFieldNames ? '' : 'expressions', $pb.PbFieldType.PM, subBuilder: Expression.create)
+    ..aOB(6, _omitFieldNames ? '' : 'isUniversal')
+    ..a<$core.List<$core.int>>(7, _omitFieldNames ? '' : 'owner', $pb.PbFieldType.OY)
     ..hasRequiredFields = false
   ;
 
-  RoleBinding._() : super();
-  factory RoleBinding({
-    $core.List<$core.int>? id,
-    $core.String? name,
-    $core.List<$core.int>? role,
-    $core.Iterable<$core.List<$core.int>>? subjects,
-    $core.Iterable<Expression>? expressions,
-    $core.bool? isUniversal,
-    $core.List<$core.int>? owner,
-  }) {
-    final _result = create();
-    if (id != null) {
-      _result.id = id;
-    }
-    if (name != null) {
-      _result.name = name;
-    }
-    if (role != null) {
-      _result.role = role;
-    }
-    if (subjects != null) {
-      _result.subjects.addAll(subjects);
-    }
-    if (expressions != null) {
-      _result.expressions.addAll(expressions);
-    }
-    if (isUniversal != null) {
-      _result.isUniversal = isUniversal;
-    }
-    if (owner != null) {
-      _result.owner = owner;
-    }
-    return _result;
-  }
-  factory RoleBinding.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RoleBinding.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -72,8 +44,10 @@ class RoleBinding extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  RoleBinding copyWith(void Function(RoleBinding) updates) => super.copyWith((message) => updates(message as RoleBinding)) as RoleBinding; // ignore: deprecated_member_use
+  RoleBinding copyWith(void Function(RoleBinding) updates) => super.copyWith((message) => updates(message as RoleBinding)) as RoleBinding;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static RoleBinding create() => RoleBinding._();
   RoleBinding createEmptyInstance() => create();
@@ -135,28 +109,17 @@ class RoleBinding extends $pb.GeneratedMessage {
 }
 
 class Expression extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'Expression', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk'), createEmptyInstance: create)
-    ..aOS(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'collection')
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'expression')
+  factory Expression() => create();
+  Expression._() : super();
+  factory Expression.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Expression.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Expression', package: const $pb.PackageName(_omitMessageNames ? '' : 'm10.sdk'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'collection')
+    ..aOS(2, _omitFieldNames ? '' : 'expression')
     ..hasRequiredFields = false
   ;
 
-  Expression._() : super();
-  factory Expression({
-    $core.String? collection,
-    $core.String? expression,
-  }) {
-    final _result = create();
-    if (collection != null) {
-      _result.collection = collection;
-    }
-    if (expression != null) {
-      _result.expression = expression;
-    }
-    return _result;
-  }
-  factory Expression.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Expression.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -166,8 +129,10 @@ class Expression extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  Expression copyWith(void Function(Expression) updates) => super.copyWith((message) => updates(message as Expression)) as Expression; // ignore: deprecated_member_use
+  Expression copyWith(void Function(Expression) updates) => super.copyWith((message) => updates(message as Expression)) as Expression;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static Expression create() => Expression._();
   Expression createEmptyInstance() => create();
@@ -196,38 +161,19 @@ class Expression extends $pb.GeneratedMessage {
 }
 
 class Role extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'Role', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'id', $pb.PbFieldType.OY)
-    ..a<$core.List<$core.int>>(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'owner', $pb.PbFieldType.OY)
-    ..aOS(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'name')
-    ..pc<Rule>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'rules', $pb.PbFieldType.PM, subBuilder: Rule.create)
+  factory Role() => create();
+  Role._() : super();
+  factory Role.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Role.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Role', package: const $pb.PackageName(_omitMessageNames ? '' : 'm10.sdk'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.OY)
+    ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'owner', $pb.PbFieldType.OY)
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..pc<Rule>(4, _omitFieldNames ? '' : 'rules', $pb.PbFieldType.PM, subBuilder: Rule.create)
     ..hasRequiredFields = false
   ;
 
-  Role._() : super();
-  factory Role({
-    $core.List<$core.int>? id,
-    $core.List<$core.int>? owner,
-    $core.String? name,
-    $core.Iterable<Rule>? rules,
-  }) {
-    final _result = create();
-    if (id != null) {
-      _result.id = id;
-    }
-    if (owner != null) {
-      _result.owner = owner;
-    }
-    if (name != null) {
-      _result.name = name;
-    }
-    if (rules != null) {
-      _result.rules.addAll(rules);
-    }
-    return _result;
-  }
-  factory Role.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Role.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -237,8 +183,10 @@ class Role extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  Role copyWith(void Function(Role) updates) => super.copyWith((message) => updates(message as Role)) as Role; // ignore: deprecated_member_use
+  Role copyWith(void Function(Role) updates) => super.copyWith((message) => updates(message as Role)) as Role;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static Role create() => Role._();
   Role createEmptyInstance() => create();
@@ -279,33 +227,18 @@ class Role extends $pb.GeneratedMessage {
 }
 
 class Rule extends $pb.GeneratedMessage {
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'Rule', package: const $pb.PackageName(const $core.bool.fromEnvironment('protobuf.omit_message_names') ? '' : 'm10.sdk'), createEmptyInstance: create)
-    ..aOS(2, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'collection')
-    ..pc<$7.Value>(3, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'instanceKeys', $pb.PbFieldType.PM, subBuilder: $7.Value.create)
-    ..pc<Rule_Verb>(4, const $core.bool.fromEnvironment('protobuf.omit_field_names') ? '' : 'verbs', $pb.PbFieldType.KE, valueOf: Rule_Verb.valueOf, enumValues: Rule_Verb.values, defaultEnumValue: Rule_Verb.READ)
+  factory Rule() => create();
+  Rule._() : super();
+  factory Rule.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Rule.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Rule', package: const $pb.PackageName(_omitMessageNames ? '' : 'm10.sdk'), createEmptyInstance: create)
+    ..aOS(2, _omitFieldNames ? '' : 'collection')
+    ..pc<$7.Value>(3, _omitFieldNames ? '' : 'instanceKeys', $pb.PbFieldType.PM, subBuilder: $7.Value.create)
+    ..pc<Rule_Verb>(4, _omitFieldNames ? '' : 'verbs', $pb.PbFieldType.KE, valueOf: Rule_Verb.valueOf, enumValues: Rule_Verb.values, defaultEnumValue: Rule_Verb.READ)
     ..hasRequiredFields = false
   ;
 
-  Rule._() : super();
-  factory Rule({
-    $core.String? collection,
-    $core.Iterable<$7.Value>? instanceKeys,
-    $core.Iterable<Rule_Verb>? verbs,
-  }) {
-    final _result = create();
-    if (collection != null) {
-      _result.collection = collection;
-    }
-    if (instanceKeys != null) {
-      _result.instanceKeys.addAll(instanceKeys);
-    }
-    if (verbs != null) {
-      _result.verbs.addAll(verbs);
-    }
-    return _result;
-  }
-  factory Rule.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Rule.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
@@ -315,8 +248,10 @@ class Rule extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  Rule copyWith(void Function(Rule) updates) => super.copyWith((message) => updates(message as Rule)) as Rule; // ignore: deprecated_member_use
+  Rule copyWith(void Function(Rule) updates) => super.copyWith((message) => updates(message as Rule)) as Rule;
+
   $pb.BuilderInfo get info_ => _i;
+
   @$core.pragma('dart2js:noInline')
   static Rule create() => Rule._();
   Rule createEmptyInstance() => create();
@@ -341,3 +276,6 @@ class Rule extends $pb.GeneratedMessage {
   $core.List<Rule_Verb> get verbs => $_getList(2);
 }
 
+
+const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
+const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

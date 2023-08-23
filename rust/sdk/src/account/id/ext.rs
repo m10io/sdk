@@ -84,6 +84,20 @@ impl AccountIdExt for sdk::CreateLedgerAccount {
     }
 }
 
+impl AccountIdExt for sdk::CreateToken {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.account_id.involves_account(id)
+    }
+}
+
+impl AccountIdExt for sdk::RedeemToken {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.account_id.involves_account(id)
+    }
+}
+
 impl AccountIdExt for sdk::SetFreezeState {
     #[inline]
     fn involves_account(&self, id: AccountId) -> bool {
@@ -125,6 +139,8 @@ impl AccountIdExt for (&sdk::transaction_data::Data, &sdk::TransactionResponse) 
                 .unwrap_or(false),
             Data::SetInstrument(set_instrument) => set_instrument.involves_account(id),
             Data::SetBalanceLimit(set_balance_limit) => set_balance_limit.involves_account(id),
+            Data::CreateToken(create_token) => create_token.involves_account(id),
+            Data::RedeemToken(redeem_token) => redeem_token.involves_account(id),
         }
     }
 }

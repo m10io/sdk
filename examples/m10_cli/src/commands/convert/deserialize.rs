@@ -1,7 +1,6 @@
 use crate::{collections::*, utils};
 use clap::{Parser, Subcommand};
-use m10_protos::prost::Message;
-use m10_sdk::{sdk, Format, PrettyPrint};
+use m10_sdk::{prost::Message, sdk, Format, PrettyPrint};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

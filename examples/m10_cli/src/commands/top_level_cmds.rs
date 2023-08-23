@@ -1,11 +1,12 @@
 use super::{
     call::CallSubCommands, convert::ConvertSubCommands, create::CreateSubCommands,
     csv::CsvSubcommands, delete::DeleteSubCommands, endorse::EndorsementSubCommands,
-    find::FindSubCommands, get::GetSubCommands, show::ShowSubCommands, update::UpdateSubCommands,
+    find::FindSubCommands, get::GetSubCommands, show::ShowSubCommands, token,
+    update::UpdateSubCommands,
 };
 use crate::commands::observe::ObserveSubcommands;
 use clap::{Parser, Subcommand};
-use m10_sdk::{sdk, Format};
+use m10_sdk::{account, sdk, Format};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
@@ -49,6 +50,21 @@ pub(crate) enum Commands {
     Auth(AuthOptions),
     /// Get data in csv format
     Csv(CsvOptions),
+    #[clap(alias = "v")]
+    Verify {
+        #[clap(subcommand)]
+        cmd: Verify,
+    },
+    #[clap(alias = "i")]
+    Issue {
+        #[clap(subcommand)]
+        cmd: Issue,
+    },
+    #[clap(alias = "rt")]
+    Redeem {
+        #[clap(subcommand)]
+        cmd: Redeem,
+    },
 }
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
@@ -214,6 +230,71 @@ impl CsvOptions {
     }
 }
 
+#[derive(Clone, Debug, Subcommand, Serialize, Deserialize)]
+pub(crate) enum Verify {
+    #[clap(alias = "o")]
+    OfflineToken {
+        #[clap(short, long)]
+        file: String,
+    },
+    #[clap(alias = "r")]
+    RedeemableToken {
+        #[clap(short, long)]
+        master: String,
+        #[clap(short, long)]
+        file: String,
+    },
+}
+
+impl Verify {
+    fn run(&self) -> anyhow::Result<()> {
+        match self {
+            Verify::OfflineToken { file } => token::verify_offline(file),
+            Verify::RedeemableToken { master, file } => token::verify_redeemable(master, file),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Subcommand, Serialize, Deserialize)]
+pub(crate) enum Issue {
+    #[clap(alias = "t")]
+    Token {
+        #[clap(short, long)]
+        from: Vec<String>,
+        #[clap(short, long)]
+        values: Vec<u64>,
+        #[clap(short, long)]
+        to: String,
+    },
+}
+
+impl Issue {
+    async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
+        match self {
+            Issue::Token { from, values, to } => token::issue_token(from, values, to, config).await,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Subcommand, Serialize, Deserialize)]
+pub(crate) enum Redeem {
+    #[clap(alias = "t")]
+    Token {
+        #[clap(short, long)]
+        token: String,
+        #[clap(short, long)]
+        account: account::AccountId,
+    },
+}
+
+impl Redeem {
+    async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
+        match self {
+            Redeem::Token { token, account } => token::redeem_token(token, *account, config).await,
+        }
+    }
+}
+
 impl Commands {
     pub(crate) async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
         match self {
@@ -230,6 +311,9 @@ impl Commands {
             Commands::Observe(op) => op.run(config).await,
             Commands::Auth(op) => op.run(config).await,
             Commands::Csv(op) => op.run(config).await,
+            Commands::Verify { cmd } => cmd.run(),
+            Commands::Issue { cmd } => cmd.run(config).await,
+            Commands::Redeem { cmd } => cmd.run(config).await,
         }
     }
 

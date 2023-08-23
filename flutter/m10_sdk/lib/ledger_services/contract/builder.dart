@@ -26,27 +26,28 @@ class ContractBuilder {
     }
 
     final rand = Random.secure();
-    final transfer = tx.CreateLedgerTransfer(
-      ledgerId: ledgerId,
-      nonce: Int64.fromInts(rand.nextInt(1 << 32), rand.nextInt(1 << 32)),
-      transfer: tx.CreateTransfer(transferSteps: [
-        tx.TransferStep(
-          fromAccountId: fromAccountId,
-          toAccountId: toAccountId,
-          amount: amount,
-          metadata: metadata,
-        )
-      ],),
-    );
+    final transfer = tx.CreateLedgerTransfer()
+      ..ledgerId = ledgerId
+      ..nonce = Int64.fromInts(rand.nextInt(1 << 32), rand.nextInt(1 << 32))
+      ..transfer = (tx.CreateTransfer()
+        ..setSteps([
+          tx.TransferStep()
+            ..fromAccountId = fromAccountId
+            ..toAccountId = toAccountId
+            ..amount = amount
+            ..setMetadata(metadata)
+        ]));
 
     _transfers.add(transfer);
   }
 
   Contract build() {
     final validUntil = DateTime.now().add(Duration(minutes: 5));
-    final ledgerTransferRequests = tx.CreateLedgerTransfers(
-        transfers: _transfers,
-        validUntil: Int64(validUntil.microsecondsSinceEpoch),);
-    return Contract(transactions: ledgerTransferRequests.writeToBuffer());
+    final ledgerTransferRequests = tx.CreateLedgerTransfers()
+      ..validUntil = Int64(validUntil.microsecondsSinceEpoch);
+    ledgerTransferRequests.transfers
+      ..clear()
+      ..addAll(_transfers);
+    return Contract()..transactions = ledgerTransferRequests.writeToBuffer();
   }
 }

@@ -240,6 +240,57 @@ impl<S: Signer> M10Client<S> {
         Ok(response.tx_id)
     }
 
+    pub async fn create_token(
+        &self,
+        account: AccountId,
+        value: u64,
+        address: Option<Vec<u8>>,
+        context_id: Vec<u8>,
+    ) -> M10Result<(TxId, Option<sdk::OfflineToken>)> {
+        let address = address.unwrap_or(self.signer.public_key().to_vec());
+        let req = self
+            .signed_transaction(
+                sdk::CreateToken {
+                    address,
+                    account_id: account.to_vec(),
+                    value,
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok((response.tx_id, response.token))
+    }
+
+    pub async fn redeem_token(
+        &self,
+        token: sdk::RedeemableToken,
+        account_id: AccountId,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::RedeemToken {
+                    token: Some(token),
+                    account_id: account_id.to_vec(),
+                },
+                context_id,
+            )
+            .await?;
+        let response = self
+            .client
+            .clone()
+            .create_transaction(req)
+            .await?
+            .tx_error()?;
+        Ok(response.tx_id)
+    }
+
     // Accounts
 
     pub async fn get_account(&self, id: AccountId) -> M10Result<Account> {
@@ -593,5 +644,13 @@ impl<S: Signer> M10Client<S> {
             .map(AccountMetadata::try_from)
             .collect::<M10Result<_>>()?;
         Ok(account_sets)
+    }
+
+    pub async fn get_block_height(&self) -> M10Result<u64> {
+        Ok(self.clone().client.block_height().await?)
+    }
+
+    pub async fn get_offline_key(&self) -> M10Result<Vec<u8>> {
+        Ok(self.client.clone().get_offline_key().await?)
     }
 }

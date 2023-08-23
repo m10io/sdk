@@ -550,6 +550,60 @@ class M10Sdk {
     return TransferDoc(transfer, operator);
   }
 
+  Future<String> createEncodedTransferEnvelope({
+    required String fromAccountId,
+    required String toAccountId,
+    required int amount,
+    required String operator,
+    String memo = '',
+    List<Attachment> attachments = const [],
+    Contract? contract,
+    String? contextId,
+    SelfTransfer? selfTransfer,
+  }) async {
+    final metadata = <Any>[...attachments.map(Metadata.attachment)];
+    if (memo.isNotEmpty) {
+      metadata.add(Metadata.memo(memo));
+    }
+    if (contract != null) {
+      metadata.add(Metadata.contract(contract));
+      contextId = contract.contractId;
+    }
+    if (selfTransfer != null) {
+      metadata.add(Metadata.selfTransfer(selfTransfer));
+    }
+
+    final transfer = CreateTransfer();
+    transfer.transferSteps
+      ..clear()
+      ..add(
+        TransferStepDoc.fromFields(
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          amount: amount,
+          metadata: metadata,
+        ).model,
+      );
+
+    return createEncodedTransferEnvelopeFromCreateTransfer(
+      createTransfer: transfer,
+    );
+  }
+
+  Future<String> createEncodedTransferEnvelopeFromCreateTransfer({
+    required CreateTransfer createTransfer,
+    String? contextId,
+  }) async {
+    final request = TransactionRequestPayload()
+      ..data = (TransactionData()..initiateTransfer = createTransfer);
+    final envelope = await requestEnvelope(
+      request: request,
+      contextId: contextId != null ? hex.decode(contextId) : null,
+    );
+
+    return base64Encode(envelope.writeToBuffer());
+  }
+
   Future<List<EnhancedTransferStepDoc>> enhance(TransferDoc transfer) async =>
       enhanceTransferSteps(
         transfer.model.transferSteps,
@@ -633,6 +687,18 @@ class M10Sdk {
     return response.transfers
         .map((transfer) => TransferDoc(transfer, operator))
         .toList();
+  }
+
+  Future<TransactionDoc> getTransaction({
+    required String operator,
+    required int txId,
+  }) async {
+    final envelop = await requestEnvelope(
+      request: GetTransactionRequest()..txId = Int64(txId),
+    );
+    final response =
+        await getServiceClient(operator).query.getTransaction(envelop);
+    return TransactionDoc(response);
   }
 
   // Context
@@ -925,6 +991,44 @@ class M10Sdk {
       ..signature = await signer.signPayload(tokenData.writeToBuffer());
 
     return redeemableToken;
+  }
+
+  Future<Stream<List<PaymentRequestDoc>>> observeRequests({
+    required String operator,
+    required List<String> accounts,
+    Int64? startingFrom,
+  }) async {
+    final request = ObserveActionsRequest()..name = 'm10.Request';
+    request.involvesAccounts
+      ..clear()
+      ..addAll(accounts.map(hex.decode));
+
+    if (startingFrom != null) {
+      request.startingFrom = TxId()..txId = startingFrom;
+    }
+
+    final envelop = await requestEnvelope(request: request);
+    final stream = getServiceClient(operator).query.observeActions(envelop);
+    return stream.asyncMap(
+      (FinalizedTransactions transactions) async {
+        final txDocs =
+            transactions.transactions.map(TransactionDoc.new).toList();
+        final requests =
+            [txDocs].map(PaymentRequestDoc.from).whereNotNull().toList();
+        final requestDocs = requests.map(
+          (r) async => r
+            ..fromAccount = await getAccountInfoCached(
+              id: r.fromAccountId,
+              operator: operator,
+            )
+            ..toAccount = await getAccountInfoCached(
+              id: r.toAccountId,
+              operator: operator,
+            ),
+        );
+        return Future.wait(requestDocs);
+      },
+    );
   }
 
   Future<Stream<List<ResourceResultDoc>>> observeResources({

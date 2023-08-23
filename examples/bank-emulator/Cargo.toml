@@ -42,5 +42,5 @@ uuid = { version = "0.8", features = ["serde"] }
 
 m10-bank-emulator-protos = { path = "../../shared/rust/bank-emulator-protos", features = ["client"] }
 m10-rds-pool = { path = "../rds-pool" }
-m10-sdk = "0.30.1"
+m10-sdk = "0.31.0"
 pala-types = { path = "../../shared/rust/pala-types" }

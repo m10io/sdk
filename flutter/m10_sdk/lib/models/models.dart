@@ -144,6 +144,8 @@ class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
   bool get failed => _model.hasError();
   List<int>? get contextId =>
       _model.contextId.isEmpty ? null : _model.contextId;
+  String? get encodedContextId =>
+      contextId != null ? hex.encode(contextId!) : null;
   FinalizedTransfer_TransferState get state => _model.state;
 
   DateTime get timestamp => DateTime.fromMicrosecondsSinceEpoch(
@@ -283,11 +285,12 @@ class InvokeActionDoc extends _Document<InvokeAction> {
 }
 
 class PaymentRequestDoc {
-  PaymentRequestDoc._(RequestDoc requestDoc, this.status)
+  PaymentRequestDoc(RequestDoc requestDoc, this.status)
       : _requestDoc = requestDoc;
 
   final RequestDoc _requestDoc;
   RequestStatus status;
+  RequestDoc get requestDoc => _requestDoc;
   CreateTransfer get request => _requestDoc.request!.transfer;
   String get fromAccountId => _requestDoc.fromAccountId;
   String get toAccountId => _requestDoc.targetAccountId;
@@ -346,7 +349,7 @@ class PaymentRequestDoc {
           : RequestStatus.pending;
     }
 
-    return PaymentRequestDoc._(
+    return PaymentRequestDoc(
       invokedRequest,
       lastNonPendingTxStatus ?? requestStatus,
     );

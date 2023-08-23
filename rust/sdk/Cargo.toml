@@ -1,6 +1,6 @@
 [package]
 name = "m10-sdk"
-version = "0.30.1"
+version = "0.31.0"
 authors = ["Michael Wittner <michael.wittner@m10.io>", "Sam De Roeck <sam.deroeck@m10.io>"]
 edition = "2021"
 description = "M10 SDK API"
@@ -24,7 +24,7 @@ format = ["parse-display", "base64", "hex/default", "serde_json", "serde_yaml", 
 bytes = "1"
 fastrand = "1"
 hex = { version = "0.4", default-features = false }
-m10-protos = { version = "0.30", path = "../protos" }
+m10-protos = { version = "0.31", path = "../protos" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "1", features = ["hex"] }
@@ -39,7 +39,7 @@ ring = { version = "0.16", features = ["std"], optional = true }
 # service
 futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-m10-signing = { version = "0.30.1", path = "../signing", optional = true }
+m10-signing = { version = "0.31.0", path = "../signing", optional = true }
 tonic = { version = "0.5", features = ["tls", "tls-roots"], optional = true }
 
 # format

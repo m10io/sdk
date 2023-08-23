@@ -1,7 +1,7 @@
 name: m10_sdk
 description: This package allows Flutter and Dart applications to interact with the M10 platform.
 repository: https://github.com/m10io/sdk
-version: 0.30.1
+version: 0.31.0
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

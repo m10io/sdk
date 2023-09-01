@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "sdk/document.proto";
+
+package m10.sdk;
+
+message RoleBinding {
+  bytes id = 1;
+  string name = 2;
+  bytes role = 3;
+  repeated bytes subjects = 4;
+  repeated Expression expressions = 5;
+  bool is_universal = 6;
+  bytes owner = 7;
+}
+
+message Expression {
+  string collection = 1;
+  string expression = 2;
+}
+
+message Role {
+  bytes id = 1;
+  bytes owner = 2;
+  string name = 3;
+  repeated Rule rules = 4;
+}
+
+message Rule {
+  string collection = 2;
+  repeated Value instance_keys = 3;
+  repeated Verb verbs = 4;
+
+  enum Verb {
+    READ = 0;
+    CREATE = 1;
+    UPDATE = 2;
+    DELETE = 3;
+    TRANSACT = 4;
+    INITIATE = 5;
+    COMMIT = 6;
+  }
+}

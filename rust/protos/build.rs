@@ -6,7 +6,7 @@ use std::{
 };
 
 fn protobuf_dir() -> String {
-    std::env::var("M10_PROTOBUFS").unwrap_or_else(|_| "../../protobuf".to_string())
+    std::env::var("M10_PROTOBUFS").unwrap_or_else(|_| "protobuf".to_string())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

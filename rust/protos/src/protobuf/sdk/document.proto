@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+import "google/protobuf/field_mask.proto";
+
+package m10.sdk;
+
+message DocumentOperations { repeated Operation operations = 2; }
+
+message Operation {
+  oneof operation {
+    InsertDocument insert_document = 1;
+    UpdateDocument update_document = 2;
+    DeleteDocument delete_document = 3;
+    CollectionMetadata insert_collection = 4;
+    InsertIndex insert_index = 5;
+  }
+
+  message InsertDocument {
+    string collection = 1;
+    bytes document = 3;
+  }
+
+  message UpdateDocument {
+    string collection = 1;
+    Value primary_key = 2;
+    bytes document = 3;
+    google.protobuf.FieldMask field_mask = 4;
+    bool merge_repeated = 5;
+  }
+
+  message DeleteDocument {
+    string collection = 1;
+    Value primary_key = 2;
+  }
+
+  message InsertIndex {
+    string collection = 1;
+    string path = 2;
+  }
+}
+
+message CollectionMetadata {
+  string name = 1;
+  string descriptor_name = 2;
+  google.protobuf.FileDescriptorSet file_descriptor_set = 3;
+  repeated IndexMetadata index_metadata = 4;
+  string primary_key_path = 5;
+}
+
+message IndexMetadata { repeated string path = 1; }
+
+message Exp {
+  string exp = 1;
+  map<string, Value> vars = 2;
+}
+
+message Value {
+  oneof value {
+    string string_value = 1;
+    int32 int8_value = 2;
+    int32 int16_value = 3;
+    int32 int32_value = 4;
+    int64 int64_value = 5;
+    uint32 uint8_value = 6;
+    uint32 uint16_value = 7;
+    uint32 uint32_value = 8;
+    uint64 uint64_value = 9;
+    double double_value = 10;
+    float float_value = 11;
+    bool bool_value = 12;
+    bytes bytes_value = 13;
+  }
+}
+
+message QueryRequest {
+  string collection = 1;
+  Exp expression = 2;
+  optional bytes public_key = 3;
+}

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+import "sdk/transaction/transaction.proto";
+
+package m10.sdk.metadata;
+
+message Attachment {
+  string object_id = 1;
+  AttachmentType type = 2;
+  enum AttachmentType {
+    OBJECT = 0;
+    IMAGE = 1;
+  }
+}
+
+message Memo {
+  string plaintext = 1;
+}
+
+message Fee {}
+
+message Withdraw {
+  string bank_account_id = 1;
+}
+
+message Deposit {
+  string bank_account_id = 1;
+}
+
+message Contract {
+  // A set of Ledger transactions to be processed. Should be deserialized as `CreateLedgerTransfers`.
+  bytes transactions = 1;
+
+  // Endorsement of the remote request by an authorized party, e.g. ledger/fx-service/...
+  // Note: This can be signed by multiple parties to agree on a contract
+  repeated Endorsement endorsements = 2;
+}
+
+message Endorsement {
+  string ledger_id = 1;
+  m10.sdk.transaction.Signature signature = 2;
+}
+
+message PaymentRequest {
+  m10.sdk.transaction.CreateTransfer transfer = 1;
+  enum PaymentRequestStatus {
+    PENDING = 0;
+    DECLINED = 1;
+    CANCELED = 2;
+    IN_PROGRESS = 3;
+  }
+  PaymentRequestStatus status = 2;
+}
+
+// A request for quoted FX transfer of `base` <-> `target`
+// Note: Amount should be provided exclusively for either `base` or `target`
+message QuoteRequest {
+  AccountCurrency base = 1;
+  AccountCurrency target = 2;
+  string memo = 3;
+}
+
+message AccountCurrency {
+  string operator = 1;
+  string currency = 2;
+  // M10 ledger account ID
+  bytes account_id = 3;
+  uint64 amount = 4;
+}
+
+message QuoteEvent {
+  oneof event {
+    QuoteRequest request = 1;
+    Contract proposal = 2;
+  }
+}
+
+message SelfTransfer {
+  string from_account_name = 1;
+  string to_account_name = 2;
+}
+
+message RebalanceTransfer {}
+
+message TokenWithdraw {}
+
+message OfflineTransfer {
+  uint64 input = 1;
+}

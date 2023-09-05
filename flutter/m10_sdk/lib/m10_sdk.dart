@@ -917,7 +917,7 @@ class M10Sdk {
   /// Creates a transferable offline token by transfering
   /// from the specified ledger account.
   ///
-  Future<(Int64, OfflineToken)> createToken({
+  Future<(TransactionResponse, OfflineToken)> createToken({
     required String accountId,
     required Int64 value,
     required String operator,
@@ -939,7 +939,7 @@ class M10Sdk {
     );
 
     final response = await client.tx.createTransaction(envelope);
-    return (response.txId, response.token);
+    return (response, response.token);
   }
 
   ///

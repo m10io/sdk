@@ -29,6 +29,11 @@ impl StepBuilder {
         self
     }
 
+    pub fn any_metadata(mut self, value: Any) -> Self {
+        self.metadata.push(value);
+        self
+    }
+
     pub fn custom_metadata(
         mut self,
         type_url: impl Into<String>,

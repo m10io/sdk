@@ -2,18 +2,20 @@ mod document_id;
 
 #[cfg(feature = "account")]
 pub mod account;
-#[cfg(feature = "client")]
-pub mod client;
 #[cfg(feature = "collections")]
 mod collections;
 #[cfg(feature = "contract")]
 pub mod contract;
 #[cfg(feature = "client")]
 pub mod error;
+#[cfg(feature = "client")]
+mod grpc_client;
+#[cfg(feature = "client")]
+mod http_client;
 #[cfg(feature = "image")]
 pub mod image;
-#[cfg(feature = "service")]
-pub mod ledger_client;
+#[cfg(feature = "client")]
+mod m10_core_client;
 #[cfg(feature = "service")]
 pub mod transaction_ext;
 #[cfg(feature = "service")]
@@ -55,14 +57,22 @@ pub use m10_protos::prost;
 pub use m10_protos::metadata::{self, *};
 pub use m10_protos::{Collection, Pack};
 
+pub use bytes;
+
+#[cfg(feature = "service")]
+pub use tonic;
+
 #[cfg(feature = "image")]
 pub use image::ImageClient;
 
-#[cfg(feature = "service")]
-pub use ledger_client::LedgerClient;
+#[cfg(feature = "client")]
+pub use grpc_client::GrpcClient;
 
 #[cfg(feature = "client")]
-pub use client::M10Client;
+pub use http_client::HttpClient;
+
+#[cfg(feature = "client")]
+pub use m10_core_client::*;
 
 #[cfg(feature = "service")]
 pub use transaction_ext::TransactionExt;

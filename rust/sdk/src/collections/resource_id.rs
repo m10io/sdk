@@ -10,6 +10,15 @@ pub enum ResourceId {
     Uuid(Uuid),
 }
 
+impl ResourceId {
+    pub fn to_vec(&self) -> Vec<u8> {
+        match self {
+            ResourceId::Hex(h) => h.to_vec(),
+            ResourceId::Uuid(u) => u.as_bytes().to_vec(),
+        }
+    }
+}
+
 impl From<ResourceId> for bytes::Bytes {
     fn from(val: ResourceId) -> Self {
         match val {
@@ -48,10 +57,8 @@ impl TryFrom<&[u8]> for ResourceId {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         if let Ok(u) = Uuid::from_slice(value) {
             Ok(ResourceId::Uuid(u))
-        } else if let Ok(h) = hex::decode(value) {
-            Ok(ResourceId::Hex(h.into()))
         } else {
-            Err(M10Error::InvalidAccountId(AccountIdError::InvalidLen))
+            Ok(ResourceId::Hex(bytes::Bytes::copy_from_slice(value)))
         }
     }
 }

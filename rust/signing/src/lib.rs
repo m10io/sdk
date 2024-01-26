@@ -2,6 +2,7 @@
 //!
 //! This library contains a set of wrappers and traits that allow users to easily sign and verify
 //! signatures
+use core::str::FromStr;
 
 use m10_protos::{prost::Message, sdk};
 
@@ -128,5 +129,14 @@ impl Signer for KeyPair {
             KeyPair::P256(key_pair) => key_pair.algorithm(),
             KeyPair::Ed25519(key_pair) => key_pair.algorithm(),
         }
+    }
+}
+
+impl FromStr for KeyPair {
+    type Err = SigningError;
+    fn from_str(key_pair_enc: &str) -> Result<Self, Self::Err> {
+        Ed25519::from_str(key_pair_enc)
+            .map(KeyPair::Ed25519)
+            .or_else(|_| P256::from_str(key_pair_enc).map(KeyPair::P256))
     }
 }

@@ -14,7 +14,7 @@ impl ImageClient {
     }
 
     pub async fn put_image(&mut self, name: &str, image: Vec<u8>) -> reqwest::Result<String> {
-        let url = format!("{}/images/{}", self.address, name);
+        let url = format!("{}images/{}", self.address, name);
         self.image_client
             .put(&url)
             .body(image)
@@ -25,7 +25,7 @@ impl ImageClient {
     }
 
     pub async fn get_image(&mut self, name: &str) -> reqwest::Result<Vec<u8>> {
-        let url = format!("{}/images/{}", self.address, name);
+        let url = format!("{}images/{}", self.address, name);
         let image = self
             .image_client
             .get(&url)

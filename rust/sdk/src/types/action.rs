@@ -47,6 +47,7 @@ pub struct Action {
     pub tx_id: TxId,
     pub context_id: Vec<u8>,
     pub name: String,
+    pub from_account: AccountId,
     pub target: Target,
     pub payload: Vec<u8>,
     // @sadroeck TODO: Add timestamps to protobuf
@@ -62,6 +63,7 @@ impl std::fmt::Display for Action {
             name,
             target,
             payload,
+            ..
         } = self;
         write!(
             f,
@@ -81,6 +83,7 @@ impl TryFrom<sdk::Action> for Action {
             context_id: action.context_id,
             // timestamp: UNIX_EPOCH + Duration::from_micros(action.timestamp),
             name: action.name,
+            from_account: AccountId::try_from_be_slice(&action.from_account)?,
             target: Target::try_from(action.target.unwrap())?,
             payload: action.payload,
         })
@@ -106,6 +109,7 @@ impl TryFrom<sdk::FinalizedTransaction> for Action {
                 context_id,
                 // timestamp,
                 name: action.name,
+                from_account: AccountId::try_from_be_slice(&action.from_account)?,
                 target: Target::Any,
                 payload: action.payload,
             }),

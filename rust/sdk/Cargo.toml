@@ -17,7 +17,7 @@ service = ["async-trait", "tonic", "m10-signing", "futures-core", "futures-util"
 image = ["reqwest"]
 account = []
 contract = ["ring", "thiserror"]
-client = ["service"]
+client = ["service", "tokio-stream", "tokio", "tokio-tungstenite"]
 format = ["parse-display", "base64", "hex/default", "serde_json", "serde_yaml", "ron"]
 
 [dependencies]
@@ -28,6 +28,11 @@ m10-protos = { version = "0.33", path = "../protos" }
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "1", features = ["hex"] }
+
+# ws client
+tokio-stream = { version = "0.1.14", optional = true }
+tokio = { version = "1", optional = true }
+tokio-tungstenite = { version = "0.21.0", optional = true }
 
 # image
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"], optional = true }
@@ -40,7 +45,7 @@ ring = { version = "0.16", features = ["std"], optional = true }
 async-trait = { version = "0.1", optional = true }
 futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-m10-signing = { version = "0.4.0", path = "../signing", optional = true }
+m10-signing = { version = "0.34.0", path = "../signing", optional = true }
 tonic = { version = "0.5", features = ["tls", "tls-roots"], optional = true }
 
 # format

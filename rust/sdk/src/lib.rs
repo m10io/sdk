@@ -33,6 +33,9 @@ mod builders;
 #[cfg(feature = "client")]
 mod types;
 
+#[cfg(feature = "client")]
+pub mod ws;
+
 #[cfg(feature = "collections")]
 pub use collections::DocumentUpdate;
 
@@ -56,10 +59,6 @@ pub use m10_protos::prost;
 
 pub use m10_protos::metadata::{self, *};
 pub use m10_protos::{Collection, Pack};
-
-pub use bytes;
-
-#[cfg(feature = "service")]
 pub use tonic;
 
 #[cfg(feature = "image")]
@@ -73,6 +72,9 @@ pub use http_client::HttpClient;
 
 #[cfg(feature = "client")]
 pub use m10_core_client::*;
+
+#[cfg(feature = "client")]
+pub use ws::*;
 
 #[cfg(feature = "service")]
 pub use transaction_ext::TransactionExt;

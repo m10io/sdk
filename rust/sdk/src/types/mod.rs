@@ -20,7 +20,6 @@ pub use public_key::*;
 pub use role::*;
 pub use role_binding::*;
 pub use transaction::*;
-pub use transaction::*;
 pub use transfer::*;
 
 #[cfg(feature = "format")]

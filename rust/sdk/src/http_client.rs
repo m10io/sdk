@@ -4,12 +4,14 @@ use std::{pin::Pin, sync::Arc};
 use async_trait::async_trait;
 use futures_core::Stream;
 use futures_util::future::try_join_all;
+use m10_protos::sdk::{FinalizedTransactions, TransactionMetrics};
 use m10_protos::{prost::Message, sdk};
 use m10_signing::Signer;
 use reqwest::Client;
 use tonic::transport::Endpoint;
 use uuid::Uuid;
 
+use crate::ws::WSClient;
 use crate::{
     account::AccountId,
     builders::*,
@@ -22,14 +24,16 @@ pub struct HttpClient<S> {
     endpoint: Endpoint,
     client: Client,
     signer: Option<Arc<S>>,
+    ws: WSClient,
 }
 
 impl<S> HttpClient<S> {
-    pub fn new(endpoint: Endpoint, signer: Option<Arc<S>>) -> Self {
+    pub fn new(endpoint: Endpoint, ws_endpoint: Endpoint, signer: Option<Arc<S>>) -> Self {
         Self {
             endpoint,
-            client: Client::default(),
             signer,
+            client: Client::default(),
+            ws: WSClient::new(ws_endpoint),
         }
     }
 
@@ -42,7 +46,7 @@ impl<S> HttpClient<S> {
         req.encode(&mut req_body)?;
         Ok(self
             .client
-            .get(format!("{}ledger/api/v1/{}", self.endpoint.uri(), ep,))
+            .get(format!("{}ledger/api/v1/{}", self.endpoint.uri(), ep))
             .body(req_body)
             .send()
             .await?
@@ -262,7 +266,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
             .await?;
         let mut msg = self.get_with_request("action", req.into()).await?;
         let action = sdk::Action::decode(&mut msg)?;
-        Action::try_from(action)
+        Ok(Action::try_from(action)?)
     }
 
     async fn list_actions(&self, filter: TxnFilter<ActionsFilter>) -> M10Result<Vec<Action>> {
@@ -477,61 +481,139 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
     // Observers
     async fn observe_accounts(
         &self,
-        _filter: AccountFilter,
+        filter: AccountFilter,
     ) -> M10Result<Pin<Box<dyn Stream<Item = M10Result<Vec<AccountUpdate>>> + Send + Sync + 'static>>>
     {
-        unimplemented!()
+        let req = self
+            .signer()?
+            .sign_request::<sdk::ObserveAccountsRequest>(filter.into())
+            .await?;
+
+        self.ws
+            .observe_with_request("/accounts", req.into(), |bin| {
+                let txs = FinalizedTransactions::decode(bin.as_slice())
+                    .map_err(|e| M10Error::from(e.clone()))?;
+
+                txs.transactions
+                    .into_iter()
+                    .map(AccountUpdate::try_from)
+                    .collect::<M10Result<Vec<_>>>()
+            })
+            .await
     }
 
     async fn observe_transfers(
         &self,
-        _filter: AccountFilter,
+        filter: AccountFilter,
     ) -> M10Result<Pin<Box<dyn Stream<Item = M10Result<Vec<Transfer>>> + Send + Sync + 'static>>>
     {
-        unimplemented!()
+        let req = self
+            .signer()?
+            .sign_request::<sdk::ObserveAccountsRequest>(filter.into())
+            .await?;
+
+        self.ws
+            .observe_with_request("/transfers", req.into(), |bin| {
+                let txs = FinalizedTransactions::decode(bin.as_slice())
+                    .map_err(|e| M10Error::from(e.clone()))?;
+
+                txs.transactions
+                    .into_iter()
+                    .map(Transfer::try_from)
+                    .collect::<M10Result<Vec<_>>>()
+            })
+            .await
     }
 
     async fn observe_transactions(
         &self,
-        _filter: AccountFilter,
+        filter: AccountFilter,
     ) -> M10Result<
-        Pin<Box<dyn Stream<Item = M10Result<sdk::FinalizedTransactions>> + Send + Sync + 'static>>,
+        Pin<Box<dyn Stream<Item = M10Result<FinalizedTransactions>> + Send + Sync + 'static>>,
     > {
-        unimplemented!()
+        let req = self
+            .signer()?
+            .sign_request::<sdk::ObserveAccountsRequest>(filter.into())
+            .await?;
+
+        self.ws
+            .observe_with_request("/transfers", req.into(), |bin| {
+                FinalizedTransactions::decode(bin.as_slice()).map_err(|e| M10Error::from(e.clone()))
+            })
+            .await
     }
 
     async fn observe_actions(
         &self,
-        _filter: AccountFilter<NamedAction>,
+        filter: AccountFilter<NamedAction>,
     ) -> M10Result<Pin<Box<dyn Stream<Item = M10Result<Vec<Action>>> + Send + Sync + 'static>>>
     {
-        unimplemented!()
+        let req = self
+            .signer()?
+            .sign_request::<sdk::ObserveActionsRequest>(filter.into())
+            .await?;
+
+        self.ws
+            .observe_with_request("/actions", req.into(), |bin| {
+                let txs = FinalizedTransactions::decode(bin.as_slice())
+                    .map_err(|e| M10Error::from(e.clone()))?;
+
+                txs.transactions
+                    .into_iter()
+                    .map(Action::try_from)
+                    .collect::<M10Result<Vec<_>>>()
+            })
+            .await
     }
 
     async fn observe_raw_actions(
         &self,
-        _filter: AccountFilter<NamedAction>,
+        filter: AccountFilter<NamedAction>,
     ) -> M10Result<
         Pin<Box<dyn Stream<Item = M10Result<sdk::FinalizedTransactions>> + Send + Sync + 'static>>,
     > {
-        unimplemented!()
+        let req = self
+            .signer()?
+            .sign_request::<sdk::ObserveActionsRequest>(filter.into())
+            .await?;
+
+        self.ws
+            .observe_with_request("/actions", req.into(), |bin| {
+                FinalizedTransactions::decode(bin.as_slice()).map_err(|e| M10Error::from(e.clone()))
+            })
+            .await
     }
 
     async fn observe_resources(
         &self,
-        _request: sdk::ObserveResourcesRequest,
+        request: sdk::ObserveResourcesRequest,
     ) -> M10Result<
         Pin<Box<dyn Stream<Item = M10Result<sdk::FinalizedTransactions>> + Send + Sync + 'static>>,
     > {
-        unimplemented!()
+        let req = self.signer()?.sign_request(request).await?;
+
+        self.ws
+            .observe_with_request("/resources", req.into(), |bin| {
+                FinalizedTransactions::decode(bin.as_slice()).map_err(|e| M10Error::from(e.clone()))
+            })
+            .await
     }
 
     async fn observe_metrics(
         &self,
-        _filter: AccountFilter,
+        filter: AccountFilter,
     ) -> M10Result<
         Pin<Box<dyn Stream<Item = M10Result<sdk::TransactionMetrics>> + Send + Sync + 'static>>,
     > {
-        unimplemented!()
+        let req = self
+            .signer()?
+            .sign_request::<sdk::ObserveAccountsRequest>(filter.into())
+            .await?;
+
+        self.ws
+            .observe_with_request("/metrics", req.into(), |bin| {
+                TransactionMetrics::decode(bin.as_slice()).map_err(|e| M10Error::from(e.clone()))
+            })
+            .await
     }
 }

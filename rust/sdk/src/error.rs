@@ -27,6 +27,8 @@ pub enum M10Error {
     InvalidTransaction,
     #[error("Signer required")]
     NoSigner,
+    #[error(transparent)]
+    WsError(#[from] tokio_tungstenite::tungstenite::error::Error),
 }
 
 pub type M10Result<T> = Result<T, M10Error>;

@@ -1,62 +1,49 @@
-use clap::Parser;
+use clap::Args;
 use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use std::{collections::HashMap, fmt::Debug};
 use uuid::Uuid;
 
-use crate::collections::PrettyId;
+use crate::collections::{role_bindings::Expression, PrettyId};
 
 #[serde_as]
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct CreateRoleBindingOptions {
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct CreateRoleBindingArgs {
     /// Ignore error if item exists
-    #[clap(short = 'e', long)]
+    #[arg(short = 'e', long)]
     #[serde(default)]
     pub(super) if_not_exists: bool,
     /// Set record uuid
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub(super) id: Option<Uuid>,
     /// Set role binding name
-    #[clap(short, long, default_value_t)]
+    #[arg(short, long, default_value_t)]
     #[serde(default)]
     name: String,
     /// Set owner of the role record
-    #[clap(short, long)]
+    #[arg(short, long)]
     owner: Option<PublicKey>,
     /// Link role binding to a role record
-    #[clap(short, long)]
+    #[arg(short, long)]
     #[serde_as(as = "DisplayFromStr")]
     role: PrettyId,
-    /// Set subjects
-    #[clap(short, long, multiple_values = true)]
+    /// Set subjects (list of public keys in base64 format)
+    #[arg(long, alias = "subjs")]
     #[serde(default)]
     subjects: Vec<String>,
     /// Set extra guard expressions
-    #[clap(
-        short = 'g',
-        long,
-        parse(try_from_str = parse_key_vals)
-    )]
-    expressions: Option<HashMap<String, String>>,
+    #[arg(short = 'g', long, alias = "exps")]
+    expressions: Option<Expression>,
     /// Set role binding to 'universal'
-    #[clap(short = 'u', long)]
+    #[arg(short = 'u', long, alias = "universal")]
     is_universal: bool,
 }
 
-fn parse_key_vals(s: &str) -> Result<HashMap<String, String>, serde_json::Error> {
-    serde_json::from_str(s)
-}
-
-impl super::BuildFromOptions for CreateRoleBindingOptions {
+impl super::BuildFromArgs for CreateRoleBindingArgs {
     type Document = sdk::RoleBinding;
-    fn build_from_options(
-        &self,
-        default_owner: PublicKey,
-    ) -> Result<Self::Document, anyhow::Error> {
+    fn build_from_options(self, default_owner: PublicKey) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self.owner.clone().unwrap_or(default_owner).0;
+        let owner = self.owner.unwrap_or(default_owner).0;
         let subjects = self
             .subjects
             .iter()
@@ -65,8 +52,8 @@ impl super::BuildFromOptions for CreateRoleBindingOptions {
             .into_iter()
             .map(bytes::Bytes::from)
             .collect();
-        let expressions = self.expressions.as_ref().map_or(vec![], |exps| {
-            exps.clone()
+        let expressions = self.expressions.map_or(vec![], |exps| {
+            exps.0
                 .into_iter()
                 .map(|(collection, expression)| sdk::Expression {
                     collection,
@@ -76,9 +63,9 @@ impl super::BuildFromOptions for CreateRoleBindingOptions {
         });
         Ok(sdk::RoleBinding {
             id: id.into(),
-            name: self.name.clone(),
+            name: self.name,
             owner: owner.into(),
-            role: self.role.clone().into(),
+            role: self.role.into(),
             subjects,
             expressions,
             is_universal: self.is_universal,

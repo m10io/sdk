@@ -15,6 +15,28 @@ pub enum Transaction {
     Action(Action),
 }
 
+impl Transaction {
+    pub fn context_id(&self) -> Vec<u8> {
+        match self {
+            Self::Transfer(t) | Self::InitiateTransfer(t) | Self::CommitTransfer(t) => {
+                t.context_id.to_vec()
+            }
+            Self::AccountUpdate(a) => a.context_id.to_vec(),
+            Self::DocumentOperations => vec![],
+            Self::Action(a) => a.context_id.to_vec(),
+        }
+    }
+
+    pub fn tx_id(&self) -> u64 {
+        match self {
+            Self::Transfer(t) | Self::InitiateTransfer(t) | Self::CommitTransfer(t) => t.tx_id,
+            Self::AccountUpdate(a) => a.tx_id,
+            Self::DocumentOperations => 0,
+            Self::Action(a) => a.tx_id,
+        }
+    }
+}
+
 impl TryFrom<sdk::FinalizedTransaction> for Transaction {
     type Error = M10Error;
 

@@ -1,19 +1,34 @@
 use std::time::Instant;
 
 use bytes::Buf;
+use clap::Args;
 use hyper::{Body, Client, Method};
+use serde::{Deserialize, Serialize};
 use serde_json::{from_reader, json, to_vec, Value};
 use tokio::time::{sleep, Duration};
 
-use super::top_level_cmds::AuthOptions;
-use crate::utils::m10_config_path;
+use crate::{context::Context, utils::m10_config_path};
 
 const OAUTH_AUDIENCE: &str = "https://api.m10.net";
 const OAUTH_SCOPE: &str = "openid";
 
-impl AuthOptions {
-    pub(crate) async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let AuthOptions {
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+/// Obtains OAuth id and access token and writes them to
+/// id.token
+/// access.token
+pub(crate) struct Auth {
+    #[arg(short, long, aliases = ["name", "user", "un"])]
+    pub(crate) username: Option<String>,
+    #[arg(long, alias = "pw")]
+    pub(crate) password: Option<String>,
+    /// Writes access token to stdout
+    #[arg(long, alias = "so", default_value_t)]
+    pub(crate) stdout: bool,
+}
+
+impl Auth {
+    pub(crate) async fn run(&self, context: &Context) -> anyhow::Result<()> {
+        let Auth {
             username,
             password,
             stdout,
@@ -30,7 +45,7 @@ impl AuthOptions {
                 "scope": OAUTH_SCOPE,
             });
             let request = hyper::Request::builder()
-                .uri(format!("https://{}/oauth/token", &config.server))
+                .uri(format!("{}oauth/token", context.addr()?))
                 .method(Method::POST)
                 .header(hyper::header::CONTENT_TYPE, "application/json")
                 .body(Body::from(to_vec(&oauth_token_body)?))?;
@@ -42,7 +57,7 @@ impl AuthOptions {
                 "scope": OAUTH_SCOPE,
             });
             let request = hyper::Request::builder()
-                .uri(format!("https://{}/oauth/device/code", &config.server))
+                .uri(format!("{}oauth/device/code", context.addr()?))
                 .method(Method::POST)
                 .header(hyper::header::CONTENT_TYPE, "application/json")
                 .body(Body::from(to_vec(&device_code_body)?))?;
@@ -66,7 +81,7 @@ impl AuthOptions {
             });
             loop {
                 let request = hyper::Request::builder()
-                    .uri(format!("https://{}/oauth/token", &config.server))
+                    .uri(format!("{}oauth/token", context.addr()?))
                     .method(Method::POST)
                     .header(hyper::header::CONTENT_TYPE, "application/json")
                     .body(Body::from(to_vec(&oauth_token_body)?))?;

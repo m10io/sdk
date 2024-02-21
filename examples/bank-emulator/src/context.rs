@@ -1,8 +1,9 @@
 #![allow(dead_code)]
+use std::sync::Arc;
+
 use m10_rds_pool::{bb8, RdsManager};
-use m10_sdk::{
-    client::Channel, directory::directory_service_client::DirectoryServiceClient, LedgerClient,
-};
+use m10_sdk::M10CoreClient;
+use m10_sdk::{directory::directory_service_client::DirectoryServiceClient, GrpcClient};
 use sqlx::Acquire;
 
 use crate::emulator::BankEmulator;
@@ -15,9 +16,8 @@ use crate::{
 
 #[derive(Clone)]
 pub(crate) struct Context {
-    pub(crate) ledger: LedgerClient,
-    pub(crate) signer: ProxySigner,
-    pub(crate) directory: DirectoryServiceClient<Channel>,
+    pub(crate) ledger: Arc<Box<dyn M10CoreClient<Signer = ProxySigner> + Send + Sync>>,
+    pub(crate) directory: DirectoryServiceClient<tonic::transport::Channel>,
     pub(crate) bank: BankEmulator,
     pub(crate) db_pool: bb8::Pool<RdsManager>,
     pub(crate) config: Config,
@@ -34,8 +34,10 @@ impl Context {
                     db_pool.clone()
                 };
                 Ok(Self {
-                    ledger: LedgerClient::new(config.ledger_addr.connect_lazy()?),
-                    signer: ProxySigner::new(&config),
+                    ledger: Arc::new(Box::new(GrpcClient::new(
+                        config.ledger_addr.clone(),
+                        Some(std::sync::Arc::new(ProxySigner::new(&config))),
+                    )?)),
                     directory: DirectoryServiceClient::new(config.directory_addr.connect_lazy()?),
                     bank: BankEmulator::new_from_config(emulator_config, bank_db_pool).await?,
                     db_pool,

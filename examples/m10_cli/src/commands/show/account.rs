@@ -1,48 +1,35 @@
-use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
-use std::fmt::Debug;
+
+use clap::Subcommand;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) enum ShowAccountCommands {
+pub(crate) enum Account {
     /// Show parent Id of an account
-    ParentId(AccountId),
+    ParentId,
     /// Show if account is an issuance account
-    IsIssuance(AccountId),
+    IsIssuance,
     /// Show if account is descendant of another account
-    IsDescendantOf(AccountIds),
+    IsDescendantOf {
+        /// Account Id
+        parent: String,
+    },
     /// Show if account is
-    IsEqOrDescendantOf(AccountIds),
+    IsEqOrDescendantOf {
+        /// Account Id
+        parent: String,
+    },
     /// Show if account is a leaf in the hierarchy
-    IsLeaf(AccountId),
+    IsLeaf,
     /// Show account level in the hierarchy
-    Depth(AccountId),
+    Depth,
 }
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct AccountIds {
-    /// Account Id potentially lower in hierarchy
-    #[clap(short, long)]
-    child: String,
-    /// Account Id potentially higher in hierarchy
-    #[clap(short, long)]
-    parent: String,
-}
-
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct AccountId {
-    /// Account Id
-    id: String,
-}
-
-impl ShowAccountCommands {
-    pub(super) fn show(&self) -> anyhow::Result<()> {
+impl Account {
+    pub(super) fn run(self, id: String) -> anyhow::Result<()> {
         match self {
-            ShowAccountCommands::ParentId(option) => {
-                let id = Self::try_convert(&option.id)?;
+            Account::ParentId => {
+                let id = Self::try_convert(&id)?;
                 if let Some(parent_id) = id.parent_id() {
                     let raw_id = parent_id.to_be_bytes();
                     println!("{}", hex::encode(raw_id));
@@ -50,26 +37,26 @@ impl ShowAccountCommands {
                     eprintln!("account is root");
                 }
             }
-            ShowAccountCommands::IsIssuance(option) => {
-                let id = Self::try_convert(&option.id)?;
+            Account::IsIssuance => {
+                let id = Self::try_convert(&id)?;
                 println!("{}", id.is_issuance());
             }
-            ShowAccountCommands::IsLeaf(option) => {
-                let id = Self::try_convert(&option.id)?;
+            Account::IsLeaf => {
+                let id = Self::try_convert(&id)?;
                 println!("{}", id.is_leaf());
             }
-            ShowAccountCommands::Depth(option) => {
-                let id = Self::try_convert(&option.id)?;
+            Account::Depth => {
+                let id = Self::try_convert(&id)?;
                 println!("{}", id.depth());
             }
-            ShowAccountCommands::IsDescendantOf(option) => {
-                let child = Self::try_convert(&option.child)?;
-                let parent = Self::try_convert(&option.parent)?;
+            Account::IsDescendantOf { parent } => {
+                let child = Self::try_convert(&id)?;
+                let parent = Self::try_convert(&parent)?;
                 println!("{}", child.is_descendant_of(parent));
             }
-            ShowAccountCommands::IsEqOrDescendantOf(option) => {
-                let child = Self::try_convert(&option.child)?;
-                let parent = Self::try_convert(&option.parent)?;
+            Account::IsEqOrDescendantOf { parent } => {
+                let child = Self::try_convert(&id)?;
+                let parent = Self::try_convert(&parent)?;
                 println!("{}", child.is_eq_or_descendant_of(parent));
             }
         }

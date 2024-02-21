@@ -1,64 +1,115 @@
-use clap::Parser;
+use clap::Subcommand;
+use m10_sdk::{Format, NameFilter, PageBuilder, PrettyPrint};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+
+use crate::context::Context;
 
 mod account_sets;
 mod accounts;
 mod actions;
-mod banks;
 mod directory_entry;
-mod role_bindings;
-mod roles;
+mod ledger_accounts;
 mod transactions;
 mod transfers;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
+#[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[clap(about)]
-pub(super) enum FindSubCommands {
+pub(crate) enum Find {
     /// Find account record(s)
-    Account(accounts::FindAccountOptions),
+    #[command(alias = "a")]
+    Accounts(accounts::FindAccountArgs),
     /// Find account set record(s)
-    AccountSet(account_sets::FindAccountSetOptions),
+    #[command(alias = "as")]
+    AccountSets(account_sets::FindAccountSetArgs),
     /// Find actions
     /// (either by context or account)
-    Action(actions::FindActionOptions),
+    #[command(alias = "ac")]
+    Actions(actions::FindActionArgs),
     /// Find banks
-    Bank(banks::FindBankOptions),
-    /// Find role record(s)
-    Role(roles::FindRoleOptions),
-    /// Find role binding record(s)
-    RoleBinding(role_bindings::FindRoleBindingOptions),
-    /// Find transfer(s)
-    Transfer(transfers::FindTransferOptions),
+    #[command(alias = "b")]
+    Banks {
+        #[arg(short, long, default_value = "raw")]
+        #[serde(default)]
+        format: Format,
+    },
     /// Find a directory entry
-    DirectoryEntry(directory_entry::FindDirEntryOptions),
+    #[command(alias = "d")]
+    DirectoryEntries {
+        #[command(subcommand)]
+        cmd: directory_entry::DirEntry,
+    },
+    /// Find ledger account record(s)
+    #[command(aliases = ["l", "la"])]
+    LedgerAccounts(ledger_accounts::FindAccountArgs),
+    /// Find role record(s)
+    #[command(alias = "r")]
+    Roles {
+        /// Set name filter
+        #[arg(short, long)]
+        name: String,
+        /// Set output format (one of 'json', 'yaml', 'raw')
+        #[arg(short, long, default_value = "raw")]
+        #[serde(default)]
+        format: Format,
+    },
+    /// Find role binding record(s)
+    #[command(alias = "rb")]
+    RoleBindings {
+        /// Set name filter
+        #[arg(short, long)]
+        name: String,
+        /// Set output format (one of 'json', 'yaml', 'raw')
+        #[arg(short, long, default_value_t)]
+        format: Format,
+    },
     /// Find transactions within a context
-    Transactions(transactions::FindTransactionOptions),
+    #[command(alias = "txns")]
+    Transactions(transactions::FindTransactionArgs),
+    /// Find transfer(s)
+    #[command(alias = "t")]
+    Transfers(transfers::FindTransferArgs),
 }
 
-impl FindSubCommands {
-    pub(super) async fn find(&self, config: &crate::Config) -> anyhow::Result<()> {
+impl Find {
+    pub(super) async fn run(self, context: &Context) -> anyhow::Result<()> {
         match self {
-            FindSubCommands::Account(options) => {
-                options.find(config).await?;
+            Find::Accounts(args) => {
+                args.find(context).await?;
             }
-            FindSubCommands::AccountSet(options) => {
-                options.find(config).await?;
+            Find::AccountSets(args) => {
+                args.find(context).await?;
             }
-            FindSubCommands::Role(options) => {
-                options.find(config).await?;
+            Find::Actions(args) => args.find(context).await?,
+            Find::Banks { format } => {
+                context
+                    .ledger_client()
+                    .list_banks(PageBuilder::default())
+                    .await?
+                    .print(format)?;
             }
-            FindSubCommands::RoleBinding(options) => {
-                options.find(config).await?;
+            Find::DirectoryEntries { cmd } => cmd.find(context).await?,
+            Find::LedgerAccounts(args) => {
+                args.find(context).await?;
             }
-            FindSubCommands::Transfer(options) => {
-                options.find(config).await?;
+            Find::Roles { name, format } => {
+                context
+                    .ledger_client()
+                    .list_roles(PageBuilder::<_, NameFilter>::name(name))
+                    .await?
+                    .print(format)?;
             }
-            FindSubCommands::DirectoryEntry(options) => options.find().await?,
-            FindSubCommands::Action(options) => options.find(config).await?,
-            FindSubCommands::Transactions(options) => options.find(config).await?,
-            FindSubCommands::Bank(options) => options.find(config).await?,
+            Find::RoleBindings { name, format } => {
+                let builder = PageBuilder::<_, NameFilter>::name(name);
+                context
+                    .ledger_client()
+                    .list_role_bindings(builder)
+                    .await?
+                    .print(format)?;
+            }
+            Find::Transactions(args) => args.find(context).await?,
+            Find::Transfers(args) => {
+                args.find(context).await?;
+            }
         }
         Ok(())
     }

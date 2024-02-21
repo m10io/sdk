@@ -2,11 +2,10 @@ use flume::Sender;
 use futures_util::StreamExt;
 use m10_sdk::{
     sdk::{self, FinalizedTransaction},
-    Signer,
+    AccountFilter, GrpcClient, M10CoreClient,
 };
 use pala_types::TxId;
 use sqlx::Acquire;
-use tokio::time::Duration;
 use tracing::{debug, info};
 
 use crate::{
@@ -72,24 +71,23 @@ impl TransferObserver {
         };
 
         info!(?last_tx_id, "Observing transfers");
-        let request = context
-            .signer
-            .sign_request(sdk::ObserveAccountsRequest {
-                involved_accounts: vec![account_id.clone()],
-                starting_from: Some(sdk::TxId {
-                    tx_id: u64::from(last_tx_id) + 1,
-                }),
-            })
-            .await?;
+        let req = AccountFilter::default()
+            .involves(account_id.as_slice().try_into()?)
+            .starting_from(u64::from(last_tx_id) + 1);
+        let observer = GrpcClient::connect(
+            context
+                .config
+                .ledger_addr
+                .clone()
+                .http2_keep_alive_interval(std::time::Duration::from_secs(30))
+                .keep_alive_while_idle(true),
+            Some(std::sync::Arc::new(crate::signer::ProxySigner::new(
+                &context.config,
+            ))),
+        )
+        .await?;
 
-        let channel =
-            m10_sdk::ledger_client::Channel::builder(context.config.ledger_addr.uri().clone())
-                .keep_alive_while_idle(true)
-                .http2_keep_alive_interval(Duration::from_secs(30))
-                .connect_lazy()?;
-        let ledger = m10_sdk::LedgerClient::new(channel);
-
-        let mut stream = ledger.observe_transfers(request).await?;
+        let mut stream = observer.observe_transactions(req).await?;
         while let Some(msg) = stream.next().await {
             let sdk::FinalizedTransactions { transactions } = msg?;
             debug!(transfers = %transactions.len(),"observation");

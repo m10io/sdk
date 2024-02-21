@@ -17,6 +17,11 @@ impl<T> AccountFilter<T> {
         self
     }
 
+    pub fn with_accounts(mut self, ids: Vec<AccountId>) -> Self {
+        self.accounts.extend(ids.iter());
+        self
+    }
+
     pub fn starting_from(mut self, tx_id: TxId) -> Self {
         self.starting_from = Some(tx_id);
         self

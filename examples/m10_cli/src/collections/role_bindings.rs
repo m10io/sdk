@@ -1,8 +1,21 @@
+use std::{collections::HashMap, convert::TryFrom, str::FromStr};
+
 use m10_sdk::sdk;
 use serde_with::{serde_as, DisplayFromStr};
-use std::{collections::HashMap, convert::TryFrom};
 
 use super::PrettyId;
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub(crate) struct Expression(pub(crate) HashMap<String, String>);
+
+impl FromStr for Expression {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(serde_json::from_str(s)?))
+    }
+}
 
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]

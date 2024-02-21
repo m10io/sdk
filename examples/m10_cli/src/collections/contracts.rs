@@ -65,10 +65,11 @@ pub(crate) async fn show_contract(path: &str, formatter: Format) -> anyhow::Resu
     let transfer_requests = sdk::CreateLedgerTransfers::decode(contract.transactions.as_slice())?;
     let content = ContractContent {
         id: hex::encode(id).to_uppercase(),
-        valid_until: NaiveDateTime::from_timestamp(
+        valid_until: NaiveDateTime::from_timestamp_opt(
             (transfer_requests.valid_until / 1_000_000) as i64,
             ((transfer_requests.valid_until % 1_000_000) * 1000) as u32,
         )
+        .expect("expected valid timestamp")
         .to_string(),
         transfers,
         endorsements: contract

@@ -1,54 +1,79 @@
-use crate::context::Context;
-use clap::{ArgGroup, Parser};
+use std::{fs::File, io::BufReader};
+
+use clap::Subcommand;
 use m10_sdk::{
     error::M10Error,
     sdk::{self, TransactionError},
     DocumentBuilder, WithContext,
 };
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::BufReader};
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(group = ArgGroup::new("migration_flags"), about)]
-pub(crate) struct BatchOptions {
-    /// If set file can only contain CUD operations else only query operations
-    #[clap(short, long, group = "migration_flags")]
-    migration: bool,
-    /// Set batch file location
-    file: String,
-    /// If set only parses the files without sending any request
-    #[clap(long)]
-    dry_run: bool,
+use crate::context::Context;
+
+#[derive(Subcommand, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum Run {
+    #[command(alias = "b")]
+    Batch,
+    #[command(alias = "m")]
+    Migration,
 }
 
-impl BatchOptions {
-    pub(super) async fn run(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let yaml_file = File::open(&self.file)?;
+impl Run {
+    pub(super) async fn run(
+        self,
+        file: String,
+        dry_run: bool,
+        context: &Context,
+    ) -> anyhow::Result<()> {
+        match self {
+            Run::Batch => Self::run_batch(file, dry_run, context).await,
+            Run::Migration => Self::run_migragtion(file, dry_run, context).await,
+        }
+    }
+
+    fn load_commands(file: &str) -> anyhow::Result<Vec<super::Commands>> {
+        let yaml_file = File::open(file)?;
         let reader = BufReader::new(yaml_file);
-        let data: Vec<super::Commands> = serde_yaml::from_reader(reader)?;
-        if self.dry_run {
+        Ok(serde_yaml::from_reader(reader)?)
+    }
+
+    async fn run_migragtion(file: String, dry_run: bool, context: &Context) -> anyhow::Result<()> {
+        let data = Self::load_commands(&file)?;
+        if dry_run {
             for op in data {
-                op.dry_run(self.migration)?;
+                op.dry_run(true)?;
             }
-        } else if self.migration {
+        } else {
             let mut operations = DocumentBuilder::default();
+
             for op in data {
-                operations = operations.insert_operation(op.document_operation(config).await?);
+                operations = operations.insert_operation(op.document_operation(context).await?);
             }
-            let context = Context::new(config)?;
-            let result = context
-                .m10_client
-                .documents(operations.context_id(config.context_id.clone()))
-                .await;
+            let result = m10_sdk::documents(
+                context.ledger_client(),
+                operations.context_id(context.context_id()),
+            )
+            .await;
             match result {
                 Ok(_) => {}
                 Err(M10Error::Transaction(TransactionError { code, .. }))
                     if code == sdk::transaction::transaction_error::Code::AlreadyExists as i32 => {}
                 Err(err) => anyhow::bail!(err),
             }
+        }
+        Ok(())
+    }
+
+    async fn run_batch(file: String, dry_run: bool, context: &Context) -> anyhow::Result<()> {
+        let data = Self::load_commands(&file)?;
+        if dry_run {
+            for op in data {
+                op.dry_run(false)?;
+            }
         } else {
             for op in data {
-                op.handle_batch(config).await?;
+                op.handle_batch(context).await?;
             }
         }
         Ok(())

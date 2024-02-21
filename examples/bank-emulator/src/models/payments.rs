@@ -32,11 +32,12 @@ impl TransferChain {
 
         Ok(TransferChain {
             id: transfer.tx_id,
-            timestamp: DateTime::<Utc>::from_utc(
-                NaiveDateTime::from_timestamp(
+            timestamp: DateTime::<Utc>::from_naive_utc_and_offset(
+                NaiveDateTime::from_timestamp_opt(
                     (transfer.timestamp / 1_000_000) as i64,
                     ((transfer.timestamp % 1_000_000) * 1000) as u32,
-                ),
+                )
+                .expect("expected valid timestamp"),
                 Utc,
             )
             .to_string(),

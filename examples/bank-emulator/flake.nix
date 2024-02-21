@@ -1,7 +1,7 @@
 {
   description = "m10-bank-emulator";
   inputs = {
-    rust-overlay.url = "github:oxalica/rust-overlay?rev=dea24da3d3be23ab53ee80314474afd5fcb03c1c";
+    rust-overlay.url = "github:oxalica/rust-overlay?rev=61dfa5a8129f7edbe9150253c68f673f87b16fb1";
     flake-utils.url = "github:numtide/flake-utils";
     cargo2nix.url = "github:cargo2nix/cargo2nix?rev=c149357cc3d17f2849c73eb7a09d07a307cdcfe8";
     nixpkgs.follows = "cargo2nix/nixpkgs";
@@ -20,7 +20,7 @@
         m10-protos = import ../../nix/protos.nix { inherit pkgs; };
         rust-overrides = import ../../nix/rust-overrides.nix { inherit m10-protos; };
         rustPkgs = pkgs.rustBuilder.makePackageSet {
-          rustChannel = "1.71.1";
+          rustChannel = "1.75.0";
           packageFun = import ./Cargo.nix;
           packageOverrides = rust-overrides;
         };

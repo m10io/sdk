@@ -1,7 +1,7 @@
 use futures_util::StreamExt;
 use m10_sdk::{
     sdk::{self, transaction_data::Data, FinalizedTransaction},
-    Metadata, Signer, TransactionExt,
+    Metadata, TransactionExt,
 };
 use pala_types::TxId;
 use sqlx::Acquire;
@@ -103,17 +103,12 @@ impl CbdcAdjustmentHandler {
             .get(currency_code)
             .and_then(|c| c.cbdc_config.as_ref())
         {
-            let mut client = self.context.ledger.clone();
-
             // Get balance of target account
-            let request = self
+            let indexed_account = self
                 .context
-                .signer
-                .sign_request(sdk::GetAccountRequest {
-                    id: target.to_vec(),
-                })
+                .ledger
+                .get_account(target.as_slice().try_into()?)
                 .await?;
-            let indexed_account = client.get_indexed_account(request).await?;
             debug!(
                 "account {} balance {}",
                 hex::encode(target),
@@ -244,23 +239,18 @@ impl CbdcReserveHandler {
         } = issuing_transfer;
         if let Some(currency) = self.context.config.currencies.get(currency_code) {
             if let Some(cbdc_config) = &currency.cbdc_config {
-                let mut client = self.context.ledger.clone();
-
                 // Get balance of target account
-                let request = self
+                let indexed_account = self
                     .context
-                    .signer
-                    .sign_request(sdk::GetAccountRequest {
-                        id: target.to_vec(),
-                    })
+                    .ledger
+                    .get_account(target.as_slice().try_into()?)
                     .await?;
-                let indexed_account = client.get_indexed_account(request).await?;
                 debug!(
                     "account {} balance {}",
                     hex::encode(target),
                     indexed_account.balance
                 );
-                let issued = indexed_account.issuance.map(|i| i.issued_balance);
+                let issued = indexed_account.issuance.map(|i| i.balance);
                 if let Some(issued_balance) = issued {
                     // Difference between holding and issuance balance.
                     // Note: If account was never funded this difference can be negative.

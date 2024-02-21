@@ -1,57 +1,54 @@
-use crate::context::Context;
-use clap::{ArgGroup, Parser};
+use clap::{ArgGroup, Args};
 use m10_sdk::account::AccountId;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(group = ArgGroup::new("instrument").requires_all(&["code", "decimals"]).multiple(true), about)]
-pub(crate) struct UpdateLedgerAccountOptions {
+use crate::context::Context;
+
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+#[clap(group = ArgGroup::new("instrument").requires_all(&["code", "decimals"]).multiple(true))]
+pub(crate) struct UpdateLedgerAccountArgs {
     /// Account id
     id: AccountId,
     /// Update freeze state
-    #[clap(short, long)]
+    #[arg(short, long)]
     freeze: Option<bool>,
     /// Currency code
-    #[clap(short, long, group = "instrument")]
+    #[arg(long, aliases = ["currency", "symbol", "cs", "cc"], group = "instrument")]
     code: Option<String>,
     /// Number of relevant currency decimals
-    #[clap(short, long, group = "instrument")]
+    #[arg(short, long, group = "instrument")]
     decimals: Option<u32>,
     /// Currency description
-    #[clap(long, group = "instrument")]
+    #[arg(long, alias = "desc", group = "instrument")]
     description: Option<String>,
     /// Holding balance limit
+    #[arg(short = 'l', long, aliases = ["limit", "hl"])]
     holding_limit: Option<u64>,
 }
 
-impl UpdateLedgerAccountOptions {
-    pub(super) async fn update(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let context = Context::new(config)?;
-
+impl UpdateLedgerAccountArgs {
+    pub(super) async fn update(self, context: &Context) -> anyhow::Result<()> {
+        let client = context.ledger_client();
         if let Some(frozen) = self.freeze {
-            context
-                .m10_client
-                .freeze_account(self.id, frozen, config.context_id.clone())
+            client
+                .freeze_account(self.id, frozen, context.context_id())
                 .await?;
         }
 
         if let Some(limit) = self.holding_limit {
-            context
-                .m10_client
-                .set_account_limit(self.id, limit, config.context_id.clone())
+            client
+                .set_account_limit(self.id, limit, context.context_id())
                 .await?;
         }
 
-        if let Some(code) = self.code.clone() {
-            context
-                .m10_client
+        if let Some(code) = self.code {
+            client
                 .set_account_instrument(
                     self.id,
                     code,
                     self.decimals.unwrap(),
-                    self.description.clone(),
-                    config.context_id.clone(),
+                    self.description,
+                    context.context_id(),
                 )
                 .await?;
         }

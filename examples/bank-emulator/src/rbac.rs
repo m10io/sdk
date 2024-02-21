@@ -7,7 +7,7 @@ use crate::{
 
 use m10_sdk::{
     prost::bytes::Bytes,
-    sdk::{self, rule::Verb, Operation, Role, RoleBinding, Rule, Value},
+    sdk::{rule::Verb, Operation, Role, RoleBinding, Rule, Value},
     Collection, DocumentUpdate, Signer,
 };
 use uuid::Uuid;
@@ -19,15 +19,7 @@ pub(crate) async fn is_key_known(
     key: &[u8],
     context: &Context,
 ) -> Result<bool, Error> {
-    let request = context
-        .signer
-        .sign_request(sdk::GetRoleBindingRequest {
-            id: role_id.as_bytes().to_vec(),
-        })
-        .await?;
-    let mut client = context.ledger.clone();
-    let role_binding = client
-        .get_role_binding(request)
+    let role_binding = m10_sdk::get_role_binding(&context.ledger, role_id)
         .await
         .internal_error("getting role_binding")?;
     Ok(role_binding.subjects.contains(&Bytes::from(key.to_vec())))
@@ -75,7 +67,7 @@ pub(crate) async fn create_contact_rbac_role(
     let role = Role {
         id: role_id.clone(),
         name: format!("owner-{}", contact_name),
-        owner: Bytes::copy_from_slice(context.signer.public_key()),
+        owner: Bytes::copy_from_slice(context.ledger.signer()?.public_key()),
         rules,
     };
 
@@ -83,7 +75,7 @@ pub(crate) async fn create_contact_rbac_role(
     let role_binding = RoleBinding {
         id: role_id.clone(),
         name: format!("owner-{}", contact_name),
-        owner: Bytes::copy_from_slice(context.signer.public_key()),
+        owner: Bytes::copy_from_slice(context.ledger.signer()?.public_key()),
         role: role_id.clone(),
         ..Default::default()
     };
@@ -101,15 +93,7 @@ pub(crate) async fn add_accounts_to_role(
     ledger_accounts: Vec<Value>,
     context: &Context,
 ) -> Result<(), Error> {
-    let request = context
-        .signer
-        .sign_request(sdk::GetRoleRequest {
-            id: role_id.as_bytes().to_vec(),
-        })
-        .await?;
-    let mut client = context.ledger.clone();
-    let role = client
-        .get_role(request)
+    let role = m10_sdk::get_role(&context.ledger, role_id)
         .await
         .internal_error("getting customer role")?;
     let mut account_rule = role

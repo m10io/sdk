@@ -1,45 +1,41 @@
-use crate::collections::roles::RuleOptions;
-use clap::Parser;
+use clap::Args;
 use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use uuid::Uuid;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct CreateRoleOptions {
+use crate::collections::roles::RuleArgs;
+
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct CreateRoleArgs {
     /// Ignore error if item exists
-    #[clap(short = 'e', long)]
+    #[arg(short = 'e', long)]
     #[serde(default)]
     pub(super) if_not_exists: bool,
     /// Set record uuid
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub(super) id: Option<Uuid>,
     /// Set name of role
-    #[clap(short, long, default_value_t)]
+    #[arg(short, long, default_value_t)]
     #[serde(default)]
     name: String,
     /// Set owner of the role record
-    #[clap(short, long)]
+    #[arg(short, long)]
     owner: Option<PublicKey>,
     /// Set rule (1..N)
-    #[clap(short, long, required = true, parse(try_from_str = RuleOptions::parse))]
-    rule: Vec<RuleOptions>,
+    #[arg(short, long, required = true)]
+    rules: Vec<RuleArgs>,
 }
 
-impl super::BuildFromOptions for CreateRoleOptions {
+impl super::BuildFromArgs for CreateRoleArgs {
     type Document = sdk::Role;
-    fn build_from_options(
-        &self,
-        default_owner: PublicKey,
-    ) -> Result<Self::Document, anyhow::Error> {
+    fn build_from_options(self, default_owner: PublicKey) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self.owner.clone().unwrap_or(default_owner).0;
-        let rules = self.rule.iter().map(|r| r.to_rbac_rule()).collect();
+        let owner = self.owner.unwrap_or(default_owner).0;
+        let rules = self.rules.iter().map(|r| r.to_rbac_rule()).collect();
         Ok(sdk::Role {
             id: id.into(),
             owner: owner.into(),
-            name: self.name.clone(),
+            name: self.name,
             rules,
         })
     }

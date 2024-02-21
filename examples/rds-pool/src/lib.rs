@@ -1,8 +1,15 @@
 use std::str::FromStr;
 use std::time::Duration;
 
-use rusoto_credential::{ChainProvider, ProvideAwsCredentials};
-use rusoto_signature::SignedRequest;
+use aws_config::Region;
+use aws_credential_types::provider::ProvideCredentials;
+use aws_sigv4::{
+    http_request::{sign, SignableBody, SignableRequest, SigningSettings},
+    sign::v4,
+};
+
+use std::time::SystemTime;
+
 use sqlx_core::connection::Connection;
 use sqlx_core::postgres::{PgConnectOptions, PgConnection};
 
@@ -44,29 +51,19 @@ impl bb8::ManageConnection for RdsManager {
         let host = percent_encoding::percent_decode_str(host)
             .decode_utf8()
             .map_err(|err| Error::Configuration(err.into()))?;
+        let port = "5432";
         let username = percent_encoding::percent_decode_str(url.username())
             .decode_utf8()
             .map_err(|err| Error::Configuration(err.into()))?;
         if host.ends_with("rds.amazonaws.com") {
             // If RDS, exchange IAM credentials for auth token
-            let region = host
-                .split('.')
-                .nth_back(3)
-                .expect("region")
-                .parse()
-                .unwrap();
-            let aws_credentials = ChainProvider::new()
-                .credentials()
+            let region = host.split('.').nth_back(3).expect("region").to_string();
+
+            let auth_token = generate_rds_iam_token(Region::new(region), &host, port, &username)
                 .await
-                .map_err(|err| Error::Configuration(err.into()))?;
-            let mut request = SignedRequest::new("GET", "rds-db", &region, "/");
-            request.set_hostname(Some(format!("{}:5432", host)));
-            request.add_param("Action", "connect");
-            request.add_param("DBUser", &username);
-            let expires_in = Duration::from_secs(15 * 60);
-            let presigned_url = request.generate_presigned_url(&aws_credentials, &expires_in, true);
-            let auth_token = presigned_url.trim_start_matches("https://");
-            let connect_options = PgConnectOptions::from_str(&self.url)?.password(auth_token);
+                .map_err(|_| Error::Configuration("unable to sign".into()))?;
+
+            let connect_options = PgConnectOptions::from_str(&self.url)?.password(&auth_token);
             PgConnection::connect_with(&connect_options).await
         } else {
             PgConnection::connect(&self.url).await
@@ -84,4 +81,57 @@ impl bb8::ManageConnection for RdsManager {
     fn has_broken(&self, _: &mut Self::Connection) -> bool {
         false
     }
+}
+
+async fn generate_rds_iam_token(
+    region: Region,
+    db_hostname: &str,
+    port: &str,
+    db_username: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let config = aws_config::from_env().region(region).load().await;
+
+    let credentials = config
+        .credentials_provider()
+        .expect("no credentials provider found")
+        .provide_credentials()
+        .await
+        .expect("unable to load credentials");
+    let identity = credentials.into();
+    let region = config.region().unwrap().to_string();
+
+    let mut signing_settings = SigningSettings::default();
+    signing_settings.expires_in = Some(Duration::from_secs(15 * 60));
+    signing_settings.signature_location = aws_sigv4::http_request::SignatureLocation::QueryParams;
+
+    let signing_params = v4::SigningParams::builder()
+        .identity(&identity)
+        .region(&region)
+        .name("rds-db")
+        .time(SystemTime::now())
+        .settings(signing_settings)
+        .build()?;
+
+    let url = format!(
+        "https://{db_hostname}:{port}/?Action=connect&DBUser={db_user}",
+        db_hostname = db_hostname,
+        port = port,
+        db_user = db_username
+    );
+
+    let signable_request =
+        SignableRequest::new("GET", &url, std::iter::empty(), SignableBody::Bytes(&[]))
+            .expect("signable request");
+
+    let (signing_instructions, _signature) =
+        sign(signable_request, &signing_params.into())?.into_parts();
+
+    let mut url = url::Url::parse(&url).unwrap();
+    for (name, value) in signing_instructions.params() {
+        url.query_pairs_mut().append_pair(name, value);
+    }
+
+    let response = url.to_string().split_off("https://".len());
+
+    Ok(response)
 }

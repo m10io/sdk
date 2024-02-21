@@ -2,6 +2,8 @@
 //!
 //! This library contains a set of wrappers and traits that allow users to easily sign and verify
 //! signatures
+use core::str::FromStr;
+use std::fmt;
 
 use m10_protos::{prost::Message, sdk};
 
@@ -102,6 +104,8 @@ pub trait Signer: Send + Sync {
 }
 
 /// A P256 or ED25519 key pair
+#[derive(serde::Deserialize)]
+#[serde(try_from = "String", into = "String")]
 pub enum KeyPair {
     P256(P256),
     Ed25519(Ed25519),
@@ -127,6 +131,31 @@ impl Signer for KeyPair {
         match self {
             KeyPair::P256(key_pair) => key_pair.algorithm(),
             KeyPair::Ed25519(key_pair) => key_pair.algorithm(),
+        }
+    }
+}
+
+impl FromStr for KeyPair {
+    type Err = SigningError;
+    fn from_str(key_pair_enc: &str) -> Result<Self, Self::Err> {
+        Ed25519::from_str(key_pair_enc)
+            .map(KeyPair::Ed25519)
+            .or_else(|_| P256::from_str(key_pair_enc).map(KeyPair::P256))
+    }
+}
+
+impl TryFrom<String> for KeyPair {
+    type Error = SigningError;
+    fn try_from(key_pair: String) -> Result<Self, Self::Error> {
+        key_pair.parse()
+    }
+}
+
+impl fmt::Debug for KeyPair {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            KeyPair::P256(key_pair) => write!(f, "P256({:?})", key_pair.public_key()),
+            KeyPair::Ed25519(key_pair) => write!(f, "Ed25519({:?})", key_pair.public_key()),
         }
     }
 }

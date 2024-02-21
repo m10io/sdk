@@ -1,6 +1,6 @@
 [package]
 name = "m10-sdk"
-version = "0.33.0"
+version = "0.34.0"
 authors = ["Michael Wittner <michael.wittner@m10.io>", "Sam De Roeck <sam.deroeck@m10.io>"]
 edition = "2021"
 description = "M10 SDK API"
@@ -13,21 +13,26 @@ readme = "README.md"
 [features]
 default = ["format", "client", "collections", "service", "image", "contract", "account"]
 collections = []
-service = ["tonic", "m10-signing", "futures-core", "futures-util", "m10-protos/client"]
+service = ["async-trait", "tonic", "m10-signing", "futures-core", "futures-util", "m10-protos/client"]
 image = ["reqwest"]
 account = []
 contract = ["ring", "thiserror"]
-client = ["service"]
+client = ["service", "tokio-stream", "tokio", "tokio-tungstenite"]
 format = ["parse-display", "base64", "hex/default", "serde_json", "serde_yaml", "ron"]
 
 [dependencies]
 bytes = "1"
 fastrand = "1"
 hex = { version = "0.4", default-features = false }
-m10-protos = { version = "0.33", path = "../protos" }
-uuid = { version = "0.8", features = ["serde", "v4"] }
+m10-protos = { version = "0.34", path = "../protos" }
+uuid = { version = "1.7.0", features = ["serde", "v4"] }
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "1", features = ["hex"] }
+
+# ws client
+tokio-stream = { version = "0.1.14", optional = true }
+tokio = { version = "1", optional = true }
+tokio-tungstenite = { version = "0.21.0", optional = true, features = ["native-tls"] }
 
 # image
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"], optional = true }
@@ -37,9 +42,10 @@ thiserror = { version = "1", optional = true }
 ring = { version = "0.16", features = ["std"], optional = true }
 
 # service
+async-trait = { version = "0.1", optional = true }
 futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-m10-signing = { version = "0.33.0", path = "../signing", optional = true }
+m10-signing = { version = "0.34.0", path = "../signing", optional = true }
 tonic = { version = "0.5", features = ["tls", "tls-roots"], optional = true }
 
 # format

@@ -1,3 +1,4 @@
+#![allow(clippy::non_canonical_partial_ord_impl)]
 #[cfg(test)]
 use std::collections::HashMap;
 use std::{cmp::Ordering, ops::RangeInclusive};

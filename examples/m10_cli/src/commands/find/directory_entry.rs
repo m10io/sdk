@@ -1,33 +1,43 @@
-use clap::{Parser, Subcommand};
+use std::convert::TryFrom;
+
+use clap::Subcommand;
 use m10_sdk::directory::{
     alias::Type as AliasType, directory_service_client::DirectoryServiceClient, Alias,
     SearchAliasesRequest,
 };
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
-use tonic::metadata::MetadataValue;
-use tonic::transport::Channel;
+use tonic::{
+    metadata::MetadataValue, service::interceptor::InterceptedService, transport::Channel,
+};
 use uuid::Uuid;
 
-use crate::context::Context;
-use crate::utils::m10_config_path;
-use tonic::service::interceptor::InterceptedService;
+use crate::{context::Context, utils::m10_config_path};
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
+#[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[clap(about)]
-pub(crate) struct FindDirEntryOptions {
-    /// Directory server address
-    server: String,
-    #[clap(subcommand)]
-    #[serde(flatten)]
-    cmd: FindDirEntrySubCommands,
+pub(crate) enum DirEntry {
+    //// Find alias entries
+    #[command(alias = "a")]
+    Alias {
+        /// By alias handle
+        #[arg(short = 'a', long)]
+        handle: String,
+        #[arg(long)]
+        /// By subject id
+        #[arg(long)]
+        subject: Option<String>,
+        /// Next page token as returned by previous query
+        #[arg(long, aliases = ["token", "pt"])]
+        page_token: Option<String>,
+    },
+    /// Find ledger entries
+    #[command(alias = "l")]
+    Ledger,
 }
 
-impl FindDirEntryOptions {
-    pub(super) async fn find(&self) -> anyhow::Result<()> {
-        let addr = format!("https://{}", &self.server);
-        let channel = Context::channel_from_address(&addr, false)?;
+impl DirEntry {
+    pub(super) async fn find(self, context: &Context) -> anyhow::Result<()> {
+        let channel = context.channel()?;
         let access_token = std::fs::read_to_string(m10_config_path().join("access.token"))?;
         let access_token = format!("Bearer {}", access_token.trim());
         let access_token = MetadataValue::from_str(access_token.as_str())?;
@@ -38,77 +48,41 @@ impl FindDirEntryOptions {
                 Ok(req)
             });
 
-        match &self.cmd {
-            FindDirEntrySubCommands::Ledger(options) => options.find(&mut client).await,
-            FindDirEntrySubCommands::Alias(options) => options.find(&mut client).await,
-        }
-    }
-}
-
-#[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[clap(about)]
-pub(crate) enum FindDirEntrySubCommands {
-    /// Find ledger entries
-    Ledger(FindLedgerOptions),
-    //// Find alias entries
-    Alias(FindAliasOptions),
-}
-
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-pub(crate) struct FindLedgerOptions {}
-
-impl FindLedgerOptions {
-    pub async fn find<F: FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>>(
-        &self,
-        client: &mut DirectoryServiceClient<InterceptedService<Channel, F>>,
-    ) -> anyhow::Result<()> {
-        let Self {} = self.to_owned();
-        let response = client.list_ledgers(()).await?.into_inner();
-        for ledger in response.ledgers {
-            println!("{:#?}", ledger);
+        match self {
+            DirEntry::Alias {
+                handle,
+                subject,
+                page_token,
+            } => find_alias(handle, subject, page_token, &mut client).await?,
+            DirEntry::Ledger => {
+                let response = client.list_ledgers(()).await?.into_inner();
+                for ledger in response.ledgers {
+                    println!("{:#?}", ledger);
+                }
+            }
         }
         Ok(())
     }
 }
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct FindAliasOptions {
-    /// By alias handle
-    #[clap(short = 'a', long)]
+async fn find_alias<F: FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>>(
     handle: String,
-    #[clap(short, long)]
-    /// By subject id
     subject: Option<String>,
-    /// Next page token as returned by previous query
-    #[clap(short, long)]
     page_token: Option<String>,
-}
-
-impl FindAliasOptions {
-    pub async fn find<F: FnMut(tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status>>(
-        &self,
-        client: &mut DirectoryServiceClient<InterceptedService<Channel, F>>,
-    ) -> anyhow::Result<()> {
-        let Self {
-            handle,
-            subject,
-            page_token,
-        } = self.to_owned();
-        let msg = SearchAliasesRequest {
-            handle_prefix: handle,
-            subject: subject.unwrap_or_default(),
-            page_token: page_token.unwrap_or_default(),
-            page_size: 20,
-        };
-        let response = client.search_aliases(msg).await?.into_inner();
-        for alias in response.aliases {
-            println!("{:#?}", PrettyAlias::try_from(alias)?);
-        }
-        println!("next: {}", response.next_page_token);
-        Ok(())
+    client: &mut DirectoryServiceClient<InterceptedService<Channel, F>>,
+) -> anyhow::Result<()> {
+    let msg = SearchAliasesRequest {
+        handle_prefix: handle,
+        subject: subject.unwrap_or_default(),
+        page_token: page_token.unwrap_or_default(),
+        page_size: 20,
+    };
+    let response = client.search_aliases(msg).await?.into_inner();
+    for alias in response.aliases {
+        println!("{:#?}", PrettyAlias::try_from(alias)?);
     }
+    println!("next: {}", response.next_page_token);
+    Ok(())
 }
 
 #[derive(Debug)]

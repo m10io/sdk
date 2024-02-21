@@ -1,17 +1,16 @@
-use crate::context::Context;
-use crate::Config;
-use clap::Parser;
+use clap::Args;
 use m10_sdk::sdk;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct UpdateTransferOptions {
+use crate::context::Context;
+
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct UpdateTransferArgs {
     /// Transfer id
-    #[clap(short, long, action)]
+    #[arg(short, long)]
     pub(super) id: u64,
     /// New state
-    #[clap(short, long, value_enum, action)]
+    #[arg(long, value_enum, alias = "state")]
     pub(super) state: TransferState,
 }
 
@@ -30,18 +29,17 @@ impl From<TransferState> for sdk::transaction::commit_transfer::TransferState {
     }
 }
 
-impl UpdateTransferOptions {
-    pub async fn do_update(&self, config: &Config) -> anyhow::Result<()> {
-        let context = Context::new(config)?;
+impl UpdateTransferArgs {
+    pub async fn do_update(&self, context: &Context) -> anyhow::Result<()> {
         context
-            .m10_client
+            .ledger_client()
             .commit_transfer(
                 self.id,
                 match self.state {
                     TransferState::Accept => true,
                     TransferState::Reject => false,
                 },
-                config.context_id.clone(),
+                context.context_id(),
             )
             .await?;
         Ok(())

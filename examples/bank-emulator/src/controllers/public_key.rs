@@ -6,7 +6,7 @@ use m10_sdk::Signer;
 
 #[get("")]
 async fn get(context: Data<Context>) -> Result<String, Error> {
-    Ok(base64::encode(context.signer.public_key()))
+    Ok(base64::encode(context.ledger.signer()?.public_key()))
 }
 
 pub fn scope() -> Scope {

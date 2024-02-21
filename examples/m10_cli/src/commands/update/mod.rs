@@ -1,10 +1,9 @@
-use crate::context::Context;
-use clap::Parser;
-use m10_sdk::{prost::Message, sdk, Pack};
-use m10_sdk::{DocumentBuilder, DocumentUpdate, WithContext};
+use clap::Subcommand;
+use m10_sdk::{prost::Message, sdk, DocumentBuilder, DocumentUpdate, Pack, WithContext};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use uuid::Uuid;
+
+use crate::context::Context;
 
 mod account_sets;
 mod accounts;
@@ -14,91 +13,89 @@ mod role_bindings;
 mod roles;
 mod transfer;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
+#[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[clap(about)]
-pub(super) enum UpdateSubCommands {
+pub(crate) enum Update {
     /// Update account record
-    Account(accounts::UpdateAccountOptions),
+    #[command(alias = "a")]
+    Account(accounts::UpdateAccountArgs),
     /// Update account set record
-    AccountSet(account_sets::UpdateAccountSetOptions),
+    #[command(alias = "as")]
+    AccountSet(account_sets::UpdateAccountSetArgs),
     /// Update bank record
-    Bank(banks::UpdateBankOptions),
+    #[command(alias = "b")]
+    Bank(banks::UpdateBankArgs),
     /// Update ledger account
-    LedgerAccount(ledger_accounts::UpdateLedgerAccountOptions),
+    #[command(alias = "la")]
+    LedgerAccount(ledger_accounts::UpdateLedgerAccountArgs),
     /// Update role record
-    Role(roles::UpdateRoleOptions),
+    #[command(alias = "r")]
+    Role(roles::UpdateRoleArgs),
     /// Update role binding record
-    RoleBinding(role_bindings::UpdateRoleBindingOptions),
+    #[command(alias = "rb")]
+    RoleBinding(role_bindings::UpdateRoleBindingArgs),
     /// Update transfer status
-    Transfer(transfer::UpdateTransferOptions),
+    #[command(alias = "t")]
+    Transfer(transfer::UpdateTransferArgs),
 }
 
-impl UpdateSubCommands {
-    pub(super) async fn update(&self, config: &crate::Config) -> anyhow::Result<()> {
+impl Update {
+    pub(super) async fn run(self, context: &Context) -> anyhow::Result<()> {
         match self {
-            UpdateSubCommands::Account(options) => store_update(options.id, options, config).await,
-            UpdateSubCommands::AccountSet(options) => {
-                store_update(options.id, options, config).await
-            }
-            UpdateSubCommands::Bank(options) => store_update(options.id, options, config).await,
-            UpdateSubCommands::LedgerAccount(options) => options.update(config).await,
-            UpdateSubCommands::Role(options) => store_update(options.id, options, config).await,
-            UpdateSubCommands::RoleBinding(options) => {
-                store_update(options.id, options, config).await
-            }
-            UpdateSubCommands::Transfer(options) => options.do_update(config).await,
+            Update::Account(args) => store_update(args.id, args, context).await,
+            Update::AccountSet(args) => store_update(args.id, args, context).await,
+            Update::Bank(args) => store_update(args.id, args, context).await,
+            Update::LedgerAccount(args) => args.update(context).await,
+            Update::Role(args) => store_update(args.id, args, context).await,
+            Update::RoleBinding(args) => store_update(args.id, args, context).await,
+            Update::Transfer(args) => args.do_update(context).await,
         }
     }
 
-    pub(super) async fn update_operation(&self) -> Result<sdk::Operation, anyhow::Error> {
+    pub(super) async fn document_operation(self) -> Result<sdk::Operation, anyhow::Error> {
         match self {
-            UpdateSubCommands::Account(options) => update_operation(options.id, options),
-            UpdateSubCommands::AccountSet(options) => update_operation(options.id, options),
-            UpdateSubCommands::Bank(options) => update_operation(options.id, options),
-            UpdateSubCommands::Role(options) => update_operation(options.id, options),
-            UpdateSubCommands::RoleBinding(options) => update_operation(options.id, options),
+            Update::Account(args) => update_operation(args.id, args),
+            Update::AccountSet(args) => update_operation(args.id, args),
+            Update::Bank(args) => update_operation(args.id, args),
+            Update::Role(args) => update_operation(args.id, args),
+            Update::RoleBinding(args) => update_operation(args.id, args),
             _ => Err(anyhow::anyhow!("Not supported")),
         }
     }
 }
 
-trait BuildFromOptions {
+trait BuildFromArgs {
     type Document;
 
-    fn build_from_options(
-        &self,
-        builder: &mut DocumentUpdate<Self::Document>,
-    ) -> anyhow::Result<()>;
+    fn build_from_args(self, builder: &mut DocumentUpdate<Self::Document>) -> anyhow::Result<()>;
 }
 
-async fn store_update<M, O>(id: Uuid, options: &O, config: &crate::Config) -> anyhow::Result<()>
+async fn store_update<M, O>(id: Uuid, args: O, context: &Context) -> anyhow::Result<()>
 where
-    O: BuildFromOptions<Document = M>,
+    O: BuildFromArgs<Document = M>,
     M: Message + Pack + Default,
 {
-    let context = Context::new(config)?;
     let mut builder = DocumentUpdate::<M>::new(id);
 
-    options.build_from_options(&mut builder)?;
-    context
-        .m10_client
-        .documents(
-            DocumentBuilder::default()
-                .update(&builder)
-                .context_id(config.context_id.clone()),
-        )
-        .await?;
+    args.build_from_args(&mut builder)?;
+
+    m10_sdk::documents(
+        context.ledger_client(),
+        DocumentBuilder::default()
+            .update(&builder)
+            .context_id(context.context_id()),
+    )
+    .await?;
     Ok(())
 }
 
-fn update_operation<M, O>(id: Uuid, options: &O) -> Result<sdk::Operation, anyhow::Error>
+fn update_operation<M, O>(id: Uuid, args: O) -> Result<sdk::Operation, anyhow::Error>
 where
-    O: BuildFromOptions<Document = M>,
+    O: BuildFromArgs<Document = M>,
     M: Message + Pack + Default,
 {
     let mut builder = DocumentUpdate::<M>::new(id);
 
-    options.build_from_options(&mut builder)?;
+    args.build_from_args(&mut builder)?;
     Ok(builder.operation())
 }

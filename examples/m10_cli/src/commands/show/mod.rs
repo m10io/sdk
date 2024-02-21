@@ -1,34 +1,35 @@
-use crate::collections::contracts::show_contract;
-use clap::{Parser, Subcommand};
+use clap::Subcommand;
 use m10_sdk::Format;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+
+use crate::collections::contracts::show_contract;
 
 mod account;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(super) struct ShowItemOptions {
-    /// file path
-    path: String,
-}
-
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[clap(about)]
-pub(super) enum ShowSubCommands {
-    /// Show contract details
-    Contract(ShowItemOptions),
+pub(crate) enum Show {
     /// Show account details
-    #[clap(subcommand)]
-    Account(account::ShowAccountCommands),
+    #[command(alias = "a")]
+    Account {
+        /// Account Id
+        id: String,
+        #[command(subcommand)]
+        cmd: account::Account,
+    },
+    /// Show contract details
+    #[command(alias = "c")]
+    Contract {
+        /// file path
+        path: String,
+    },
 }
 
-impl ShowSubCommands {
-    pub(super) async fn show(&self, format: Format) -> anyhow::Result<()> {
+impl Show {
+    pub(super) async fn run(self, format: Format) -> anyhow::Result<()> {
         match self {
-            ShowSubCommands::Contract(options) => show_contract(&options.path, format).await,
-            ShowSubCommands::Account(cmds) => cmds.show(),
+            Show::Contract { path } => show_contract(&path, format).await,
+            Show::Account { id, cmd } => cmd.run(id),
         }
     }
 }

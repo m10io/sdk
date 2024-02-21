@@ -146,24 +146,14 @@ where
     fn from(err: E) -> Self {
         let source = eyre::Report::from(err);
         let kind = if let Some(status) = source.downcast_ref::<tonic::Status>() {
-            match status.code() {
-                tonic::Code::Ok => ErrorKind::Internal,
-                tonic::Code::Cancelled => ErrorKind::Upstream,
-                tonic::Code::Unknown => ErrorKind::Internal,
-                tonic::Code::InvalidArgument => ErrorKind::Internal,
-                tonic::Code::DeadlineExceeded => ErrorKind::Upstream,
-                tonic::Code::NotFound => ErrorKind::NotFound,
-                tonic::Code::AlreadyExists => ErrorKind::AlreadyExists,
-                tonic::Code::PermissionDenied => ErrorKind::Unauthorized,
-                tonic::Code::ResourceExhausted => ErrorKind::Internal,
-                tonic::Code::FailedPrecondition => ErrorKind::Internal,
-                tonic::Code::Aborted => ErrorKind::Upstream,
-                tonic::Code::OutOfRange => ErrorKind::Internal,
-                tonic::Code::Unimplemented => ErrorKind::Upstream,
-                tonic::Code::Internal => ErrorKind::Upstream,
-                tonic::Code::Unavailable => ErrorKind::Upstream,
-                tonic::Code::DataLoss => ErrorKind::Upstream,
-                tonic::Code::Unauthenticated => ErrorKind::Unauthorized,
+            status.code().into()
+        } else if let Some(err) = source.downcast_ref::<m10_sdk::error::M10Error>() {
+            match err {
+                m10_sdk::error::M10Error::Signing(_) => ErrorKind::Internal,
+                m10_sdk::error::M10Error::Status(status) => status.code().into(),
+                m10_sdk::error::M10Error::Transaction(err) => err.code().into(),
+                m10_sdk::error::M10Error::Request(_) => ErrorKind::Upstream,
+                _ => ErrorKind::Internal,
             }
         } else if source.downcast_ref::<reqwest::Error>().is_some() {
             ErrorKind::Upstream
@@ -173,6 +163,40 @@ where
         Error {
             kind,
             source: Some(source),
+        }
+    }
+}
+
+impl From<tonic::Code> for ErrorKind {
+    fn from(code: tonic::Code) -> ErrorKind {
+        match code {
+            tonic::Code::NotFound => ErrorKind::NotFound,
+            tonic::Code::AlreadyExists => ErrorKind::AlreadyExists,
+            tonic::Code::PermissionDenied | tonic::Code::Unauthenticated => ErrorKind::Unauthorized,
+            tonic::Code::Ok
+            | tonic::Code::Unknown
+            | tonic::Code::InvalidArgument
+            | tonic::Code::ResourceExhausted
+            | tonic::Code::FailedPrecondition
+            | tonic::Code::OutOfRange => ErrorKind::Internal,
+            tonic::Code::Cancelled
+            | tonic::Code::DeadlineExceeded
+            | tonic::Code::Aborted
+            | tonic::Code::Unimplemented
+            | tonic::Code::Internal
+            | tonic::Code::Unavailable
+            | tonic::Code::DataLoss => ErrorKind::Upstream,
+        }
+    }
+}
+
+impl From<m10_sdk::sdk::transaction_error::Code> for ErrorKind {
+    fn from(code: m10_sdk::sdk::transaction_error::Code) -> ErrorKind {
+        match code {
+            m10_sdk::sdk::transaction_error::Code::AlreadyExists => ErrorKind::AlreadyExists,
+            m10_sdk::sdk::transaction_error::Code::NotFound => ErrorKind::NotFound,
+            m10_sdk::sdk::transaction_error::Code::Unauthorized => ErrorKind::Unauthorized,
+            _ => ErrorKind::Upstream,
         }
     }
 }

@@ -1,44 +1,44 @@
-use crate::context::Context;
-use clap::Parser;
-use m10_sdk::account::AccountId;
-use m10_sdk::contract::FinalizedContractExt;
-use m10_sdk::{prost::Message, sdk};
-use m10_sdk::{StepBuilder, TransferBuilder, WithContext};
+use clap::Args;
+use m10_sdk::{
+    account::AccountId, contract::FinalizedContractExt, prost::Message, sdk, StepBuilder,
+    TransferBuilder, WithContext,
+};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct Transfer {
+use crate::context::Context;
+
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct CreateTransferArgs {
     /// Set sending account
-    #[clap(short, long)]
+    #[arg(short, long)]
     from_account: AccountId,
     /// Set receiving account
-    #[clap(short, long)]
+    #[arg(short, long)]
     to_account: AccountId,
     /// Set amount
-    #[clap(short, long)]
+    #[arg(short, long)]
     amount: u64,
     /// Set a memo
-    #[clap(short, long)]
+    #[arg(short, long)]
     memo: Option<String>,
     /// Attach a contract to a transfer
-    #[clap(short, long)]
+    #[arg(long)]
     contract: Option<String>,
     /// If set account will rebalanced to the given amount
-    #[clap(short, long)]
+    #[arg(short, long)]
     rebalance: bool,
     /// If set the transfer will only be initiated but not committed
-    #[clap(short, long)]
+    #[arg(short, long)]
     no_commit: bool,
 }
 
-impl Transfer {
-    pub async fn create(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let mut context = Context::new(config)?;
-
+impl CreateTransferArgs {
+    pub async fn create(&self, context: &Context) -> anyhow::Result<()> {
         if self.rebalance {
-            let indexed_account = context.m10_client.get_account(self.from_account).await?;
+            let indexed_account = context
+                .ledger_client()
+                .get_account(self.from_account)
+                .await?;
 
             let current_balance = indexed_account.balance;
 
@@ -58,17 +58,10 @@ impl Transfer {
                     return Ok(());
                 }
             };
-            self.transfer_funds(from, to, amount, &mut context, config.context_id.clone())
-                .await
+            self.transfer_funds(from, to, amount, context).await
         } else {
-            self.transfer_funds(
-                self.from_account,
-                self.to_account,
-                self.amount,
-                &mut context,
-                config.context_id.clone(),
-            )
-            .await
+            self.transfer_funds(self.from_account, self.to_account, self.amount, context)
+                .await
         }
     }
 
@@ -77,8 +70,7 @@ impl Transfer {
         from_account: AccountId,
         to_account: AccountId,
         amount: u64,
-        context: &mut Context,
-        mut context_id: Vec<u8>,
+        context: &Context,
     ) -> anyhow::Result<()> {
         let contract = if let Some(contract) = &self.contract {
             let file = std::fs::read(contract)?;
@@ -88,15 +80,17 @@ impl Transfer {
             None
         };
 
-        if let Some(contract) = &contract {
-            if !context_id.is_empty() {
+        let context_id = if let Some(contract) = &contract {
+            if !context.context_id().is_empty() {
                 anyhow::bail!(
                     "Adding a contract to a transfer would override the provided context id"
                 );
             } else {
-                context_id = contract.id();
+                contract.id()
             }
-        }
+        } else {
+            context.context_id()
+        };
 
         let mut step = StepBuilder::new(from_account, to_account, amount);
         if let Some(memo) = &self.memo {
@@ -108,9 +102,9 @@ impl Transfer {
         let builder = TransferBuilder::default().step(step).context_id(context_id);
 
         let tx_id = if self.no_commit {
-            context.m10_client.initiate_transfer(builder).await
+            m10_sdk::initiate_transfer(context.ledger_client(), builder).await
         } else {
-            context.m10_client.transfer(builder).await
+            m10_sdk::transfer(context.ledger_client(), builder).await
         }?;
         eprintln!("created transfer:");
         println!("{}", tx_id);

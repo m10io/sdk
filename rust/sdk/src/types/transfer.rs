@@ -67,7 +67,7 @@ impl TryFrom<sdk::TransferStep> for TransferStep {
 }
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
-#[derive(Clone, Debug, Copy, Serialize)]
+#[derive(Clone, Debug, Copy, Serialize, PartialEq, Eq)]
 pub enum TransferStatus {
     Pending,
     Accepted,

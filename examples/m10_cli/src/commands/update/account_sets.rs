@@ -1,32 +1,26 @@
-use clap::Parser;
-use m10_sdk::sdk;
-use m10_sdk::DocumentUpdate;
+use clap::Args;
+use m10_sdk::{sdk, DocumentUpdate};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use uuid::Uuid;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct UpdateAccountSetOptions {
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct UpdateAccountSetArgs {
     /// Record id
     pub(super) id: Uuid,
     /// Add accounts
-    #[clap(short, long, multiple_values = true)]
+    #[arg(short, long)]
     accounts: Option<Vec<sdk::AccountRef>>,
     /// Update owner field
-    #[clap(short, long)]
+    #[arg(short, long)]
     owner: Option<String>,
 }
 
-impl super::BuildFromOptions for UpdateAccountSetOptions {
+impl super::BuildFromArgs for UpdateAccountSetArgs {
     type Document = sdk::AccountSet;
 
-    fn build_from_options(
-        &self,
-        builder: &mut DocumentUpdate<Self::Document>,
-    ) -> anyhow::Result<()> {
-        if let Some(accounts) = &self.accounts {
-            builder.accounts(accounts.clone());
+    fn build_from_args(self, builder: &mut DocumentUpdate<Self::Document>) -> anyhow::Result<()> {
+        if let Some(accounts) = self.accounts {
+            builder.accounts(accounts);
         }
         if let Some(owner) = &self.owner {
             let owner_key = base64::decode(owner)?;

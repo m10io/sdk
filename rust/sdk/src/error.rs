@@ -1,5 +1,5 @@
 use crate::account::AccountIdError;
-use m10_protos::sdk::TransactionError;
+use m10_protos::{prost, sdk::TransactionError};
 use m10_signing::SigningError;
 use tonic::Status;
 
@@ -13,8 +13,22 @@ pub enum M10Error {
     Transaction(#[from] TransactionError),
     #[error(transparent)]
     InvalidAccountId(#[from] AccountIdError),
+    #[error(transparent)]
+    Transport(#[from] tonic::transport::Error),
+    #[error(transparent)]
+    Request(#[from] reqwest::Error),
+    #[error(transparent)]
+    Encoding(#[from] prost::EncodeError),
+    #[error(transparent)]
+    Decoding(#[from] prost::DecodeError),
+    #[error(transparent)]
+    SysTime(#[from] std::time::SystemTimeError),
     #[error("Invalid transaction")]
     InvalidTransaction,
+    #[error("Signer required")]
+    NoSigner,
+    #[error(transparent)]
+    WsError(#[from] tokio_tungstenite::tungstenite::error::Error),
 }
 
 pub type M10Result<T> = Result<T, M10Error>;

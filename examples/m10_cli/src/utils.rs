@@ -1,6 +1,5 @@
 use m10_sdk::account::{AccountId, Builder as AccountIdBuilder, LeafAccountIndex, RawAccountIndex};
-use m10_sdk::{sdk::signature::Algorithm, Ed25519, KeyPair, Signer, P256};
-use std::{fs::File, io::Read};
+use m10_sdk::{sdk::signature::Algorithm, Ed25519, Signer, P256};
 use std::{path::PathBuf, str::FromStr};
 
 pub(crate) fn m10_config_path() -> PathBuf {
@@ -82,13 +81,11 @@ pub(crate) fn vec_from_hex_array(hex_array_str: &str) -> Result<Vec<u8>, anyhow:
     if !(trimmed.starts_with('[') && trimmed.ends_with(']')) {
         return Err(anyhow::anyhow!("not a valid hex array"));
     }
-    let stripped = trimmed[1..trimmed.len() - 1]
+    let parts = trimmed[1..trimmed.len() - 1]
         .split(',')
-        .map(|i| i.trim())
-        .collect::<Vec<&str>>();
-    let stripped = &stripped.join("");
-
-    Ok(hex::decode(stripped)?)
+        .map(|i| Ok(u8::from_str_radix(&i.trim()[2..], 16)?))
+        .collect::<Result<Vec<u8>, anyhow::Error>>()?;
+    Ok(parts)
 }
 
 pub(crate) fn create_key_pair(key_file: &str, method: Algorithm) -> Result<Vec<u8>, anyhow::Error> {
@@ -117,37 +114,4 @@ pub(crate) fn create_exportable_key_pair(method: Algorithm) -> Result<Vec<u8>, a
             Ok(kp)
         }
     }
-}
-
-pub(crate) fn key_pair_from_env(key: &str) -> Result<KeyPair, anyhow::Error> {
-    let try_key_pair = Ed25519::from_str(key);
-    if try_key_pair.is_err() {
-        Ok(KeyPair::P256(P256::from_str(key).map_err(|err| {
-            anyhow::anyhow!("Could not create key pair from env: {}", err)
-        })?))
-    } else {
-        Ok(KeyPair::Ed25519(try_key_pair.map_err(|err| {
-            anyhow::anyhow!("Could not create key pair from env: {}", err)
-        })?))
-    }
-}
-
-pub(crate) fn load_key_pair(path_str: &str) -> Result<KeyPair, anyhow::Error> {
-    let try_key_pair = Ed25519::load_key_pair(path_str);
-    if try_key_pair.is_err() {
-        Ok(KeyPair::P256(P256::load_key_pair(path_str).map_err(
-            |err| anyhow::anyhow!("Could not load key file: {}", err),
-        )?))
-    } else {
-        Ok(KeyPair::Ed25519(try_key_pair.map_err(|err| {
-            anyhow::anyhow!("Could not load key file: {}", err)
-        })?))
-    }
-}
-
-pub(crate) fn load_key_pair_exportable(path_str: &str) -> Result<Vec<u8>, anyhow::Error> {
-    let mut key_file = File::open(path_str)?;
-    let mut pkcs8_bytes: Vec<u8> = Vec::new();
-    key_file.read_to_end(&mut pkcs8_bytes)?;
-    Ok(pkcs8_bytes)
 }

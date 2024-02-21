@@ -1,12 +1,12 @@
 #![allow(dead_code)]
-pub use config::{ConfigError, File};
+pub use config::ConfigError;
 use m10_bank_emulator_protos::emulator::rtgs::{
     bank_registration_request::BankAccountType, open_account_request::HolderType,
     requisition_funds_request::RequisitionType, rtgs_service_client::RtgsServiceClient,
     AccountRequest, AccountType, BankRegistrationRequest, OpenAccountRequest,
     RequisitionFundsRequest,
 };
-use m10_sdk::{sdk::GetBankRequest, Signer};
+use m10_sdk::{BankAccountType as SdkBankAccountType, Signer};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::Acquire;
@@ -112,7 +112,7 @@ impl CurrencyConfig {
         let registration_request = BankRegistrationRequest {
             institute: context.config.bank_name.clone(),
             swift_code: context.config.swift_code.clone(),
-            public_key: context.signer.public_key().to_vec(),
+            public_key: context.ledger.signer()?.public_key().to_vec(),
             currency_code: self.code.to_uppercase(),
             display_name: context.config.bank_name.clone(),
             short_display: context.config.short_name.clone(),
@@ -120,19 +120,15 @@ impl CurrencyConfig {
         };
         let bank_data = rtgs.register_bank(registration_request).await?.into_inner();
         currency.bank_id = Some(bank_data.bank_meta_data.to_vec());
-        let request = context
-            .signer
-            .sign_request(GetBankRequest {
-                id: bank_data.bank_meta_data,
-            })
-            .await?;
-        let bank_meta_data = context.ledger.clone().get_bank(request).await?;
+        let bank_meta_data = context.ledger.get_bank(bank_data.bank_meta_data).await?;
         for a in bank_meta_data.accounts {
-            let account_type = BankAccountType::from_i32(a.account_type)
-                .ok_or_else(|| Error::validation("accounts", "unknown account type"))?;
-            match account_type {
-                BankAccountType::Cbdc => currency.cbdc_account = Some(a.account_id),
-                BankAccountType::Drm => currency.regulated_account = Some(a.account_id),
+            match a.account_type {
+                SdkBankAccountType::CentralBankDigitalCurrency => {
+                    currency.cbdc_account = Some(a.id.to_vec())
+                }
+                SdkBankAccountType::DigitalRegulatedMoney => {
+                    currency.regulated_account = Some(a.id.to_vec())
+                }
             };
         }
         currency.update(&mut txn).await?;

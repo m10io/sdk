@@ -1,64 +1,56 @@
-use crate::{collections::*, utils};
-use clap::{Parser, Subcommand};
-use m10_sdk::{prost::Message, sdk, Format, PrettyPrint};
-use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct DeserializeOptions {
-    /// Data from log
-    data: String,
-    /// Output format (one of 'json', 'yaml', 'raw')
-    #[clap(short = 'f', long, default_value = "raw")]
-    #[serde(default = "Format::default")]
-    format: Format,
-}
+use clap::Subcommand;
+use m10_sdk::{prost::Message, sdk, Format, PrettyPrint};
+use serde::Serialize;
 
-#[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
+use crate::{collections::*, utils};
+
+#[derive(Clone, Subcommand, Debug, Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[clap(about)]
-pub(crate) enum DeserializeSubCommands {
+pub(crate) enum Deserialize {
     /// Deserialize an account record
-    AccountMetadata(DeserializeOptions),
+    #[command(alias = "am")]
+    AccountMetadata,
     /// Deserialize an account set record
-    AccountSet(DeserializeOptions),
+    #[command(alias = "as")]
+    AccountSet,
     /// Deserialize a role record
-    Role(DeserializeOptions),
+    #[command(alias = "r")]
+    Role,
     /// Deserialize a role bindings record
-    RoleBinding(DeserializeOptions),
+    #[command(alias = "rb")]
+    RoleBinding,
 }
 
-impl DeserializeSubCommands {
-    pub(super) fn deserialize(&self) -> anyhow::Result<()> {
+impl Deserialize {
+    pub(super) fn run(self, data: String, format: Format) -> anyhow::Result<()> {
         match self {
-            DeserializeSubCommands::AccountMetadata(options) => {
-                options.print_data::<sdk::AccountMetadata, accounts::AccountMetadata>()?;
+            Deserialize::AccountMetadata => {
+                Self::print_data::<sdk::AccountMetadata, accounts::AccountMetadata>(data, format)?;
             }
-            DeserializeSubCommands::AccountSet(options) => {
-                options.print_data::<sdk::AccountSet, account_sets::AccountSet>()?;
+            Deserialize::AccountSet => {
+                Self::print_data::<sdk::AccountSet, account_sets::AccountSet>(data, format)?;
             }
-            DeserializeSubCommands::Role(options) => {
-                options.print_data::<sdk::Role, roles::Role>()?;
+            Deserialize::Role => {
+                Self::print_data::<sdk::Role, roles::Role>(data, format)?;
             }
-            DeserializeSubCommands::RoleBinding(options) => {
-                options.print_data::<sdk::RoleBinding, role_bindings::RoleBinding>()?;
+            Deserialize::RoleBinding => {
+                Self::print_data::<sdk::RoleBinding, role_bindings::RoleBinding>(data, format)?;
             }
         }
         Ok(())
     }
-}
 
-impl DeserializeOptions {
-    fn print_data<D, I>(&self) -> anyhow::Result<()>
+    fn print_data<D, I>(data: String, format: Format) -> anyhow::Result<()>
     where
         D: Message + Default,
         I: TryFrom<D, Error = anyhow::Error> + Serialize,
     {
-        let buf = utils::vec_from_int_array(&self.data)?;
+        let buf = utils::vec_from_int_array(&data)?;
         let item = D::decode(buf.as_slice())?;
         let printable = I::try_from(item)?;
-        printable.print(self.format)?;
+        printable.print(format)?;
         Ok(())
     }
 }

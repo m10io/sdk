@@ -1,4 +1,4 @@
-FROM node:14-buster
+FROM node:18.17-bookworm
 LABEL maintainer "M10 Networks, Inc."
 
 EXPOSE 3000

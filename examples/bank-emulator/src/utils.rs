@@ -8,9 +8,12 @@ use m10_sdk::{
     account::AccountId,
     contract::FinalizedContractExt,
     directory::{alias, Alias},
-    prost::Any,
-    sdk::{self, transaction_data::Data, CreateTransfer, TransferStep},
-    EnhancedTransfer, LedgerClient, MetadataExt, Signer,
+    sdk::{self, transaction_data::Data},
+    EnhancedTransfer, MetadataExt, Signer,
+};
+use m10_sdk::{
+    prost::Any, NameOrOwnerFilter, PageBuilder, StepBuilder, TransferBuilder, TransferFilter,
+    TxnFilter,
 };
 use tracing::{error, info};
 use uuid::Uuid;
@@ -18,18 +21,23 @@ use uuid::Uuid;
 const ALIAS_DEFAULT_OPERATOR: &str = "m10";
 
 pub(crate) async fn submit_transaction(
-    data: impl Into<Data>,
+    data: impl Into<Data> + Send,
     context_id: Vec<u8>,
     context: &Context,
 ) -> Result<sdk::TransactionResponse, Error> {
-    let payload = LedgerClient::transaction_request(data, context_id.clone());
-    let signed_request = context.signer.sign_request(payload).await?;
-    let client = context.ledger.clone();
+    let signed_request = context
+        .ledger
+        .signed_transaction(data.into(), context_id.clone())
+        .await?;
     retry(
         || {
-            let mut client = client.clone();
             let signed_request = signed_request.clone();
-            async move { client.create_transaction(signed_request).await }
+            async move {
+                context
+                    .ledger
+                    .create_transaction(signed_request.into())
+                    .await
+            }
         },
         3,
     )
@@ -46,22 +54,15 @@ pub(crate) async fn find_ledger_account(
     context: &Context,
 ) -> Result<Vec<u8>, Error> {
     let owner = owner
-        .map(|o| base64::decode(o).unwrap())
-        .unwrap_or_else(|| context.signer.public_key().to_vec());
-    let mut client = context.ledger.clone();
-    let request = context
-        .signer
-        .sign_request(sdk::ListAccountMetadataRequest {
-            filter: Some(sdk::list_account_metadata_request::Filter::Owner(owner)),
-            page: None,
-        })
-        .await?;
-    let docs = client
-        .list_account_metadata(request)
+        .map(|o| Ok::<_, Error>(base64::decode(o)?))
+        .unwrap_or_else(|| Ok::<_, Error>(context.ledger.signer()?.public_key().to_vec()))?;
+    let filter = PageBuilder::filter(NameOrOwnerFilter::Owner(m10_sdk::PublicKey(owner)));
+    let accounts = context
+        .ledger
+        .list_account_metadata(filter)
         .await
         .map_err(|err| Error::internal_msg(err.to_string()))?;
-    let account = docs
-        .accounts
+    let account = accounts
         .iter()
         .find(|a| a.public_name == account_name)
         .ok_or_else(|| {
@@ -78,7 +79,7 @@ pub(crate) async fn create_account_set(
     let account_set_id = Uuid::new_v4();
     let payload = sdk::Operation::insert(sdk::AccountSet {
         id: account_set_id.as_bytes().to_vec(),
-        owner: context.signer.public_key().to_vec(),
+        owner: context.ledger.signer()?.public_key().to_vec(),
         accounts: ledger_accounts
             .into_iter()
             .map(|account_id| sdk::AccountRef {
@@ -110,7 +111,7 @@ pub(crate) async fn create_ledger_account(
         .account_created;
     let account_doc = sdk::AccountMetadata {
         id: ledger_account_id.clone(),
-        owner: context.signer.public_key().to_vec(),
+        owner: context.ledger.signer()?.public_key().to_vec(),
         name,
         public_name,
         profile_image_url: profile_image_url.unwrap_or_default().to_string(),
@@ -167,26 +168,20 @@ pub(crate) async fn ledger_transfer(
     metadata: Vec<Any>,
     context: &Context,
 ) -> Result<u64, Error> {
-    // create transaction
-    let payload = LedgerClient::transaction_request(
-        m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
-            transfer_steps: vec![TransferStep {
-                from_account_id,
-                to_account_id,
-                amount,
-                metadata,
-            }],
-        }),
-        vec![],
+    let step = metadata.into_iter().fold(
+        StepBuilder::new(
+            from_account_id.as_slice().try_into()?,
+            to_account_id.as_slice().try_into()?,
+            amount,
+        ),
+        |b, m| b.any_metadata(m),
     );
-    let signed_request = context.signer.sign_request(payload).await?;
-    let mut ledger = context.ledger.clone();
-    let txn = ledger
-        .create_transaction(signed_request)
-        .await?
-        .tx_error()?;
-    info!("Deposit mirrored on ledger: {}", txn.tx_id);
-    Ok(txn.tx_id)
+
+    let transfer = TransferBuilder::new().step(step);
+
+    let tx_id = m10_sdk::transfer(&context.ledger, transfer).await?;
+    info!("ledger txn: {}", tx_id);
+    Ok(tx_id)
 }
 
 async fn payment_from_transfer(
@@ -207,17 +202,11 @@ async fn payment_from_transfer(
             // TODO: @sadroeck This requires access to all involved ledgers
             // But the current setup is always a single ledger, so just assume it's a single one
             let ledger_id = &transfer_info[0].ledger_id;
-            let req = sdk::ListTransferRequest {
-                filter: Some(sdk::list_transfer_request::Filter::ContextId(
-                    contract_id.clone(),
-                )),
-                ..Default::default()
-            };
-            let mut ledger = context.ledger.clone();
-            let req = context.signer.sign_request(req).await?;
-            let contract_transfers = ledger.list_transfers(req).await?;
-            let contract_transfers = ledger
-                .enhance_transfers(contract_transfers.transfers, &context.signer)
+            let filter = TxnFilter::<TransferFilter>::by_context_id(contract_id.clone());
+            let contract_transfers = context.ledger.list_raw_transfers(filter).await?;
+            let contract_transfers = context
+                .ledger
+                .enhance_transfers(contract_transfers.transfers)
                 .await?;
             for transfer in contract_transfers {
                 transfers.push(TransferChain::try_from_transfer(
@@ -254,28 +243,8 @@ pub(crate) async fn get_payment(
         .get(&instrument)
         .ok_or_else(|| Error::internal_msg("unknown instrument"))?;
 
-    let mut ledger = context.ledger.clone();
-    let request = context
-        .signer
-        .sign_request(sdk::GetTransferRequest { tx_id })
-        .await?;
-    let transfer = match ledger.get_transfer(request).await {
-        Ok(t) => t,
-        Err(status) if status.code() == tonic::Code::NotFound => {
-            return Err(Error::not_found("transfer"));
-        }
-        Err(status) => {
-            info!("get transfer error {:?}", status);
-            return Err(Error::internal_msg("getting transfers"));
-        }
-    };
-    let transfer = ledger
-        .enhance_transfer(transfer, &context.signer)
-        .await
-        .map_err(|err| {
-            info!(%err, "enhancing transfer");
-            Error::internal_msg("enhancing transfers")
-        })?;
+    let transfer = context.ledger.get_raw_transfer(tx_id).await?;
+    let transfer = context.ledger.enhance_transfer(transfer).await?;
 
     let payment = payment_from_transfer(transfer, &currency.code, context)
         .await
@@ -292,7 +261,6 @@ pub(crate) async fn list_payments(
     asset_type: AssetType,
     context: &Context,
 ) -> Result<Vec<Payment>, Error> {
-    let mut ledger = context.ledger.clone();
     let ledger_account_id = match ledger_account_id {
         Some(id) => id,
         None => match asset_type {
@@ -303,24 +271,18 @@ pub(crate) async fn list_payments(
             }
         },
     };
-    let req = context
-        .signer
-        .sign_request(sdk::ListTransferRequest {
-            filter: Some(sdk::list_transfer_request::Filter::AccountId(
-                ledger_account_id,
-            )),
-            min_tx_id,
-            limit,
-            include_child_accounts,
-            ..Default::default()
-        })
-        .await?;
-    let transfers = ledger
-        .list_transfers(req)
+    let filter = TxnFilter::<TransferFilter>::by_account(ledger_account_id.as_slice().try_into()?)
+        .min_tx(min_tx_id)
+        .limit(limit)
+        .include_child_accounts(include_child_accounts);
+    let transfers = context
+        .ledger
+        .list_raw_transfers(filter)
         .await
         .map_err(|_| Error::internal_msg("getting transfers"))?;
-    let mut transfers = ledger
-        .enhance_transfers(transfers.transfers, &context.signer)
+    let mut transfers = context
+        .ledger
+        .enhance_transfers(transfers.transfers)
         .await
         .map_err(|_| Error::internal_msg("enhancing transfers"))?;
 

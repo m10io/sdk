@@ -1,3 +1,4 @@
+#![allow(clippy::unnecessary_fallible_conversions)]
 use actix_multipart::Multipart;
 use actix_web::{
     delete, get, patch, post, put,

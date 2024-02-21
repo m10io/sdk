@@ -1,14 +1,12 @@
+#![allow(clippy::unnecessary_fallible_conversions)]
 use actix_web::{
     delete, get, post,
     web::{Data, Json, Path, Query},
     HttpResponse, Scope,
 };
 use m10_sdk::{
-    sdk::{
-        transaction, CreateTransfer, Deposit, GetTransferRequest, SelfTransfer, SetFreezeState,
-        TransferStep, Withdraw,
-    },
-    LedgerClient, Metadata, Signer,
+    sdk::{Deposit, SelfTransfer, SetFreezeState, Withdraw},
+    Metadata, StepBuilder, TransferBuilder, TransferStatus, TransferStep,
 };
 use serde_json::{json, Value};
 use sqlx::Acquire;
@@ -624,23 +622,18 @@ async fn convert_from(
     };
 
     // get transaction from ledger
-    let txn_request = context
-        .signer
-        .sign_request(GetTransferRequest {
-            tx_id: request.txn_id,
-        })
-        .await?;
-    let transfer = context.ledger.clone().get_transfer(txn_request).await?;
+    let transfer = context.ledger.get_transfer(request.txn_id).await?;
 
-    if transfer.state != transaction::finalized_transfer::TransferState::Accepted as i32 {
+    if transfer.status != TransferStatus::Accepted {
         return Err(Error::internal_msg("Transfer not accepted (state)"));
     }
 
     // find transfer step that has bank reserve account as target
+    let to_account_id = to_account_id.as_slice().try_into()?;
     let TransferStep { amount, .. } = transfer
-        .transfer_steps
+        .steps
         .into_iter()
-        .find(|s| s.to_account_id == to_account_id)
+        .find(|s| s.to == to_account_id)
         .ok_or_else(|| Error::internal_msg("Transfer not accepted (target account"))?;
 
     let mut bank = context.bank.clone();
@@ -712,24 +705,15 @@ async fn fund(
             .ok_or_else(Error::unauthorized)?;
 
         // create transaction
-        let deposit_metadata = Deposit::default().any();
-        let payload = LedgerClient::transaction_request(
-            m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
-                transfer_steps: vec![TransferStep {
-                    from_account_id: ledger_account_id.to_vec(),
-                    to_account_id: asset.ledger_account_id.to_vec(),
-                    amount: request.amount_in_cents,
-                    metadata: vec![deposit_metadata],
-                }],
-            }),
-            vec![],
+        let transfer = TransferBuilder::new().step(
+            StepBuilder::new(
+                ledger_account_id.as_slice().try_into()?,
+                asset.ledger_account_id.as_slice().try_into()?,
+                request.amount_in_cents,
+            )
+            .metadata(Deposit::default()),
         );
-        let signed_request = context.signer.sign_request(payload).await?;
-        let mut ledger = context.ledger.clone();
-        ledger
-            .create_transaction(signed_request)
-            .await?
-            .tx_error()?;
+        m10_sdk::transfer(&context.ledger, transfer).await?;
     }
     Ok(HttpResponse::Ok().finish())
 }
@@ -803,25 +787,16 @@ async fn settle_deposit(
             .ok_or_else(Error::unauthorized)?;
 
         // create transaction
-        let deposit_metadata = Deposit::default().any();
-        let payload = LedgerClient::transaction_request(
-            m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
-                transfer_steps: vec![TransferStep {
-                    from_account_id: ledger_account_id.to_vec(),
-                    to_account_id: asset.ledger_account_id.to_vec(),
-                    amount,
-                    metadata: vec![deposit_metadata],
-                }],
-            }),
-            vec![],
+        let transfer = TransferBuilder::new().step(
+            StepBuilder::new(
+                ledger_account_id.as_slice().try_into()?,
+                asset.ledger_account_id.as_slice().try_into()?,
+                amount,
+            )
+            .metadata(Deposit::default()),
         );
-        let signed_request = context.signer.sign_request(payload).await?;
-        let mut ledger = context.ledger.clone();
-        let txn = ledger
-            .create_transaction(signed_request)
-            .await?
-            .tx_error()?;
-        info!("Deposit mirrored on ledger: {}", txn.tx_id);
+        let tx_id = m10_sdk::transfer(&context.ledger, transfer).await?;
+        info!("Deposit mirrored on ledger: {}", tx_id);
     }
     Ok(HttpResponse::Ok().finish())
 }
@@ -886,25 +861,16 @@ async fn withdraw(
             .ok_or_else(Error::unauthorized)?;
 
         // create transaction
-        let withdraw_metadata = Withdraw::default().any();
-        let payload = LedgerClient::transaction_request(
-            m10_sdk::ledger::transaction_data::Data::Transfer(CreateTransfer {
-                transfer_steps: vec![TransferStep {
-                    from_account_id: asset.ledger_account_id.to_vec(),
-                    to_account_id: ledger_account_id.to_vec(),
-                    amount: request.amount_in_cents,
-                    metadata: vec![withdraw_metadata],
-                }],
-            }),
-            vec![],
+        let transfer = TransferBuilder::new().step(
+            StepBuilder::new(
+                asset.ledger_account_id.as_slice().try_into()?,
+                ledger_account_id.as_slice().try_into()?,
+                request.amount_in_cents,
+            )
+            .metadata(Withdraw::default()),
         );
-        let signed_request = context.signer.sign_request(payload).await?;
-        let mut ledger = context.ledger.clone();
-        let txn = ledger
-            .create_transaction(signed_request)
-            .await?
-            .tx_error()?;
-        Some(txn.tx_id)
+        let tx_id = m10_sdk::transfer(&context.ledger, transfer).await?;
+        Some(tx_id)
     } else {
         None
     };

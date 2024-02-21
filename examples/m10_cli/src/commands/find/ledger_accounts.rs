@@ -22,7 +22,7 @@ impl FindAccountArgs {
     pub(crate) async fn find(&self, context: &Context) -> anyhow::Result<()> {
         context
             .ledger_client()
-            .list_account_metadata(self.filter_from_options()?)
+            .list_accounts(self.filter_from_options()?)
             .await?
             .print(self.format)?;
         Ok(())

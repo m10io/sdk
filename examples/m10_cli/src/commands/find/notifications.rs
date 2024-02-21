@@ -1,23 +1,20 @@
-use clap::Parser;
-use m10_sdk::protos;
-use m10_sdk::DocumentUpdate;
+use clap::Args;
+use m10_sdk::{protos, DocumentUpdate};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct FindNotificationPreferencesOptions {
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct FindNotificationPreferencesArgs {
     /// Set platform filter
-    #[clap(short, long)]
+    #[arg(short, long)]
     platform: Option<String>,
     /// Set address filter
-    #[clap(short, long)]
+    #[arg(short, long)]
     address: Option<String>,
     /// Set notification setting filter
-    #[clap(short, long)]
+    #[arg(short, long)]
     no_notifications: bool,
     /// Set output format (one of 'json', 'yaml', 'raw')
-    #[clap(short, long, default_value = "raw")]
+    #[arg(short, long, default_value = "raw")]
     #[serde(default)]
     pub(super) format: super::Format,
 }

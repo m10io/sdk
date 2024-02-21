@@ -1,5 +1,6 @@
 use m10_bank_emulator::models::*;
-use m10_sdk::{sdk, LedgerClient, Signer};
+use m10_sdk::Signer;
+use m10_sdk::{StepBuilder, TransferBuilder};
 use serde_json::json;
 use serde_json::Value;
 
@@ -299,26 +300,15 @@ async fn accounts_wire_routes() {
         .await;
     println!("bank asset: {:?}", bank_asset);
 
-    let req = LedgerClient::transaction_request(
-        sdk::CreateTransfer {
-            transfer_steps: vec![sdk::TransferStep {
-                amount: 2200,
-                from_account_id: asset.ledger_account_id,
-                to_account_id: bank_asset.ledger_account_id,
-                metadata: vec![],
-            }],
-        },
-        vec![],
-    );
-    let mut ledger = crate::ledger_client();
+    let ledger = crate::ledger_client(key_pair);
 
-    let txn_id = ledger
-        .create_transaction(key_pair.sign_request(req).await.unwrap())
-        .await
-        .unwrap()
-        .tx_error()
-        .unwrap()
-        .tx_id;
+    let transfer = TransferBuilder::new().step(StepBuilder::new(
+        asset.ledger_account_id.as_slice().try_into().unwrap(),
+        bank_asset.ledger_account_id.as_slice().try_into().unwrap(),
+        2200,
+    ));
+
+    let txn_id = m10_sdk::transfer(&ledger, transfer).await.unwrap();
 
     let balance_before = balance_after;
     let transfer = client
@@ -464,14 +454,14 @@ async fn accounts_wire_routes() {
         .find(|a| a.asset_type == AssetType::IndirectCbdc)
         .expect("cbdc asset");
 
-    let request = key_pair
-        .sign_request(sdk::GetAccountRequest {
-            id: regulated_asset.ledger_account_id.to_vec(),
-        })
-        .await
-        .expect("request signed");
     let regulated_account_before = ledger
-        .get_indexed_account(request.clone())
+        .get_account(
+            regulated_asset
+                .ledger_account_id
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        )
         .await
         .expect("regulated ledger account");
 
@@ -515,17 +505,17 @@ async fn accounts_wire_routes() {
     tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
 
     let regulated_account_after = ledger
-        .get_indexed_account(request)
+        .get_account(
+            regulated_asset
+                .ledger_account_id
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        )
         .await
         .expect("regulated ledger account");
-    let request = key_pair
-        .sign_request(sdk::GetAccountRequest {
-            id: cbdc_asset.ledger_account_id.to_vec(),
-        })
-        .await
-        .expect("request signed");
     let cbdc_account = ledger
-        .get_indexed_account(request)
+        .get_account(cbdc_asset.ledger_account_id.as_slice().try_into().unwrap())
         .await
         .expect("cbdc ledger account");
 

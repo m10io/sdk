@@ -1,61 +1,58 @@
-use super::ledger_accounts::CreateLedgerAccountOptions;
-use clap::Parser;
+use clap::Args;
 use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(about)]
-pub(crate) struct CreateAccountMetadataOptions {
+use super::ledger_accounts::CreateLedgerAccountArgs;
+
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+pub(crate) struct CreateAccountMetadataArgs {
     /// Ignore error if item exists
-    #[clap(short = 'e', long)]
+    #[arg(short = 'e', long)]
     #[serde(default)]
     pub(super) if_not_exists: bool,
     /// Set an account id
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub(super) id: Option<Uuid>,
     /// Set owner of the account record
-    #[clap(short, long)]
+    #[arg(short, long)]
     owner: Option<PublicKey>,
     /// Set an account name
-    #[clap(short, long)]
+    #[arg(short, long)]
     name: Option<String>,
     /// Set a name to be shown in transfers as sender
-    #[clap(short, long)]
+    #[arg(long, alias = "pn")]
     public_name: Option<String>,
     /// Set profile image url
-    #[clap(long)]
+    #[arg(long, aliases = ["image", "pi"])]
     profile_image_url: Option<String>,
 }
 
-impl super::BuildFromOptions for CreateAccountMetadataOptions {
+impl super::BuildFromArgs for CreateAccountMetadataArgs {
     type Document = sdk::AccountMetadata;
-    fn build_from_options(
-        &self,
-        default_owner: PublicKey,
-    ) -> Result<Self::Document, anyhow::Error> {
+    fn build_from_options(self, default_owner: PublicKey) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self.owner.clone().unwrap_or(default_owner).0;
+        let owner = self.owner.unwrap_or(default_owner).0;
         Ok(sdk::AccountMetadata {
             id,
             owner,
-            name: self.name.clone().unwrap_or_default(),
-            public_name: self.public_name.clone().unwrap_or_default(),
-            profile_image_url: self.profile_image_url.clone().unwrap_or_default(),
+            name: self.name.unwrap_or_default(),
+            public_name: self.public_name.unwrap_or_default(),
+            profile_image_url: self.profile_image_url.unwrap_or_default(),
         })
     }
 }
 
-impl From<&CreateLedgerAccountOptions> for CreateAccountMetadataOptions {
-    fn from(other: &CreateLedgerAccountOptions) -> CreateAccountMetadataOptions {
-        let CreateLedgerAccountOptions {
+impl From<&CreateLedgerAccountArgs> for CreateAccountMetadataArgs {
+    fn from(other: &CreateLedgerAccountArgs) -> CreateAccountMetadataArgs {
+        let CreateLedgerAccountArgs {
             owner,
             name,
             public_name,
             profile_image_url,
             ..
         } = other;
-        CreateAccountMetadataOptions {
+        CreateAccountMetadataArgs {
             if_not_exists: false,
             id: None,
             owner: owner.clone(),

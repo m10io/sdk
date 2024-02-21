@@ -1,11 +1,11 @@
-use crate::account::AccountId;
+use crate::collections::ResourceId;
 use crate::error::M10Error;
 use crate::types::PublicKey;
 use m10_protos::sdk;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct AccountMetadata {
-    pub id: AccountId,
+    pub id: ResourceId,
     pub owner: PublicKey,
     pub profile_image_url: String,
     pub name: String,
@@ -31,7 +31,7 @@ impl TryFrom<sdk::AccountMetadata> for AccountMetadata {
 
     fn try_from(meta: sdk::AccountMetadata) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: AccountId::try_from_be_slice(&meta.id)?,
+            id: ResourceId::try_from(meta.id.as_ref())?,
             owner: PublicKey(meta.owner),
             profile_image_url: meta.profile_image_url,
             name: meta.name,

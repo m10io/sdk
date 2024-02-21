@@ -1,27 +1,26 @@
-use crate::context::Context;
-use clap::{ArgGroup, Parser};
+use clap::{ArgGroup, Args};
 use m10_sdk::{Format, NameOrOwnerFilter, PageBuilder, PrettyPrint, PublicKey};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-#[clap(group = ArgGroup::new("filter"), about)]
-pub(crate) struct FindAccountSetOptions {
+use crate::context::Context;
+
+#[derive(Clone, Args, Debug, Serialize, Deserialize)]
+#[clap(group = ArgGroup::new("filter"))]
+pub(crate) struct FindAccountSetArgs {
     /// Set name filter
-    #[clap(short, long, group = "filter")]
+    #[arg(short, long, group = "filter")]
     name: Option<String>,
     /// Set owner filter
-    #[clap(short, long, group = "filter")]
+    #[arg(short, long, group = "filter")]
     owner: Option<String>,
     /// Set output format (one of 'json', 'yaml', 'raw')
-    #[clap(short, long, default_value = "raw")]
+    #[arg(short, long, default_value = "raw")]
     #[serde(default)]
     format: Format,
 }
 
-impl FindAccountSetOptions {
-    pub(crate) async fn find(&self, config: &crate::Config) -> anyhow::Result<()> {
-        let context = Context::new(config)?;
+impl FindAccountSetArgs {
+    pub(crate) async fn find(&self, context: &Context) -> anyhow::Result<()> {
         let filter = if let Some(name) = &self.name {
             PageBuilder::<_, NameOrOwnerFilter>::name(name)
         } else if let Some(owner) = &self.owner {
@@ -30,7 +29,7 @@ impl FindAccountSetOptions {
             return Err(anyhow::anyhow!("missing filter"));
         };
         context
-            .m10_client
+            .ledger_client()
             .list_account_sets(filter)
             .await?
             .print(self.format)?;

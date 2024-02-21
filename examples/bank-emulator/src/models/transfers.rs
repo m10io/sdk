@@ -41,7 +41,10 @@ impl LedgerTransfer {
             currency_code: currency_code.into(),
             handler,
             handled: false,
-            timestamp: chrono::Utc.timestamp_millis(response.timestamp as i64),
+            timestamp: chrono::Utc
+                .timestamp_millis_opt(response.timestamp as i64)
+                .single()
+                .expect("expected valid timestamp"),
         }
     }
 
@@ -81,7 +84,7 @@ impl LedgerTransfer {
         let height = tx_id.height();
         sqlx::query_as(
             "SELECT * FROM ledger_transfers
-            WHERE handler = $1 AND tx_id >= $2 AND tx_id < $3 
+            WHERE handler = $1 AND tx_id >= $2 AND tx_id < $3
             ORDER BY tx_id DESC LIMIT 1",
         )
         .bind(handler)

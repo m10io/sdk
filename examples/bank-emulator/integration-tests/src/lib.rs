@@ -28,12 +28,15 @@ fn ledger_addr() -> String {
 }
 
 #[cfg(test)]
-fn ledger_client() -> m10_sdk::LedgerClient {
-    m10_sdk::LedgerClient::new(
-        tonic::transport::Channel::from_shared(ledger_addr())
-            .unwrap()
-            .connect_lazy()
-            .unwrap(),
+fn ledger_client(
+    key_pair: m10_sdk::Ed25519,
+) -> Box<dyn m10_sdk::M10CoreClient<Signer = m10_sdk::Ed25519> + Send + Sync> {
+    Box::new(
+        m10_sdk::GrpcClient::new(
+            tonic::transport::Channel::from_shared(ledger_addr()).unwrap(),
+            Some(std::sync::Arc::new(key_pair)),
+        )
+        .unwrap(),
     )
 }
 

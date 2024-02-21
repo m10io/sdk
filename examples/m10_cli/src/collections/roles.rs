@@ -1,28 +1,25 @@
+use std::{convert::TryFrom, str::FromStr};
+
 use bytes::Bytes;
 use clap::Parser;
 use m10_sdk::sdk::{self, Value};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use std::{convert::TryFrom, error::Error, fmt::Debug, str::FromStr};
 use uuid::Uuid;
 
 use super::PrettyId;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-pub(crate) struct RuleOptions {
-    #[clap(short, long, multiple_values = true)]
+pub(crate) struct RuleArgs {
+    #[clap(short, long)]
     instances: Option<Vec<Uuid>>,
     #[clap(short, long)]
     collection: String,
-    #[clap(short, long, multiple_values = true)]
+    #[clap(short, long)]
     verbs: Vec<Verb>,
 }
 
-impl RuleOptions {
-    pub(crate) fn parse(s: &str) -> Result<Self, clap::Error> {
-        Self::try_parse_from(s.split_whitespace())
-    }
-
+impl RuleArgs {
     pub(crate) fn to_rbac_rule(&self) -> sdk::Rule {
         let instance_keys = self.instances.as_ref().map_or(vec![], |i| {
             i.iter()
@@ -39,12 +36,12 @@ impl RuleOptions {
     }
 }
 
-impl FromStr for RuleOptions {
-    type Err = Box<dyn Error>;
+impl FromStr for RuleArgs {
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let args = s.split_ascii_whitespace();
-        let rule = RuleOptions::try_parse_from(args)?;
+        let rule = RuleArgs::try_parse_from(args)?;
         Ok(rule)
     }
 }

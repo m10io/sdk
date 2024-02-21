@@ -1,3 +1,4 @@
+use crate::account::AccountId;
 use crate::collections::ResourceId;
 use crate::error::{M10Error, M10Result};
 use crate::types::PublicKey;
@@ -42,7 +43,7 @@ impl std::fmt::Display for Bank {
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct BankAccount {
-    pub id: ResourceId,
+    pub id: AccountId,
     pub account_type: BankAccountType,
 }
 
@@ -76,7 +77,7 @@ impl TryFrom<BankAccountRef> for BankAccount {
 
     fn try_from(account: BankAccountRef) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: ResourceId::try_from(account.account_id.as_slice())?,
+            id: AccountId::try_from(account.account_id.as_slice())?,
             account_type: BankAccountType::from(
                 sdk::bank_account_ref::BankAccountType::from_i32(account.account_type)
                     .ok_or(M10Error::InvalidTransaction)?,

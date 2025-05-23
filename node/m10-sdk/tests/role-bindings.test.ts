@@ -1,11 +1,10 @@
 import { assert } from "chai";
 
-import type { m10 } from "../protobufs";
-import { LedgerClient } from "../src/ledger_client";
-import { CryptoSigner } from "../src/utils";
+import { M10Client, CryptoSigner } from "../src";
+import type { ListRoleBindingsRequest } from "../src/protobufs/sdk/api";
 
 const BANK_ADMIN = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
-const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
+const LEDGER_URL = process.env.LEDGER_URL || "https://app.dev.m10.net";
 
 
 describe("role-bindings", () => {
@@ -14,15 +13,17 @@ describe("role-bindings", () => {
 
         it("listRoleBindings", async () => {
 
-            const bankAdminSigner = CryptoSigner.getSignerFromPkcs8V1(BANK_ADMIN);
-            const ledgerClient = new LedgerClient(LEDGER_URL, true);
+            const bankAdminSigner = await CryptoSigner.fromPkcs8Pem(BANK_ADMIN);
+            const ledgerClient = new M10Client(LEDGER_URL, bankAdminSigner);
 
-            const request: m10.sdk.IListRoleBindingsRequest = {
-                name: "node-test-customer",
+            const request: ListRoleBindingsRequest = {
+                filter: {
+                    name: "node-test-customer",
+                    oneofKind: "name",
+                },
             };
 
-            const response: m10.sdk.IListRoleBindingsResponse = await ledgerClient
-                .listRoleBindings(bankAdminSigner, request);
+            const response = await ledgerClient.listRoleBindings(request);
 
             assert.isNotEmpty(response.roleBindings);
         });

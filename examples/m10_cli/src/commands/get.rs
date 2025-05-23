@@ -1,11 +1,13 @@
 use std::{any::Any, str::FromStr};
 
 use clap::{Args, Subcommand};
-use m10_sdk::{account::AccountId, directory::GetObjectUrlRequest, Format, PrettyPrint, Signer};
+use m10_sdk::{
+    account::AccountId, directory::GetObjectUrlRequest, Format, PrettyPrint, ResourceId, Signer,
+    TransferData, TransferView,
+};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-use crate::context::Context;
+use crate::{collections::roles::Role, context::Context};
 
 use super::convert::BinFormat;
 
@@ -26,15 +28,15 @@ where
 #[derive(Subcommand, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Get {
-    /// Get an account record by id
-    #[command(alias = "a")]
+    /// Get ledger account information by id
+    #[command(alias = "la")]
     Account(GetStoreItemArgs<AccountId>),
-    /// Get an account info record by id
-    #[command(alias = "ai")]
-    AccountInfo(GetStoreItemArgs<AccountId>),
+    /// Get an account metadata record by id
+    #[command(alias = "a")]
+    AccountMetadata(GetStoreItemArgs<ResourceId>),
     /// Get an account set record by id
     #[command(alias = "as")]
-    AccountSet(GetStoreItemArgs<Uuid>),
+    AccountSet(GetStoreItemArgs<ResourceId>),
     /// Get an action by tx id
     #[command(alias = "ac")]
     Action {
@@ -47,7 +49,7 @@ pub(crate) enum Get {
     },
     /// Get a bank record by id
     #[command(alias = "b")]
-    Bank(GetStoreItemArgs<Uuid>),
+    Bank(GetStoreItemArgs<ResourceId>),
     /// Get current block height
     #[command(alias = "bh")]
     BlockHeight,
@@ -70,11 +72,9 @@ pub(crate) enum Get {
         #[arg(short, long, default_value = "base64")]
         format: crate::commands::convert::BinFormat,
     },
-    /// Get ledger account information by id
-    #[command(alias = "la")]
-    LedgerAccount(GetStoreItemArgs<AccountId>),
     /// Get offline public key
-    #[command(alias = "ok")]
+    #[cfg_attr(feature = "customers", command(alias = "ok", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "ok"))]
     OfflineKey,
     /// Display a public key from a key pair
     /// stored in a file or in M10_SIGNING_KEY env variable
@@ -85,10 +85,10 @@ pub(crate) enum Get {
     },
     /// Get a role record by id
     #[command(alias = "r")]
-    Role(GetStoreItemArgs<Uuid>),
+    Role(GetStoreItemArgs<ResourceId>),
     /// Get a role binding record by id
     #[command(alias = "rb")]
-    RoleBinding(GetStoreItemArgs<Uuid>),
+    RoleBinding(GetStoreItemArgs<ResourceId>),
     /// Get a transfer by id
     #[command(alias = "t")]
     Transfer {
@@ -112,9 +112,9 @@ impl Get {
                 .get_account(args.id)
                 .await?
                 .print(args.format)?,
-            Get::AccountInfo(args) => context
+            Get::AccountMetadata(args) => context
                 .ledger_client()
-                .get_account_metadata(args.id)
+                .get_account_metadata(args.id.to_vec())
                 .await?
                 .print(args.format)?,
             Get::AccountSet(args) => m10_sdk::get_account_set(context.ledger_client(), args.id)
@@ -152,22 +152,18 @@ impl Get {
                 let key = context.raw_key()?;
                 format.print_bytes(&key, vec![BinFormat::Uuid])?;
             }
-            Get::LedgerAccount(args) => context
-                .ledger_client()
-                .get_account(args.id)
-                .await?
-                .print(args.format)?,
             Get::OfflineKey => {
                 let key = context.ledger_client().get_offline_key().await?;
                 println!("{}", base64::encode(key));
             }
             Get::PublicKey { format } => {
-                let key = context.signing_key()?;
-                format.print_bytes(key.public_key(), vec![BinFormat::Uuid])?;
+                let signer = context.signer();
+                format.print_bytes(signer.public_key(), vec![BinFormat::Uuid])?;
             }
-            Get::Role(args) => m10_sdk::get_role(context.ledger_client(), args.id)
-                .await?
-                .print(args.format)?,
+            Get::Role(args) => {
+                let role = m10_sdk::get_role(context.ledger_client(), args.id).await?;
+                TryInto::<Role>::try_into(role)?.print(args.format)?
+            }
             Get::RoleBinding(args) => m10_sdk::get_role_binding(context.ledger_client(), args.id)
                 .await?
                 .print(args.format)?,
@@ -176,19 +172,34 @@ impl Get {
                 enhanced,
                 format,
             } => {
-                if enhanced {
-                    context
-                        .ledger_client()
-                        .get_enhanced_transfer(id)
-                        .await?
-                        .print(format)?
+                let audit_log_result = context
+                    .block_explorer_client()?
+                    .get_audit_log(&id.to_string())
+                    .await;
+
+                let tx_sender = match audit_log_result {
+                    Ok(log) => Some(log.public_key),
+                    Err(e) => {
+                        eprintln!("Failed to get audit log: {e}");
+                        None
+                    }
+                };
+
+                let view = if enhanced {
+                    let transfer = context.ledger_client().get_enhanced_transfer(id).await?;
+                    TransferView {
+                        transfer: TransferData::Expanded(transfer.try_into()?),
+                        tx_sender,
+                    }
                 } else {
-                    context
-                        .ledger_client()
-                        .get_transfer(id)
-                        .await?
-                        .print(format)?
-                }
+                    let transfer = context.ledger_client().get_transfer(id).await?;
+                    TransferView {
+                        transfer: TransferData::Basic(transfer.try_into()?),
+                        tx_sender,
+                    }
+                };
+
+                view.print(format)?
             }
         };
         Ok(())

@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use m10_sdk::{EnhancedTransfer, MetadataExt};
 use serde::{Deserialize, Serialize};
 
@@ -32,14 +32,11 @@ impl TransferChain {
 
         Ok(TransferChain {
             id: transfer.tx_id,
-            timestamp: DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(
-                    (transfer.timestamp / 1_000_000) as i64,
-                    ((transfer.timestamp % 1_000_000) * 1000) as u32,
-                )
-                .expect("expected valid timestamp"),
-                Utc,
+            timestamp: DateTime::<Utc>::from_timestamp(
+                (transfer.timestamp / 1_000_000) as i64,
+                ((transfer.timestamp % 1_000_000) * 1000) as u32,
             )
+            .expect("expected valid timestamp")
             .to_string(),
             amount: transfer_step.amount,
             instrument: instrument.into(),

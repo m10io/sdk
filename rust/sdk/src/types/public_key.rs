@@ -2,8 +2,14 @@ use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PublicKey(pub Vec<u8>);
+
+impl PublicKey {
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.0.clone()
+    }
+}
 
 #[cfg(feature = "format")]
 impl std::fmt::Display for PublicKey {
@@ -45,5 +51,11 @@ impl FromStr for PublicKey {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let key = base64::decode(s)?;
         Ok(Self(key))
+    }
+}
+
+impl From<PublicKey> for Vec<u8> {
+    fn from(val: PublicKey) -> Self {
+        val.0
     }
 }

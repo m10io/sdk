@@ -3,15 +3,18 @@
 //! This library contains a set of wrappers and traits that allow users to easily sign and verify
 //! signatures
 use core::str::FromStr;
-use std::fmt;
-
 use m10_protos::{prost::Message, sdk};
+use std::fmt;
+use std::sync::Arc;
 
 pub use ed25519::Ed25519;
 pub use p256::P256;
+pub use vault::VaultTransit;
 
 mod ed25519;
 mod p256;
+mod vault;
+pub use crate::vault::extract_public_key;
 
 /// A signed request containing both the serialized and signed payload; and the original message
 #[derive(Default, Clone)]
@@ -42,6 +45,31 @@ pub enum SigningError {
     Io(#[from] std::io::Error),
     #[error("{0}")]
     KeyRejected(#[from] ring::error::KeyRejected),
+    #[error("key invalid: {0}")]
+    KeyInvalid(String),
+}
+
+/// Internal helper for mapping lower-level errors to SigningError::Internal.
+/// When the "verbose_errors" feature flag is enabled, the helper logs the
+/// underlying error details with the provided context.
+#[inline]
+#[allow(unused_variables)]
+fn internal_error<E: std::fmt::Debug>(err: E, context: &'static str) -> SigningError {
+    #[cfg(feature = "verbose_errors")]
+    {
+        log::error!("{}: {:?}", context, err);
+    }
+    SigningError::Internal
+}
+
+#[macro_export]
+macro_rules! debug_verbose {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "verbose_errors")]
+        {
+            log::debug!($($arg)*);
+        }
+    };
 }
 
 /// A trait repersenting a service or key that can sign a message
@@ -157,5 +185,28 @@ impl fmt::Debug for KeyPair {
             KeyPair::P256(key_pair) => write!(f, "P256({:?})", key_pair.public_key()),
             KeyPair::Ed25519(key_pair) => write!(f, "Ed25519({:?})", key_pair.public_key()),
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ArcKeyPair(pub Arc<KeyPair>);
+
+impl<'de> serde::Deserialize<'de> for ArcKeyPair {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let encoded = String::deserialize(deserializer)?;
+        let keypair = Ed25519::from_keypair(&encoded)
+            .map(KeyPair::Ed25519)
+            .map_err(serde::de::Error::custom)?;
+        Ok(Self(Arc::new(keypair)))
+    }
+}
+
+impl std::ops::Deref for ArcKeyPair {
+    type Target = Arc<KeyPair>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

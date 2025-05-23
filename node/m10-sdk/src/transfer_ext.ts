@@ -1,14 +1,42 @@
-import type { m10 } from "../protobufs";
+import type { AccountInfo } from "./protobufs/sdk/model/model";
+import type { FinalizedTransfer } from "./protobufs/sdk/transaction/transaction";
 
-
+/**
+ * Represents a transfer that includes additional enhanced details.
+ */
 export interface EnhancedTransfer {
-    transfer: m10.sdk.transaction.FinalizedTransfer;
+    /**
+     * The finalized transfer data.
+     */
+    transfer: FinalizedTransfer;
+
+    /**
+     * A list of steps involved in the transfer, with enhanced details.
+     */
     enhanced_steps: EnhancedTransferStep[];
 }
 
-export interface EnhancedTransferStep {
-    from: Option<m10.sdk.model.IAccountInfo>;
-    from_bank: Option<m10.sdk.model.IAccountInfo>;
-    to: Option<m10.sdk.model.IAccountInfo>;
-    to_bank: Option<m10.sdk.model.IAccountInfo>;
-}
+/**
+ * Represents a step in an enhanced transfer with detailed account information.
+ */
+export type EnhancedTransferStep = Partial<{
+    /**
+     * The account information for the sender, if available.
+     */
+    from: AccountInfo;
+
+    /**
+     * The bank account information for the sender, if available.
+     */
+    from_bank: AccountInfo;
+
+    /**
+     * The account information for the recipient, if available.
+     */
+    to: AccountInfo;
+
+    /**
+     * The bank account information for the recipient, if available.
+     */
+    to_bank: AccountInfo;
+}>;

@@ -13,9 +13,9 @@ pub(crate) struct FindActionArgs {
     #[arg(short, long, default_value_t)]
     min_tx_id: u64,
     /// Set maximum tx id
-    #[arg(short = 'x', long, default_value = "u64::MAX")]
+    #[arg(short = 'x', long, default_value_t = u64::MAX)]
     max_tx_id: u64,
-    /// Set account filter
+    /// Set ledger account filter
     #[arg(short, long)]
     account: Option<AccountId>,
     /// Set limit

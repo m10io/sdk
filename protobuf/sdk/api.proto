@@ -8,247 +8,359 @@ import "sdk/document.proto";
 
 package m10.sdk;
 
+/// Service for creating transactions.
 service M10TxService {
+  /// Create a single transaction.
   rpc CreateTransaction(RequestEnvelope)
       returns (m10.sdk.transaction.TransactionResponse) {}
+  /// Create multiple transactions.
   rpc BulkCreateTransactions(BulkTransactions)
       returns (BulkTransactionsResponse);
 }
 
+/// A batch of transactions to be created.
 message BulkTransactions {
-  repeated RequestEnvelope transactions = 1;
+/// List of transaction requests.
+  repeated RequestEnvelope transactions = 1; 
 }
 
+/// Responses for a bulk transaction creation request.
 message BulkTransactionsResponse {
-  repeated m10.sdk.transaction.TransactionResponse responses = 1;
+/// List of transaction responses.
+  repeated m10.sdk.transaction.TransactionResponse responses = 1; 
 }
 
+/// Service for querying the ledger.
 service M10QueryService {
   // Transfers
+  /// Retrieves a specific transfer by ID.
   rpc GetTransfer(RequestEnvelope)
       returns (m10.sdk.transaction.FinalizedTransfer) {}
+  /// Retrieves a list of transfers.
   rpc ListTransfers(RequestEnvelope)
       returns (m10.sdk.transaction.FinalizedTransfers) {}
-  // Request to observe all transfers processed by the M10 ledger
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveAccountsRequest`](../struct.ObserveAccountsRequest.html)
+  /// Observes transfers.
+  /// Param: RequestEnvelope should contain ObserveAccountsRequest
   rpc ObserveTransfers(RequestEnvelope) returns (stream FinalizedTransactions);
 
   // Accounts
+  /// Retrieves an indexed account by ID.
   rpc GetIndexedAccount(RequestEnvelope)
       returns (m10.sdk.transaction.IndexedAccount) {}
+  /// Retrieve account metadata.
   rpc GetAccountMetadata(RequestEnvelope) returns (m10.sdk.model.AccountMetadata);
+  /// Retrieve account information.
   rpc GetAccountInfo(RequestEnvelope) returns (m10.sdk.model.AccountInfo);
+  /// Lists AccountMetadata.
   rpc ListAccountMetadata(RequestEnvelope) returns (m10.sdk.ListAccountMetadataResponse);
-  // Request to observe all account changes processed by the M10 ledger
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveAccountsRequest`](../struct.ObserveAccountsRequest.html)
+  /// Observes account changes.
+  /// Param: RequestEnvelope should contain ObserveAccountsRequest
   rpc ObserveAccounts(RequestEnvelope) returns (stream FinalizedTransactions);
 
-  // Actions
+
+  /// Actions
+  /// Retrieves a specific action by ID.
   rpc GetAction(RequestEnvelope) returns (m10.sdk.transaction.Action) {}
+  /// Retrieves a list of actions.
   rpc ListActions(RequestEnvelope) returns (m10.sdk.transaction.Actions) {}
-  // Request to observe all actions processed by the M10 ledger
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveActionsRequest`](../struct.ObserveActionsRequest.html)
+  /// Observe actions.
+  /// Param: RequestEnvelope should contain ObserveActionsRequest
   rpc ObserveActions(RequestEnvelope) returns (stream FinalizedTransactions) {}
 
-  // ChainInfo
+  /// Retrieves chain information.
   rpc GetChainInfo(google.protobuf.Empty) returns (ChainInfo) {}
 
-  // Transactions
-  // Request a specific transaction by ID
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`GetTransactionRequest`](../struct.GetTransactionRequest.html)
+  /// Transactions
+  /// Request a specific transaction by ID
+  /// Param: RequestEnvelope should contain GetTransactionRequest
   rpc GetTransaction(RequestEnvelope) returns (FinalizedTransaction) {}
-  // Request to list all transactions by context ID
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ListTransactionsRequest`](../struct.ListTransactionsRequest.html)
+  /// List transactions.
+  // Param: RequestEnvelope should contain ListTransactionsRequest
   rpc ListTransactions(RequestEnvelope) returns (FinalizedTransactions) {}
-  // Request to group all transactions related to a specific account by context
-  // ID Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`GroupTransactionsRequest`](../struct.GroupTransactionsRequest.html)
+  /// Group transactions.
+  /// ID Param: RequestEnvelope should contain GroupTransactionsRequest
   rpc GroupTransactions(RequestEnvelope)
       returns (GroupedFinalizedTransactions) {}
 
-  // AccountSet
+  /// AccountSet
+  /// Retrieve an AccountSet.
   rpc GetAccountSet(RequestEnvelope) returns (m10.sdk.model.AccountSet);
+  /// List AccountSets.
   rpc ListAccountSets(RequestEnvelope)
       returns (m10.sdk.ListAccountSetsResponse);
 
-  // RoleBinding
+  /// RoleBinding
+  /// Retrieve role binding.
   rpc GetRoleBinding(RequestEnvelope) returns (m10.sdk.RoleBinding);
+  /// List role bindings.
   rpc ListRoleBindings(RequestEnvelope)
       returns (m10.sdk.ListRoleBindingsResponse);
 
   // RoleBinding
-  rpc GetRole(RequestEnvelope) returns (m10.sdk.Role);
+   /// Retrieve a role.
+   rpc GetRole(RequestEnvelope) returns (m10.sdk.Role);
+  /// List roles.
   rpc ListRoles(RequestEnvelope) returns (m10.sdk.ListRolesResponse);
 
   // Resources
-  // Request to observe all resources processed by the M10 ledger
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveResourcesRequest`](../struct.ObserveResourcesRequest.html)
+  // Request to observe all resources processed by the ledger
+  /// Observes resources.
+  /// Param: RequestEnvelope should contain ObserveResourcesRequest
   rpc ObserveResources(RequestEnvelope) returns (stream FinalizedTransactions);
 
   // Metrics
-  // Request to observe metrics data processed by the M10 ledger
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ObserveAccountsRequest`](../struct.ObserveAccountsRequest.html)
+  // Request to observe metrics data processed by the ledger
+  /// Observes metrics.
+  /// Param: RequestEnvelope should contain ObserveAccountsRequest
   rpc ObserveMetrics(RequestEnvelope) returns (stream TransactionMetrics);
 
   // Banks
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`ListBanksRequest`](../struct.ListBanksRequest.html)
+  /// Lists banks.
+  /// Param: RequestEnvelope should contain ListBanksRequest
   rpc  ListBanks(RequestEnvelope) returns (m10.sdk.ListBanksResponse);
-  // Param: [`RequestEnvelope`](../struct.RequestEnvelope.html) should contain [`Bank`](../model/struct.Bank.html)
+  /// Retrieves a bank.
+  /// Param: RequestEnvelope should contain Bank
   rpc  GetBank(RequestEnvelope) returns (m10.sdk.model.Bank);
 
   // Offline
+  /// Retrieves an offline key.
   rpc GetOfflineKey(google.protobuf.Empty) returns (OfflineKey);
 }
 
+// Wraps a payload with a signature for authentication and authorization.
 message RequestEnvelope {
-  bytes payload = 2;
+  /// Payload data.
+  bytes payload = 2; 
+  /// Signature for the payload.
   m10.sdk.transaction.Signature signature = 3;
 }
 
+// A page of results for paginated queries.
 message Page {
-  uint32 limit = 1;
-  bytes last_id = 2;
+  /// Limit of results per page.
+  uint32 limit = 1; 
+  /// Last ID from previous page.
+  bytes last_id = 2; 
 }
 
-message GetAccountSetRequest { bytes id = 1; }
+// Retrieve a specific AccountSet.
+message GetAccountSetRequest { 
+  /// ID of the AccountSet.
+  bytes id = 1;  
+}
 
+// ListAccountSetsRequest is the request message for listing account sets.
 message ListAccountSetsRequest {
   oneof filter {
-    bytes owner = 1;
-    string name = 2;
+    /// Filter by owner.
+    bytes owner = 1;  
+    /// Filter by name.
+    string name = 2; 
   }
-  Page page = 4;
+  /// Pagination options.
+  Page page = 4;  
 }
 
+
+// The response message for listing account sets.
 message ListAccountSetsResponse {
-  repeated m10.sdk.model.AccountSet account_sets = 1;
-  ListAccountSetsRequest next_request = 2;
+  /// List of account sets.
+  repeated m10.sdk.model.AccountSet account_sets = 1;  
+  /// Request for next page of results.
+  ListAccountSetsRequest next_request = 2; 
 }
 
+// The request message for listing account metadata.
 message ListAccountMetadataRequest {
   oneof filter {
-    bytes owner = 1;
-    string name = 2;
+    /// Filter by owner.
+    bytes owner = 1; 
+    /// Filter by name.
+    string name = 2; 
   }
-  Page page = 4;
+  /// Pagination options.
+  Page page = 4; 
 }
 
+// The response message for listing account metadata.
 message ListAccountMetadataResponse {
-  repeated m10.sdk.model.AccountMetadata accounts = 1;
-  ListAccountMetadataRequest next_request = 2;
+  /// List of account metadata.
+  repeated m10.sdk.model.AccountMetadata accounts = 1; 
+  /// Request for the next page.
+  ListAccountMetadataRequest next_request = 2; 
 }
 
-message GetRoleBindingRequest { bytes id = 1; }
+// The request message for retrieving a specific role binding.
+message GetRoleBindingRequest { 
+  /// ID of the role binding.
+  bytes id = 1; 
+}
 
+// The request message for listing role bindings.
 message ListRoleBindingsRequest {
-  oneof filter { string name = 1; }
-  Page page = 4;
+  oneof filter { 
+    /// Filter by name.
+    string name = 1; 
+  }
+  /// Pagination options.
+  Page page = 4;  
 }
 
+// The response message for listing role bindings.
 message ListRoleBindingsResponse {
-  repeated m10.sdk.RoleBinding role_bindings = 1;
-  ListRoleBindingsRequest next_request = 2;
+  /// List of role bindings.
+  repeated m10.sdk.RoleBinding role_bindings = 1;  
+  /// Request for next page of results.
+  ListRoleBindingsRequest next_request = 2; 
 }
 
-message GetRoleRequest { bytes id = 1; }
+// The request message for retrieving a specific role.
+message GetRoleRequest { 
+  /// ID of the role.
+  bytes id = 1; 
+}
 
+// The request message for listing roles.
 message ListRolesRequest {
-  oneof filter { string name = 1; }
-  Page page = 4;
+  oneof filter { 
+    /// Filter by name.
+    string name = 1; 
+  }
+  /// Pagination options.
+  Page page = 4; 
 }
 
+// The response message for listing roles.
 message ListRolesResponse {
-  repeated m10.sdk.Role roles = 1;
-  ListRolesRequest next_request = 2;
+  /// List of roles.
+  repeated m10.sdk.Role roles = 1; 
+  /// Request for next page of results.
+  ListRolesRequest next_request = 2; 
 }
 
-message GetTransactionRequest { uint64 tx_id = 1; }
+// The request message for retrieving a specific transaction.
+message GetTransactionRequest { 
+  /// ID of the transaction.
+  uint64 tx_id = 1; 
+}
 
+// The request message for listing transactions.
 message ListTransactionsRequest {
-  // Filters transactions by context ID
-  bytes context_id = 1;
-  uint64 limit = 3;
-  uint64 min_tx_id = 4;
-  // default = maximum possible tx id
-  uint64 max_tx_id = 5;
+  /// Context ID to filter by.
+  bytes context_id = 1; 
+  /// Maximum number of transactions to return.
+  uint64 limit = 3; 
+  /// Minimum transaction ID.
+  uint64 min_tx_id = 4; 
+  /// Maximum transaction ID.
+  uint64 max_tx_id = 5; 
 }
 
+// The request message for grouping transactions by context ID.
 message GroupTransactionsRequest {
-  // Filter by account ID
-  bytes account_id = 1;
-  uint64 limit_groups = 2;
-  uint64 min_tx_id = 3;
-  // default = maximum possible tx id
-  uint64 max_tx_id = 4;
+  /// Account ID to filter by.
+  bytes account_id = 1; 
+  /// Maximum number of groups to return.
+  uint64 limit_groups = 2; 
+  /// Minimum transaction ID.
+  uint64 min_tx_id = 3; 
+  /// Maximum transaction ID.
+  uint64 max_tx_id = 4; 
 }
 
+// The request message for observing account changes.
 message ObserveAccountsRequest {
-  // Start observing from this transaction ID
-  // If empty, only live transfers will be observed
-  TxId starting_from = 1;
-  // Yields transfers which involve these account IDs
-  repeated bytes involved_accounts = 2;
+  /// Starting transaction ID for observation.
+  TxId starting_from = 1; 
+  /// Account IDs to observe.
+  repeated bytes involved_accounts = 2; 
 }
 
+// ObserveResourcesRequest is the request message for observing resource changes.
 message ObserveResourcesRequest {
-  // Request resources matching the provided filter
-  m10.sdk.Exp expression = 1;
-  // The resource collection to observe
-  string collection = 2;
-  // Request transfers starting from the following transaction ID
-  // Note: If empty, only stream live resource changes
-  TxId starting_from = 3;
+  /// Expression to filter resources.
+  m10.sdk.Exp expression = 1;  
+  /// Collection to observe.
+  string collection = 2;  
+  /// Starting transaction ID for observation.
+  TxId starting_from = 3;  
 }
 
-message TxId { uint64 tx_id = 1; }
+// TxId represents a transaction ID.
+message TxId { 
+  /// ID of the transaction.
+  uint64 tx_id = 1; 
+}
 
+// Request message to observe actions.
 message ObserveActionsRequest {
-  // Request actions starting from the following transaction ID
-  // Note: If empty, only stream live transfers
-  TxId starting_from = 1;
-  // Name of the action to observe
-  string name = 2;
-  // Request actions invoked involving these account IDs
-  repeated bytes involves_accounts = 3;
+  /// Starting transaction ID for observation.
+  TxId starting_from = 1;  
+  /// Name of the action to observe.
+  string name = 2; 
+  /// Account IDs involved in the action.
+  repeated bytes involves_accounts = 3; 
 }
 
+// A finalized transaction.
 message FinalizedTransaction {
-  m10.sdk.transaction.TransactionRequestPayload request = 1;
-  m10.sdk.transaction.TransactionResponse response = 2;
+  /// Transaction request.
+  m10.sdk.transaction.TransactionRequestPayload request = 1; 
+  /// Transaction response.
+  m10.sdk.transaction.TransactionResponse response = 2;  
 }
 
+// A list of finalized transactions.
 message FinalizedTransactions {
-  repeated FinalizedTransaction transactions = 1;
+  /// List of finalized transactions.
+  repeated FinalizedTransaction transactions = 1;  
 }
 
+// A list of grouped finalized transactions.
 message GroupedFinalizedTransactions {
-  repeated FinalizedTransactions groups = 1;
+  /// List of grouped transactions.
+  repeated FinalizedTransactions groups = 1; 
 }
 
-message ChainInfo { uint64 block_height = 1; }
+// Information about the blockchain.
+message ChainInfo { 
+  /// Current block height.
+  uint64 block_height = 1; 
+}
 
+/// Transaction metrics.
 message TransactionMetrics {
-  // Total amount of assets transfered
-  uint64 transfer_volume = 1;
-  // Number of executed transfers
-  uint64 transfer_count = 2;
-  // Number of failed transfers;
-  uint64 transfer_errors = 3;
-  // Number of accounts created
-  uint64 accounts_created = 4;
+  /// Total transfer volume.
+  uint64 transfer_volume = 1; 
+  /// Number of transfers.
+  uint64 transfer_count = 2; 
+  /// Number of transfer errors.
+  uint64 transfer_errors = 3;  
+  /// Number of accounts created.
+  uint64 accounts_created = 4;  
 }
 
+/// Request list of banks.
 message ListBanksRequest {
-  Page page = 1;
+  /// Pagination options.
+  Page page = 1; 
 }
 
+/// Receive list of banks.
 message ListBanksResponse {
-  repeated m10.sdk.model.Bank banks = 1;
+  /// List of banks.
+  repeated m10.sdk.model.Bank banks = 1; 
 }
 
+// Retrieve a specific bank.
 message GetBankRequest {
-  bytes id = 1;
+  /// ID of the bank to retrieve.
+  bytes id = 1; 
 }
 
+/// Offline key.
 message OfflineKey {
-  bytes offline_pk = 1;
+  // The offline public key.
+  bytes offline_pk = 1; 
 }
+

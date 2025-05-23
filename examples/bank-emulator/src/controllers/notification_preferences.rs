@@ -43,7 +43,7 @@ async fn update(
     let query = NotificationPreferences::find_by_id_scoped(*id, scope)?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
-    let mut preferences = query.fetch_one(&mut txn).await?;
+    let mut preferences = query.fetch_one(&mut *txn).await?;
 
     if let Some(toggles) = &request.notification_toggles {
         preferences.notification_toggles = toggles.clone();
@@ -53,7 +53,7 @@ async fn update(
     }
     if request.device_token.is_some() || request.notification_toggles.is_some() {
         preferences.updated_at = Some(Utc::now());
-        preferences.update(&mut txn).await?;
+        preferences.update(&mut *txn).await?;
     }
 
     txn.commit().await?;

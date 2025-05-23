@@ -1,5 +1,5 @@
 use m10_bank_emulator::models::*;
-use m10_sdk::Signer;
+use m10_sdk::{Signature, Signer};
 use m10_sdk::{StepBuilder, TransferBuilder};
 use serde_json::json;
 use serde_json::Value;
@@ -14,6 +14,9 @@ async fn accounts_wire_routes() {
     delete_contact(&client, &jwt).await;
     delete_account(&client, &jwt).await;
 
+    let key_pair = key_pair();
+    let signature = key_pair.sign_payload(key_pair.public_key()).await.unwrap();
+
     let req = CreateAccountRequest {
         tenant: "m10-test".into(),
         contact: serde_json::to_value(json!({
@@ -23,6 +26,7 @@ async fn accounts_wire_routes() {
         .unwrap(),
         contact_type: Some(ContactType::Individual),
         assets: Some(vec!["usd".into()]),
+        signatures: vec![Signature::from(signature)],
     };
 
     // create account
@@ -217,7 +221,6 @@ async fn accounts_wire_routes() {
             amount_in_cents: 5500,
             currency: Some("usd".into()),
             asset_type: Some(AssetType::IndirectCbdc),
-            ..Default::default()
         })
         .send()
         .await
@@ -268,19 +271,6 @@ async fn accounts_wire_routes() {
 
     // Redeem with transaction
     println!("Redeem with transaction");
-    let key_pair = key_pair();
-
-    let public_key = key_pair.public_key().as_ref();
-    client
-        .put(format!("{}/api/v1/keys", base_url()))
-        .bearer_auth(&jwt)
-        .body(base64::encode(public_key))
-        .send()
-        .await
-        .unwrap()
-        .assert_success()
-        .await;
-
     let asset = client
         .get(format!("{}/api/v1/assets/usd", base_url()))
         .bearer_auth(&jwt)
@@ -396,7 +386,6 @@ async fn accounts_wire_routes() {
             txn_id,
             amount_in_cents: 1100,
             asset_type: Some(AssetType::IndirectCbdc),
-            ..Default::default()
         })
         .send()
         .await
@@ -476,7 +465,6 @@ async fn accounts_wire_routes() {
             amount_in_cents: 1100_00,
             currency: Some("usd".into()),
             asset_type: Some(AssetType::IndirectCbdc),
-            ..Default::default()
         })
         .send()
         .await

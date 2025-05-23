@@ -21,16 +21,16 @@ pub(crate) struct ObserveArgs {
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Observe {
-    /// Observe account updates involves the provided account ids
+    /// Observe account updates for the provided account IDs
     #[command(alias = "a")]
     Accounts(ObserveArgs),
-    /// Observe an action involving the provided account ids
+    /// Observe actions for the provided account IDs
     #[command(alias = "ac")]
     Actions {
         /// Name of the action
         #[arg(short, long)]
         name: String,
-        /// Account IDs
+        /// Account IDs (a '-i <ID>' for each account ID to observe)
         #[arg(short, long)]
         ids: Vec<AccountId>,
         /// Transaction ID to start observing from
@@ -40,10 +40,14 @@ pub(crate) enum Observe {
         #[arg(short = 'f', long, default_value_t)]
         format: Format,
     },
-    /// Observe transaction metrics involving the provided account ids
-    #[command(alias = "m")]
+    /// Observe transaction metrics involving the provided issuance account IDs
+    #[command(
+        alias = "m",
+        after_long_help = "Metrics include transfer volume, number of transfers, transfer errors and accounts \
+    created since the last report. Refreshed approximately every 25 seconds."
+    )]
     Metrics(ObserveArgs),
-    /// Observe transfers involving the provided account ids
+    /// Observe transfers involving the provided account IDs
     #[command(alias = "t")]
     Transfers(ObserveArgs),
 }

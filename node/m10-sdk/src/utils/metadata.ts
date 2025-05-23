@@ -1,12 +1,12 @@
-import { google, m10 } from "../../protobufs";
-
+import * as googleProtobufAny from "../protobufs/google/protobuf/any";
+import * as sdkMetadata from "../protobufs/sdk/metadata";
 
 /**
  * @param memo - this is limited to 512 KiB serialized
  */
-export function convertMemoToAny(memo: m10.sdk.metadata.IMemo): google.protobuf.Any {
-    return new google.protobuf.Any({
-        type_url: "m10.sdk.metadata.Memo",
-        value: m10.sdk.metadata.Memo.encode(memo).finish(),
+export function convertMemoToAny(memo: sdkMetadata.Memo): googleProtobufAny.Any {
+    return googleProtobufAny.Any.create({
+        typeUrl: "m10.sdk.metadata.Memo",
+        value: sdkMetadata.Memo.toBinary(memo),
     });
 }

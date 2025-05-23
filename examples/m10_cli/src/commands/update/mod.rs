@@ -16,18 +16,18 @@ mod transfer;
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Update {
-    /// Update account record
+    /// Update account on the ledger
+    #[command(alias = "la")]
+    Account(ledger_accounts::UpdateLedgerAccountArgs),
+    /// Update account metadata record
     #[command(alias = "a")]
-    Account(accounts::UpdateAccountArgs),
-    /// Update account set record
+    AccountMetadata(accounts::UpdateAccountArgs),
+    /// Update AccountSet record
     #[command(alias = "as")]
     AccountSet(account_sets::UpdateAccountSetArgs),
     /// Update bank record
     #[command(alias = "b")]
     Bank(banks::UpdateBankArgs),
-    /// Update ledger account
-    #[command(alias = "la")]
-    LedgerAccount(ledger_accounts::UpdateLedgerAccountArgs),
     /// Update role record
     #[command(alias = "r")]
     Role(roles::UpdateRoleArgs),
@@ -42,10 +42,10 @@ pub(crate) enum Update {
 impl Update {
     pub(super) async fn run(self, context: &Context) -> anyhow::Result<()> {
         match self {
-            Update::Account(args) => store_update(args.id, args, context).await,
+            Update::Account(args) => args.update(context).await,
+            Update::AccountMetadata(args) => store_update(args.id, args, context).await,
             Update::AccountSet(args) => store_update(args.id, args, context).await,
             Update::Bank(args) => store_update(args.id, args, context).await,
-            Update::LedgerAccount(args) => args.update(context).await,
             Update::Role(args) => store_update(args.id, args, context).await,
             Update::RoleBinding(args) => store_update(args.id, args, context).await,
             Update::Transfer(args) => args.do_update(context).await,
@@ -54,7 +54,7 @@ impl Update {
 
     pub(super) async fn document_operation(self) -> Result<sdk::Operation, anyhow::Error> {
         match self {
-            Update::Account(args) => update_operation(args.id, args),
+            Update::AccountMetadata(args) => update_operation(args.id, args),
             Update::AccountSet(args) => update_operation(args.id, args),
             Update::Bank(args) => update_operation(args.id, args),
             Update::Role(args) => update_operation(args.id, args),

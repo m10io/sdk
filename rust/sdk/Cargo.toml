@@ -1,7 +1,10 @@
 [package]
 name = "m10-sdk"
-version = "0.34.0"
-authors = ["Michael Wittner <michael.wittner@m10.io>", "Sam De Roeck <sam.deroeck@m10.io>"]
+version = "0.35.0"
+authors = [
+    "Michael Wittner <michael.wittner@m10.io>",
+    "Sam De Roeck <sam.deroeck@m10.io>",
+]
 edition = "2021"
 description = "M10 SDK API"
 license = "MIT"
@@ -11,50 +14,88 @@ readme = "README.md"
 
 
 [features]
-default = ["format", "client", "collections", "service", "image", "contract", "account"]
-collections = []
-service = ["async-trait", "tonic", "m10-signing", "futures-core", "futures-util", "m10-protos/client"]
+default = [
+    "format",
+    "client",
+    "collections",
+    "service",
+    "image",
+    "contract",
+    "account",
+    "block_explorer",
+]
+collections = ["thiserror", "tokio-tungstenite", "reqwest"]
+service = [
+    "async-trait",
+    "tonic",
+    "m10-signing",
+    "futures-core",
+    "futures-util",
+    "m10-protos/client",
+]
 image = ["reqwest"]
 account = []
 contract = ["ring", "thiserror"]
-client = ["service", "tokio-stream", "tokio", "tokio-tungstenite"]
-format = ["parse-display", "base64", "hex/default", "serde_json", "serde_yaml", "ron"]
+client = ["service", "tokio-stream", "tokio", "tokio-tungstenite", "reqwest"]
+format = [
+    "parse-display",
+    "base64",
+    "hex/default",
+    "serde_json",
+    "serde_yaml",
+    "ron",
+    "csv",
+    "collections",
+]
+block_explorer = []
+verbose_errors = ["log", "m10-signing/verbose_errors"]
 
 [dependencies]
 bytes = "1"
-fastrand = "1"
+fastrand = "2"
 hex = { version = "0.4", default-features = false }
-m10-protos = { version = "0.34", path = "../protos" }
+m10-protos = { version = "0.35", path = "../protos", features = ["dynamic2"] }
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
 serde = { version = "1", features = ["derive"] }
+serde_urlencoded = "0.7"
 serde_with = { version = "1", features = ["hex"] }
+toml = { version = "0.8" }
 
 # ws client
 tokio-stream = { version = "0.1.14", optional = true }
-tokio = { version = "1", optional = true }
-tokio-tungstenite = { version = "0.21.0", optional = true, features = ["native-tls"] }
+tokio = { version = "1.44.2", optional = true }
+tokio-tungstenite = { version = "0.21.0", optional = true, features = [
+    "native-tls",
+] }
 
 # image
-reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"], optional = true }
+reqwest = { version = "0.11", default-features = false, features = [
+    "rustls-tls",
+    "json",
+], optional = true }
 
 # contract
 thiserror = { version = "1", optional = true }
-ring = { version = "0.16", features = ["std"], optional = true }
+ring = { version = "0.17.13", features = ["std"], optional = true }
 
 # service
 async-trait = { version = "0.1", optional = true }
 futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-m10-signing = { version = "0.34.0", path = "../signing", optional = true }
-tonic = { version = "0.5", features = ["tls", "tls-roots"], optional = true }
+m10-signing = { version = "0.35.0", path = "../signing", optional = true }
+tonic = { version = "0.12.1", features = ["tls", "tls-roots"], optional = true }
 
 # format
 parse-display = { version = "0.5", optional = true }
 base64 = { version = "0.13", optional = true }
 serde_json = { version = "1.0", optional = true }
-serde_yaml = { version = "0.8", optional = true }
+serde_yaml = { version = "0.9.33", optional = true }
 ron = { version = "0.8", optional = true }
+csv = { version = "1.2", optional = true }
+async-stream = "0.3.5"
+
+# verbose_errors
+log = { version = "0.4", optional = true }
 
 [dev-dependencies]
-clap = "3.0.0-beta.1"
 tokio = { version = "1", features = ["rt", "macros"] }

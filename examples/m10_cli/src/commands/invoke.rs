@@ -11,7 +11,20 @@ use crate::context::Context;
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Invoke {
     /// Invokes a registered action
-    #[command(alias = "a", group = ArgGroup::new("target").required(true))]
+    #[command(
+        alias = "a",
+        group = ArgGroup::new("target").required(true),
+        help_template = "\
+            {before-help}{name} {version}
+            {about-with-newline}
+            {usage-heading}
+                    \x1b[1mm10 invoke action\x1b[0m [OPTIONS] \
+                    \x1b[1m--name\x1b[0m <NAME> \
+                    \x1b[1m--from\x1b[0m <FROM> \
+                    \x1b[1m--to\x1b[0m <TO>
+
+            {all-args}{after-help}"
+                )]
     Action {
         /// Name of the registered action
         #[arg(short, long)]

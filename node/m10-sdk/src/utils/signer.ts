@@ -1,126 +1,138 @@
-import * as crypto from "crypto";
+import { getPublicKeyAsync, signAsync as edSign, utils } from "@noble/ed25519";
+import * as asn1js from "asn1js";
+// eslint-disable-next-line import/no-nodejs-modules
+import { Buffer } from "buffer";
+import {
+    AlgorithmIdentifier,
+    PrivateKeyInfo,
+} from "pkijs";
 
-import { m10 } from "../../protobufs";
 import { PublicKey } from "../ids";
+import * as sdkTransaction from "../protobufs/sdk/transaction/transaction";
 
+function pemToArrayBuffer(pem: string): Uint8Array {
+    const b64 = pem
+        .replace(/-----BEGIN .*-----/, "")
+        .replace(/-----END .*-----/, "")
+        .replace(/\s+/g, "");
+
+    return new Uint8Array(Buffer.from(b64, "base64"));
+}
+
+function arrayBufferToPem(buffer: ArrayBuffer, label: string): string {
+    const b64 = Buffer.from(buffer).toString("base64");
+    const lines = b64.match(/.{1,64}/g)?.join("\n") ?? "";
+    return `-----BEGIN ${label}-----\n${lines}\n-----END ${label}-----`;
+}
 
 export enum Algorithm {
-    ED25519 = 1,
+  ED25519 = 1,
 }
 
 export class CryptoSigner {
+    private seed: Uint8Array;
+    private pub: Uint8Array;
+    private algorithm = sdkTransaction.Signature_Algorithm.ED25519;
 
-    private privateKey: crypto.KeyObject;
-    private publicKey: crypto.KeyObject;
-
-    private algorithm?: Algorithm;
-
-    private static readonly PUBLIC_KEY_HEADER_LENGTH: number = 12;
-
-    private static readonly BEGIN_PRIV_KEY_PREFIX: number = 8;
-    private static readonly END_PRIV_KEY_PREFIX: number = 56;
-
-
-    public constructor(privateKeyString: string | Buffer) {
-        this.privateKey = crypto.createPrivateKey(privateKeyString);
-        this.publicKey = crypto.createPublicKey(privateKeyString);
-
-        if (this.privateKey.asymmetricKeyType === "ed25519") {
-            this.algorithm = Algorithm.ED25519;
-        }
+    public constructor(seed: Uint8Array, pub: Uint8Array) {
+        this.seed = seed;
+        this.pub = pub;
     }
 
-    public sign(payload: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>): Buffer {
-        return crypto.sign(null, Buffer.from(payload), this.privateKey);
+    public static async generateKeyPair(): Promise<CryptoSigner> {
+        const seed = utils.randomPrivateKey();
+        const pub = await getPublicKeyAsync(seed);
+        const signer = new CryptoSigner(seed, pub);
+        return signer;
+    }
+
+    public static async fromSeed(seed: Uint8Array): Promise<CryptoSigner> {
+        const pub = await getPublicKeyAsync(seed);
+        return new CryptoSigner(seed, pub);
     }
 
     public getPublicKey(): PublicKey {
-        const publicKey = this.publicKey.export({ type: "spki", format: "der" });
-        // NOTE: Remove header from buffer
-        return new PublicKey(publicKey.slice(CryptoSigner.PUBLIC_KEY_HEADER_LENGTH));
+        return new PublicKey(Buffer.from(this.pub));
     }
 
-    public getAlgorithm(): Option<Algorithm> {
+    public getAlgorithm(): sdkTransaction.Signature_Algorithm {
         return this.algorithm;
     }
 
-    public getSignature(payload: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>): m10.sdk.transaction.Signature {
-        return new m10.sdk.transaction.Signature({
+    public async getSignature(
+        payload: Uint8Array<ArrayBufferLike>,
+    ): Promise<sdkTransaction.Signature> {
+        return sdkTransaction.Signature.create({
             publicKey: this.getPublicKey().toUint8Array(),
-            signature: Uint8Array.from(this.sign(payload)),
-            algorithm: this.getAlgorithm(),
+            signature: Uint8Array.from(await this.sign(payload)),
+            algorithm: this.algorithm,
         });
     }
 
-    /**
-    * Converts a PKCS#8 v2 key to the v1 format with only the PRV and version.
-    */
-    private static convertPkcs8V2KeyToV1(pkcs8v2Key: string): string {
-        const v1header = "MC4CAQAw";
-        const keyWithoutV2HeaderAndPublicKey = pkcs8v2Key
-            .substring(CryptoSigner.BEGIN_PRIV_KEY_PREFIX, CryptoSigner.BEGIN_PRIV_KEY_PREFIX + CryptoSigner.END_PRIV_KEY_PREFIX);
-
-        return `${v1header}${keyWithoutV2HeaderAndPublicKey}`;
+    public async sign(payload: ArrayBuffer | Uint8Array): Promise<Buffer> {
+        const data = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
+        const sig = await edSign(data, this.seed);
+        return Buffer.from(sig);
     }
 
-    private static getWrappedPrivateKey(privateKey: string): string {
-        const KEY_HEADER = "-----BEGIN PRIVATE KEY-----\n";
-        const KEY_FOOTER = "-----END PRIVATE KEY-----\n";
-        return `${KEY_HEADER}${privateKey}\n${KEY_FOOTER}`;
-    }
+    public static ed25519BytesFromPkcs8Pem(pem: string): Uint8Array {
+        const buffer = pemToArrayBuffer(pem);
 
-    public static generateKeyPair(): CryptoSigner {
-        const { privateKey } = crypto.generateKeyPairSync("ed25519");
-        return new CryptoSigner(privateKey.export({ type: "pkcs8", format: "pem" }));
-    }
+        const asn1 = asn1js.fromBER(buffer);
 
-    /**
-    * Creates a `CryptoSigner` from PKCS#8 v2 key
-    */
-    public static getSignerFromPkcs8V2(pkcs8V2Key: string): CryptoSigner {
-        const pkcs8V1 = CryptoSigner.convertPkcs8V2KeyToV1(pkcs8V2Key);
-        return CryptoSigner.getSignerFromPkcs8V1(pkcs8V1);
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        if (asn1.offset === -1) throw new Error("Invalid ASN.1 format");
+
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        const octetString = asn1.result instanceof asn1js.Sequence && asn1.result.valueBlock.value[2];
+
+        if (!octetString || !(octetString instanceof asn1js.OctetString)) throw new Error("Invalid ASN.1 format");
+
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        return Buffer.from(octetString.valueBlock.valueHexView.slice(2));
     }
 
     /**
-    * Creates a `CryptoSigner` from PKCS#8 v1 key
-    */
-    public static getSignerFromPkcs8V1(pkcs8V1: string): CryptoSigner {
-        const wrappedKey = CryptoSigner.getWrappedPrivateKey(pkcs8V1);
-        return new CryptoSigner(wrappedKey);
+     * Import a PKCS#8 PEM (v1) private key.
+     * this function should support format like "MC4CAQAwBQYDK2VwBCIEIIpBmydRGZPDKGaE55+lsCHVHamx/NqKDQSjsRzB98nJ"
+     * or "MFMCAQEwBQYDK2VwBCIEIHyr+m5Z4gy9JxoMdgrrX/EE8uhzkj3ztWx28zJxpStqoSMDIQAAIwpWR4i34vnPf3GTlge6ONw3tsuGer5QiQsGXKY0zg=="
+     * and also both wrapped by ASN.1 tags
+     */
+    public static async fromPkcs8Pem(b64Pem: string): Promise<CryptoSigner> {
+        const seed = CryptoSigner.ed25519BytesFromPkcs8Pem(b64Pem);
+        const pub  = await getPublicKeyAsync(seed);
+        return new CryptoSigner(seed, pub);
+    }
+
+    public async toPkcs8Pem(): Promise<string> {
+        const privateKeyInfo = new PrivateKeyInfo({
+            version: 0,
+            privateKeyAlgorithm: new AlgorithmIdentifier({
+                algorithmId: "1.3.101.112", // OID for Ed25519
+            }),
+            privateKey: new asn1js.OctetString({
+                valueHex: new asn1js.OctetString({ valueHex: this.seed }).toBER(),
+            }),
+        });
+
+        const schema = privateKeyInfo.toSchema();
+        const pkcs8Raw = schema.toBER(false);
+        return arrayBufferToPem(pkcs8Raw, "PRIVATE KEY");
     }
 }
-
-export class CryptoHasher {
-
-    private hasher: crypto.Hash;
-
-    public constructor() {
-        this.hasher = crypto.createHash("sha256");
-    }
-
-    public hash(payload: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>): Buffer {
-        this.hasher.update(Buffer.from(payload));
-        return this.hasher.digest();
-    }
-}
-
-
 
 export class TransactionSigner {
-
-    private static readonly TIMESTAMP_MULTIPLIER: number = 1000;
-    private static readonly DEFAULT_OFFSET: number = 0;
+    private static readonly TIMESTAMP_MULTIPLIER = 1000;
+    private static readonly DEFAULT_OFFSET = 0;
 
     public static generateNonce(): number {
         return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     }
 
-    /**
-     * @param offset in milliseconds
-     * @returns timestamp in microseconds
-     */
-    public static getTimestamp(offset: number = TransactionSigner.DEFAULT_OFFSET): number {
-        return (Date.now() + offset) * TransactionSigner.TIMESTAMP_MULTIPLIER;
+    /** @param offset  milliseconds → returns microseconds */
+    public static getTimestamp(offset = TransactionSigner.DEFAULT_OFFSET): number {
+        return (
+            (Date.now() + offset) * TransactionSigner.TIMESTAMP_MULTIPLIER
+        );
     }
 }

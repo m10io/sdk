@@ -8,17 +8,22 @@ use crate::commands::create::banks::BankAccountRefArgs;
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
 pub(crate) struct UpdateBankArgs {
     pub(super) id: Uuid,
-    /// Set owner of the account record
+    /// Set owner of the account [metadata] record
     #[arg(short, long)]
     owner: Option<String>,
-    /// Set an bank name
+    /// Set the bank's ID (e.g. uuid)
     #[arg(long, aliases = ["name", "sn"])]
     short_name: Option<String>,
     /// Set a name to be shown in transfers as sender
     #[arg(short, long, alias = "dn")]
     display_name: Option<String>,
-    /// Set account refs associated with a bank
-    #[arg(short, long, required = false)]
+    /// Set account type associated with a ledger account
+    #[arg(
+        short,
+        long,
+        required = false,
+        long_help = " --accounts 'accounts --account-type Cbdc:Drm --id <ID>'. The account-type (CBDC or DRM) is metadata can be used by external applications."
+    )]
     accounts: Vec<BankAccountRefArgs>,
 }
 

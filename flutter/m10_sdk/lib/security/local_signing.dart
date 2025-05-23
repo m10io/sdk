@@ -23,7 +23,7 @@ class LocalSigning implements Signing {
     0x04,
     0x22,
     0x04,
-    0x20
+    0x20,
   ];
   static const ed25519Length = 32;
 

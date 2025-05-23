@@ -2,39 +2,6 @@ use m10_sdk::sdk;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-#[derive(Serialize)]
-pub(crate) struct AccountEntry {
-    pub(crate) id: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub(crate) owner: String,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        with = "::serde_with::rust::unwrap_or_skip"
-    )]
-    pub(crate) frozen: Option<bool>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub(crate) name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub(crate) public_name: String,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        with = "::serde_with::rust::unwrap_or_skip"
-    )]
-    pub(crate) balance: Option<u64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        with = "::serde_with::rust::unwrap_or_skip"
-    )]
-    pub(crate) issued_balance: Option<u64>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub(crate) profile_image_url: String,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        with = "::serde_with::rust::unwrap_or_skip"
-    )]
-    pub(crate) instrument: Option<Instrument>,
-}
-
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AccountMetadata {
     pub id: String,
@@ -160,21 +127,6 @@ pub(crate) struct SetInstrument {
 pub(crate) struct SetBalanceLimit {
     pub account_id: String,
     pub balance_limit: u64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct AccountRef {
-    pub(crate) ledger_id: String,
-    pub(crate) account_id: String,
-}
-
-impl From<sdk::AccountRef> for AccountRef {
-    fn from(other: sdk::AccountRef) -> Self {
-        Self {
-            ledger_id: other.ledger_id,
-            account_id: hex::encode(&other.account_id),
-        }
-    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

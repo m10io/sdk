@@ -19,13 +19,14 @@ mod liquidity;
 mod logging;
 mod models;
 mod rbac;
+mod requiem;
 mod signer;
 mod transfer_observer;
 mod utils;
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!(); // defaults to "./migrations"
 
-const TRANSFER_OBSERVER_RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(5);
+const TASK_INIT_RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(5);
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::Report> {
@@ -39,7 +40,7 @@ async fn main() -> Result<(), eyre::Report> {
         let mut conn = db_pool.get().await?;
         MIGRATOR.run(&mut *conn).await?;
     }
-    let context = context::Context::new_from_config(config.clone()).await?;
+    let mut context = context::Context::new_from_config(config.clone()).await?;
     context.init().await?;
 
     let issuer_uri: Url = config.oauth.issuer.parse()?;
@@ -80,7 +81,7 @@ async fn main() -> Result<(), eyre::Report> {
                             .await
                         {
                             error!(%err, "CBDC balance limit observation failed");
-                            tokio::time::sleep(TRANSFER_OBSERVER_RETRY_DELAY).await;
+                            tokio::time::sleep(TASK_INIT_RETRY_DELAY).await;
                         }
                     }
                 })
@@ -114,7 +115,7 @@ async fn main() -> Result<(), eyre::Report> {
                             .await
                         {
                             error!(%err, "CBDC Liquidity observation failed");
-                            tokio::time::sleep(TRANSFER_OBSERVER_RETRY_DELAY).await;
+                            tokio::time::sleep(TASK_INIT_RETRY_DELAY).await;
                         }
                     }
                 })
@@ -148,7 +149,7 @@ async fn main() -> Result<(), eyre::Report> {
                             .await
                         {
                             error!(%err, "DRM Transfer observation failed");
-                            tokio::time::sleep(TRANSFER_OBSERVER_RETRY_DELAY).await;
+                            tokio::time::sleep(TASK_INIT_RETRY_DELAY).await;
                         }
                     }
                 })
@@ -161,6 +162,20 @@ async fn main() -> Result<(), eyre::Report> {
             .start()
             .instrument(info_span!("drc_reserve_adjustment")),
     );
+
+    let cc = context.clone();
+    let requiem_service_init_task = tokio::spawn(async move {
+        while let Err(err) = cc
+            .requiem
+            .init(&cc)
+            .instrument(info_span!("requiem-service-init"))
+            .await
+        {
+            error!(%err, "Requiem service initialization failed");
+            tokio::time::sleep(TASK_INIT_RETRY_DELAY).await;
+            continue;
+        }
+    });
 
     let server = HttpServer::new(move || {
         App::new()
@@ -192,6 +207,9 @@ async fn main() -> Result<(), eyre::Report> {
         res = drc_reserve_adjustment_task => res??,
         res = http_server_task => res??
     }
+
+    requiem_service_init_task.await?;
+
     Ok(())
 }
 

@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::{error::Error, models::ContactType};
 
 #[async_trait::async_trait]
+#[allow(dead_code)]
 pub(crate) trait Bank {
     type Contact;
     type Account;

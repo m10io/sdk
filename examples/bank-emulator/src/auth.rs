@@ -63,7 +63,7 @@ pub enum BankEmulatorRole {
     ScopeM10Test,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct User {
     pub scope: AuthScope,
     pub roles: HashSet<BankEmulatorRole>,
@@ -87,7 +87,7 @@ impl User {
             .bank_emulator
             .ok_or_else(Error::unauthorized)?;
 
-        let all_scopes_sorted = vec![
+        let all_scopes_sorted = [
             BankEmulatorRole::ScopeM10,
             BankEmulatorRole::ScopeM10Test,
             BankEmulatorRole::ScopeOwn,

@@ -39,17 +39,18 @@ async fn endorse_contract(
     // TODO: fetch ledger-id
     let ledger_id = "usd.m10";
     let contract_id = hex::encode(contract.id()).to_uppercase();
-    let signing_key = context.signing_key()?;
+    let signing_key = context.signer().public_key();
     if contract
         .endorsements
         .iter()
         .filter_map(|e| e.signature.as_ref())
-        .any(|sig| sig.public_key == signing_key.public_key())
+        .any(|sig| sig.public_key == signing_key)
     {
         println!("Contract {} is already endorsed by you", contract_id);
         return Ok(());
     }
-    signing_key
+    context
+        .signer()
         .endorse(&mut contract, ledger_id.to_string())
         .await?;
     let buf = contract.encode_to_vec();

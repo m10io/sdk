@@ -15,8 +15,13 @@ pub(crate) struct UpdateRoleArgs {
     /// Update owner field
     #[arg(short, long)]
     owner: Option<String>,
-    /// Add rule (1..N)
-    #[arg(short, long, required = true)]
+    /// Set rule
+    #[arg(
+        short,
+        long,
+        required = true,
+        long_help = "IMPORTANT: When updating one or more rules for a role, ALL rules and their verbs must be entered, even those that don't change. Rules include --collections (-c), --verbs (-v) and optionally, --instances (-i). Default collections include ledger-accounts (aka “account”), account-metadata, roles and role-bindings. Available verbs include Read, Create, Update, Delete, Transact, Initiate, and Commit. Instances take the argument of account-metadata ID in uuid format. An option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*"
+    )]
     rule: Vec<RuleArgs>,
 }
 
@@ -35,6 +40,7 @@ impl super::BuildFromArgs for UpdateRoleArgs {
             let rules = self.rule.iter().map(|r| r.to_rbac_rule()).collect();
             builder.rules(rules);
         }
+        builder.merge_repeated(true);
         Ok(())
     }
 }

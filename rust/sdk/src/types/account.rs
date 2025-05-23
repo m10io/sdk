@@ -6,6 +6,7 @@ use m10_protos::sdk;
 use m10_protos::sdk::transaction_data::Data;
 use m10_protos::sdk::IndexedAccount;
 use serde::Serialize;
+use serde_with::serde_as;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
@@ -51,9 +52,11 @@ pub struct Issuance {
     pub holding_accounts: u64,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct AccountUpdate {
     pub tx_id: TxId,
+    #[serde_as(as = "serde_with::hex::Hex")]
     pub context_id: Vec<u8>,
     pub success: bool,
     pub timestamp: SystemTime,

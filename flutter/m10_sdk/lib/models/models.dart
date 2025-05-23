@@ -61,8 +61,8 @@ class AccountSetDoc extends _Document<AccountSet> {
 
   String get id => Uuid.unparse(_model.id);
   String get owner => base64.encode(_model.owner);
-  List<AccountRefDoc> get accounts =>
-      _model.accounts.map(AccountRefDoc.new).toList();
+  List<String> get accounts =>
+      _model.accounts.map((bytes) => hex.encode(bytes)).toList();
 
   @override
   String toString() => 'AccountSet $id $owner accounts=$accounts';
@@ -635,47 +635,6 @@ class ResourceResultDoc extends _Document<FinalizedTransaction> {
       : null;
 }
 
-class AccountRefDoc extends _Document<AccountRef> {
-  AccountRefDoc(AccountRef model) : super(model);
-
-  factory AccountRefDoc.fromString(String accountId) {
-    final accountRef = accountId.parse();
-    return AccountRefDoc(accountRef);
-  }
-
-  factory AccountRefDoc.fromIds(String ledgerId, Object accountId) {
-    var intAccountId = <int>[];
-    if (accountId is String) {
-      intAccountId = hex.decode(accountId);
-    } else if (accountId is! List<int>) {
-      throw ArgumentError('Invalid type for account ID');
-    } else {
-      intAccountId = accountId;
-    }
-
-    final accountRef = AccountRef()
-      ..ledgerId = ledgerId
-      ..accountId = intAccountId;
-    return AccountRefDoc(accountRef);
-  }
-
-  String get ledgerId => _model.ledgerId;
-  String get accountId => hex.encode(_model.accountId);
-
-  AccountRef intoInner() => _model;
-
-  @override
-  bool operator ==(Object other) =>
-      other is AccountRefDoc &&
-      other.ledgerId == ledgerId &&
-      other.accountId == accountId;
-  @override
-  int get hashCode => ledgerId.hashCode ^ accountId.hashCode;
-
-  @override
-  String toString() => '${_model.ledgerId}/${hex.encode(_model.accountId)}';
-}
-
 class TransactionMetricsDoc extends _Document<TransactionMetrics> {
   TransactionMetricsDoc(TransactionMetrics model) : super(model);
 
@@ -686,16 +645,6 @@ class TransactionMetricsDoc extends _Document<TransactionMetrics> {
   int get transferCount => model.transferCount.toInt();
   int get transferErrors => model.transferErrors.toInt();
   int get accountsCreated => model.accountsCreated.toInt();
-}
-
-extension ParseAccountRef on String {
-  AccountRef parse() {
-    final split = this.split('/');
-    final accountRef = AccountRef()
-      ..ledgerId = split.first
-      ..accountId = hex.decode(split.last);
-    return accountRef;
-  }
 }
 
 extension LedgerExt on Ledger {
@@ -753,4 +702,18 @@ extension RedeemableTokenExt on RedeemableToken {
       .map((input) => input.value)
       .reduce((value, total) => value + total)
       .toInt();
+}
+
+sealed class QueryFilter {
+  const QueryFilter(this.value);
+
+  final String value;
+}
+
+final class OwnerFilter extends QueryFilter {
+  OwnerFilter(super.value);
+}
+
+final class NameFilter extends QueryFilter {
+  NameFilter(super.value);
 }

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use m10_sdk::Signature;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 
@@ -53,6 +54,8 @@ pub struct CreateAccountRequest {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assets: Option<Vec<String>>,
+
+    pub signatures: Vec<Signature>,
 }
 
 impl From<CreateAccountRequest> for Account {

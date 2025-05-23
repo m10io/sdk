@@ -16,40 +16,58 @@ package m10.directory;
 
 service DirectoryService {
   // Ledgers
+  // Creates a ledger.
   rpc CreateLedger(Ledger) returns (google.protobuf.Empty) {};
+  // Lists all ledgers.
   rpc ListLedgers(google.protobuf.Empty) returns (ListLedgersResponse) {};
 
   // Aliases
+  // Checks if an alias exists.
   rpc CheckAlias(CheckAliasRequest) returns (google.protobuf.Empty) {};
+  // Creates an alias.
   rpc CreateAlias(Alias) returns (google.protobuf.Empty) {};
+  // Searches for aliases.
   rpc SearchAliases(SearchAliasesRequest) returns (SearchAliasesResponse) {};
 
   //  Transaction Support Documents
+  // Creates a pre-signed URL for uploading an object.
   rpc CreateObjectUrl(google.protobuf.Empty) returns (ObjectUrlResponse) {};
+  // Retrieves a pre-signed URL for an object.
   rpc GetObjectUrl(GetObjectUrlRequest) returns (ObjectUrlResponse) {};
 
+  // Creates a pre-signed URL for uploading an image.
   rpc CreateImageUrl(CreateImageUrlRequest) returns (ObjectUrlResponse) {};
 }
 
 // Ledger messages
 message Ledger {
+  // Operator of the ledger.
   string operator = 1;         // "m10"
+  // URL of the ledger.
   string url = 2;              // "https://usd.m10.net"
   reserved 4, 5;
 }
 
+// Response message for listing ledgers.
 message ListLedgersResponse {
+  // List of ledgers.
   repeated Ledger ledgers = 1;
 }
 
 // Alias messages
 message Alias {
+  // Handle of the alias.
   string handle = 1;           // "testy@test.com"
+  // Display name of the alias.
   string display_name = 2;     // "Jon Jones"
+  // AccountSet ID associated with the alias.
   bytes account_set_id = 5;
+  // Operator of the alias.
   string operator = 8;
   reserved 9;
+  // Type of the alias.
   Type alias_type = 10;
+  // Types of aliases.
   enum Type {
     HANDLE = 0;
     EMAIL = 1;
@@ -57,33 +75,51 @@ message Alias {
   }
 }
 
+// For checking if an alias exist.
 message CheckAliasRequest {
+  // Handle of the alias to check.
   string handle = 1;
 }
 
+// The request message for searching aliases.
 message SearchAliasesRequest {
+  // Prefix of the handle to search for.
   string handle_prefix = 1;
+  // Maximum number of results to return.
   int32  page_size = 2;
+  // Token for pagination.
   string page_token = 3;
+  // Subject string
   string subject = 5;
 }
 
+// The response message for searching aliases.
 message SearchAliasesResponse {
+  // List of aliases found.
   repeated Alias aliases = 1;
+  // Token for the next page of results.
   string next_page_token = 2;
 }
 
 // Document messages
+// Function for uploading an object.
 message GetObjectUrlRequest {
+  // ID of the object.
   string object_id = 1;
 }
 
+// The response message for object URL requests.
 message ObjectUrlResponse {
+  // Pre-signed URL for the object.
   string presigned_url = 1;
+  // ID of the object.
   string object_id = 2;
+  // URL of the object
   string url = 3;
 }
 
+// The request message for creating a pre-signed URL for uploading an image.
 message CreateImageUrlRequest {
+  // Optional MIME type of the image.
   optional string mime_type = 1;
 }

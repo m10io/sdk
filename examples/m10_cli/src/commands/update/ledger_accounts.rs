@@ -12,13 +12,13 @@ pub(crate) struct UpdateLedgerAccountArgs {
     /// Update freeze state
     #[arg(short, long)]
     freeze: Option<bool>,
-    /// Currency code
+    /// Asset code (e.g. USD or EUR)
     #[arg(long, aliases = ["currency", "symbol", "cs", "cc"], group = "instrument")]
     code: Option<String>,
     /// Number of relevant currency decimals
     #[arg(short, long, group = "instrument")]
     decimals: Option<u32>,
-    /// Currency description
+    /// Asset description
     #[arg(long, alias = "desc", group = "instrument")]
     description: Option<String>,
     /// Holding balance limit

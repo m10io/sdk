@@ -44,7 +44,7 @@ impl RequestSpan {
 
         // pre-formatting errors is a workaround for https://github.com/tokio-rs/tracing/issues/1565
         let display = format!("{}", response_error);
-        span.record("error", &tracing::field::display(display));
+        span.record("error", tracing::field::display(display));
 
         let status_code = response_error.status_code();
         span.record("status_code", status_code.as_u16());

@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/rbac.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -13,6 +13,7 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+/// Verb defines the actions a subject can perform on a resource.
 class Rule_Verb extends $pb.ProtobufEnum {
   static const Rule_Verb READ = Rule_Verb._(0, _omitEnumNames ? '' : 'READ');
   static const Rule_Verb CREATE = Rule_Verb._(1, _omitEnumNames ? '' : 'CREATE');
@@ -35,7 +36,7 @@ class Rule_Verb extends $pb.ProtobufEnum {
   static final $core.Map<$core.int, Rule_Verb> _byValue = $pb.ProtobufEnum.initByValue(values);
   static Rule_Verb? valueOf($core.int value) => _byValue[value];
 
-  const Rule_Verb._($core.int v, $core.String n) : super(v, n);
+  const Rule_Verb._(super.v, super.n);
 }
 
 

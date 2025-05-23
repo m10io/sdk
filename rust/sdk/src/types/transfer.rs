@@ -8,17 +8,54 @@ use core::time::Duration;
 use m10_protos::prost::Any;
 use m10_protos::sdk::transaction_data::Data;
 use m10_protos::{sdk, MetadataExt, MetadataType};
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+use serde_with::{serde_as, SerializeAs};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[serde_as]
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct TransferStep {
     pub from: AccountId,
     pub to: AccountId,
     pub amount: u64,
-    // TODO @sadroeck - Fixme
-    #[serde(skip)]
+    #[serde_as(as = "Vec<AsMetadata>")]
     pub metadata: Vec<Any>,
+}
+
+struct AsMetadata;
+
+impl SerializeAs<Any> for AsMetadata {
+    fn serialize_as<S: Serializer>(data: &Any, serializer: S) -> Result<S::Ok, S::Error> {
+        let metatdata = if let Some(sdk::metadata::Memo { plaintext }) = data.protobuf() {
+            format!("Memo: {plaintext}")
+        } else if let Some(sdk::metadata::Fee {}) = data.protobuf() {
+            "Fee".to_string()
+        } else if let Some(sdk::metadata::Withdraw { bank_account_id }) = data.protobuf() {
+            format!("Withdraw {bank_account_id}")
+        } else if let Some(sdk::metadata::Deposit { bank_account_id }) = data.protobuf() {
+            format!("Deposit {bank_account_id}")
+        } else if let Some(sdk::metadata::Attachment { object_id, .. }) = data.protobuf() {
+            format!("Attachment: {object_id}")
+        } else if let Some(sdk::metadata::Contract { endorsements, .. }) = data.protobuf() {
+            format!("Contract with {} endorsments", endorsements.len())
+        } else if let Some(sdk::metadata::SelfTransfer {
+            from_account_name,
+            to_account_name,
+        }) = data.protobuf()
+        {
+            format!("Self transfer from {from_account_name} to {to_account_name}")
+        } else if let Some(sdk::metadata::RebalanceTransfer {}) = data.protobuf() {
+            "Rebalance transfer".to_string()
+        } else if let Some(sdk::metadata::TokenWithdraw {}) = data.protobuf() {
+            "Tokenization".to_string()
+        } else if let Some(sdk::metadata::OfflineTransfer { input }) = data.protobuf() {
+            format!("Offline payment from {input}")
+        } else {
+            "Unknown".to_string()
+        };
+
+        serializer.serialize_str(&metatdata)
+    }
 }
 
 #[cfg(feature = "format")]
@@ -86,9 +123,11 @@ impl From<sdk::finalized_transfer::TransferState> for TransferStatus {
     }
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct Transfer {
     pub tx_id: TxId,
+    #[serde_as(as = "serde_with::hex::Hex")]
     pub context_id: Vec<u8>,
     pub timestamp: SystemTime,
     pub steps: Vec<TransferStep>,
@@ -130,8 +169,8 @@ impl TryFrom<sdk::FinalizedTransfer> for Transfer {
                 .map(TransferStep::try_from)
                 .collect::<M10Result<_>>()?,
             status: TransferStatus::from(
-                sdk::finalized_transfer::TransferState::from_i32(transfer.state)
-                    .ok_or(M10Error::InvalidTransaction)?,
+                sdk::finalized_transfer::TransferState::try_from(transfer.state)
+                    .map_err(|_| M10Error::InvalidTransaction)?,
             ),
         })
     }
@@ -181,8 +220,8 @@ impl TryFrom<sdk::FinalizedTransaction> for Transfer {
             Data::CommitTransfer(commit) => {
                 let status = if success {
                     TransferStatus::from(
-                        sdk::finalized_transfer::TransferState::from_i32(commit.new_state)
-                            .ok_or(M10Error::InvalidTransaction)?,
+                        sdk::finalized_transfer::TransferState::try_from(commit.new_state)
+                            .map_err(|_| M10Error::InvalidTransaction)?,
                     )
                 } else {
                     TransferStatus::Pending
@@ -331,9 +370,25 @@ impl TryFrom<EnhancedTransfer> for ExpandedTransfer {
                 .collect::<M10Result<_>>()?,
             success: transfer.transfer.error.is_none(),
             status: TransferStatus::from(
-                sdk::finalized_transfer::TransferState::from_i32(transfer.transfer.state)
-                    .ok_or(M10Error::InvalidTransaction)?,
+                sdk::finalized_transfer::TransferState::try_from(transfer.transfer.state)
+                    .map_err(|_| M10Error::InvalidTransaction)?,
             ),
         })
     }
+}
+
+#[derive(serde::Serialize)]
+pub struct TransferView {
+    #[serde(flatten)]
+    pub transfer: TransferData,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tx_sender: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(untagged)]
+pub enum TransferData {
+    Basic(Transfer),
+    Expanded(ExpandedTransfer),
 }

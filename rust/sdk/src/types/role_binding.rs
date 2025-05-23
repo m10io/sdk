@@ -17,8 +17,6 @@ pub struct RoleBinding {
     pub name: String,
     pub role_id: ResourceId,
     pub subjects: Vec<bytes::Bytes>,
-    // TODO @sadroeck - fixme
-    #[serde(skip)]
     pub expressions: Vec<Expression>,
     pub is_universal: bool,
 }

@@ -1,22 +1,25 @@
 #![allow(clippy::unnecessary_fallible_conversions)]
+use std::str::FromStr;
+
 use actix_multipart::Multipart;
 use actix_web::{
-    delete, get, patch, post, put,
+    delete, get, patch, post,
     web::{Data, Json, Path, Query},
     HttpResponse, Scope,
 };
-use m10_sdk::sdk::SetFreezeState;
+use m10_sdk::{sdk::SetFreezeState, Signature};
 use serde_json::Value;
 use sqlx::Connection;
+use tracing::debug;
 
 use crate::{
     auth::{AuthScope, BankEmulatorRole, User},
     bank::Bank,
     context::Context,
-    error::Error,
+    error::{Error, ValidationError},
     models::{
-        Account, Asset, AssetType, AssetTypeQuery, Contact, CreateContactRequest, ListResponse,
-        NotificationPreferences, Page, Payment, PaymentQuery,
+        Account, Asset, AssetType, AssetTypeQuery, ChangeContactPublicKeyRequest, Contact,
+        CreateContactRequest, ListResponse, NotificationPreferences, Page, Payment, PaymentQuery,
     },
     rbac,
     utils::{self, *},
@@ -35,11 +38,30 @@ async fn create(
         .get("name")
         .and_then(|v| v.as_str())
         .ok_or_else(|| Error::not_found("name in contact data"))?;
+
+    let signatures = req
+        .signatures
+        .clone()
+        .into_iter()
+        .map(m10_sdk::Signature::try_from)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    validate_signatures(signatures.clone())?;
+
     // Create AccountSet on ledger
     let account_set_id = create_account_set(vec![], &context).await?;
 
     // Create RBAC role for contact
-    let role_id = rbac::create_contact_rbac_role(name, account_set_id, vec![], &context).await?;
+    let role_id = rbac::create_contact_rbac_role(
+        name,
+        account_set_id,
+        vec![],
+        signatures.iter().map(|s| s.public_key.clone()).collect(),
+        &context,
+    )
+    .await?;
+
+    debug!("Created RBAC role for contact: {name} with id: {role_id}");
 
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
@@ -47,7 +69,7 @@ async fn create(
     contact.user_id = current_user.user_id;
     contact.rbac_role = role_id;
     contact.account_set = account_set_id;
-    contact.insert(&mut txn).await?;
+    contact.insert(&mut *txn).await?;
     txn.commit().await?;
 
     // Create Alias for contact
@@ -96,11 +118,11 @@ async fn update_own(
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
     let mut contact = Contact::find_by_user_id(&current_user.user_id)
-        .fetch_optional(&mut txn)
+        .fetch_optional(&mut *txn)
         .await?
         .ok_or_else(Error::unauthorized)?;
     contact.contact_data = request.into_inner();
-    contact.update(&mut txn).await?;
+    contact.update(&mut *txn).await?;
     txn.commit().await?;
     Ok(Json(contact))
 }
@@ -111,10 +133,10 @@ async fn delete_own(current_user: User, context: Data<Context>) -> Result<Json<C
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
     let mut contact = Contact::find_by_user_id(&current_user.user_id)
-        .fetch_optional(&mut txn)
+        .fetch_optional(&mut *txn)
         .await?
         .ok_or_else(Error::unauthorized)?;
-    contact.retire(&mut txn).await?;
+    contact.retire(&mut *txn).await?;
     txn.commit().await?;
     Ok(Json(contact))
 }
@@ -147,11 +169,11 @@ async fn update(
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
     let mut contact = query
-        .fetch_optional(&mut txn)
+        .fetch_optional(&mut *txn)
         .await?
         .ok_or_else(|| Error::not_found("contacts"))?;
     contact.contact_data = request.into_inner();
-    contact.update(&mut txn).await?;
+    contact.update(&mut *txn).await?;
     txn.commit().await?;
     Ok(Json(contact))
 }
@@ -167,7 +189,7 @@ async fn delete(
         .authorized_tenant()?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
-    let contact = Contact::delete(*id, &tenant, &mut txn)
+    let contact = Contact::delete(*id, &tenant, &mut *txn)
         .await?
         .ok_or_else(|| Error::not_found("contacts"))?;
     txn.commit().await?;
@@ -418,29 +440,6 @@ async fn verify_documents(
     Err(Error::internal_msg("unimplemented"))
 }
 
-#[put("{id}/key")]
-async fn add_key(
-    id: Path<i64>,
-    request: String,
-    current_user: User,
-    context: Data<Context>,
-) -> Result<HttpResponse, Error> {
-    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
-    let query = Contact::find_by_id_scoped(*id, scope)?;
-    let mut conn = context.db_pool.get().await?;
-    let contact = query
-        .fetch_optional(&mut *conn)
-        .await?
-        .ok_or_else(|| Error::not_found("contacts"))?;
-
-    let key = base64::decode(request)?;
-
-    if !rbac::is_key_known(contact.rbac_role, &key, &context).await? {
-        rbac::add_key(contact.rbac_role, &key, &context).await?;
-    }
-    Ok(HttpResponse::Ok().finish())
-}
-
 #[post("{id}/notification")]
 async fn notification(
     _id: Path<i64>,
@@ -546,6 +545,73 @@ async fn connect_with(
     Err(Error::internal_msg("unimplemented"))
 }
 
+pub fn validate_signatures(signatures: Vec<Signature>) -> Result<(), Error> {
+    let mut deduped = signatures.clone();
+    deduped.dedup();
+
+    if signatures.len() != deduped.len() {
+        return Err(Error::validations(vec![ValidationError::new(
+            "signatures",
+            "duplicate signatures",
+        )]));
+    }
+
+    let errors = signatures
+        .into_iter()
+        .map(m10_sdk::sdk::transaction::Signature::from)
+        .filter_map(|s| s.verify(&s.public_key).err())
+        .map(|e| ValidationError::new("signatures", e.to_string()))
+        .collect::<Vec<ValidationError>>();
+
+    if !errors.is_empty() {
+        return Err(Error::validations(errors));
+    }
+    Ok(())
+}
+
+#[post("{id}/change_key")]
+async fn change_key(
+    id: Path<i64>,
+    current_user: User,
+    request: Json<ChangeContactPublicKeyRequest>,
+    context: Data<Context>,
+) -> Result<HttpResponse, Error> {
+    let requiem_cfg = context
+        .config
+        .requiem
+        .clone()
+        .ok_or_else(|| Error::internal_msg("Requiem service not configured"))?;
+
+    let scope = current_user.is_authorized(BankEmulatorRole::Update)?;
+    let query = Contact::find_by_id_scoped(*id, scope)?;
+    let mut conn = context.db_pool.get().await?;
+    let contact = query
+        .fetch_optional(&mut *conn)
+        .await?
+        .ok_or_else(|| Error::not_found("contacts"))?;
+
+    let request = request.into_inner();
+    let public_key = m10_sdk::PublicKey::from_str(&request.signature.public_key)?;
+    if public_key != requiem_cfg.public_key {
+        return Err(Error::validations(vec![ValidationError::new(
+            "signature",
+            "signer not equal to the requiem service public key",
+        )]));
+    }
+
+    let signature = m10_sdk::Signature::try_from(request.signature)?;
+    let signature: m10_sdk::sdk::transaction::Signature = signature.into();
+    let key = m10_sdk::PublicKey::from_str(&request.public_key)?.to_vec();
+
+    signature.verify(&key).map_err(|_| {
+        Error::validations(vec![ValidationError::new("signature", "invalid signature")])
+    })?;
+
+    rbac::add_key(contact.rbac_role, &key, &context).await?;
+
+    Ok(HttpResponse::Ok().finish())
+}
+
 pub fn scope() -> Scope {
     actix_web::web::scope("contacts")
         .service(create)
@@ -568,7 +634,6 @@ pub fn scope() -> Scope {
         .service(get_documents)
         .service(update_documents)
         .service(verify_documents)
-        .service(add_key)
         .service(notification)
         .service(approve_cip)
         .service(deny_cip)
@@ -576,4 +641,5 @@ pub fn scope() -> Scope {
         .service(trigger_kyb)
         .service(unfreeze)
         .service(connect_with)
+        .service(change_key)
 }

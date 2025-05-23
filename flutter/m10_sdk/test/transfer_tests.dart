@@ -58,20 +58,23 @@ void main() {
 
       final steps = [
         TransferStepDoc.fromFields(
-            fromAccountId: aliceAccountId,
-            toAccountId: bobsAccountId,
-            amount: 48000,
-            metadata: [Metadata.memo('transfer')],),
+          fromAccountId: aliceAccountId,
+          toAccountId: bobsAccountId,
+          amount: 48000,
+          metadata: [Metadata.memo('transfer')],
+        ),
         TransferStepDoc.fromFields(
-            fromAccountId: aliceAccountId,
-            toAccountId: parentAccountId,
-            amount: 2450,
-            metadata: [Metadata.fee()],),
+          fromAccountId: aliceAccountId,
+          toAccountId: parentAccountId,
+          amount: 2450,
+          metadata: [Metadata.fee()],
+        ),
         TransferStepDoc.fromFields(
-            fromAccountId: aliceAccountId,
-            toAccountId: parentAccountId,
-            amount: 2450,
-            metadata: [Metadata.fee()],)
+          fromAccountId: aliceAccountId,
+          toAccountId: parentAccountId,
+          amount: 2450,
+          metadata: [Metadata.fee()],
+        ),
       ];
       final response = await alice.transfer(
         steps: steps,

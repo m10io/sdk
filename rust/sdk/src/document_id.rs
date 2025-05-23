@@ -1,6 +1,9 @@
 use m10_protos::prost::bytes::Bytes;
 use uuid::Uuid;
 
+#[cfg(feature = "format")]
+use crate::ResourceId;
+
 /// A trait representing any type that can be used as a DocumentId
 pub trait DocumentId {
     fn into_bytes(self) -> Bytes;
@@ -34,5 +37,16 @@ impl DocumentId for Bytes {
 
     fn into_vec(self) -> Vec<u8> {
         self.as_ref().to_vec()
+    }
+}
+
+#[cfg(feature = "format")]
+impl DocumentId for ResourceId {
+    fn into_bytes(self) -> Bytes {
+        Bytes::copy_from_slice(self.to_vec().as_slice())
+    }
+
+    fn into_vec(self) -> Vec<u8> {
+        self.to_vec()
     }
 }

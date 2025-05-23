@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:grpc/grpc.dart';
-import 'package:m10_sdk/library.dart';
 import 'package:m10_sdk/m10_sdk.dart';
 import 'package:test/test.dart';
 import 'utilities/utility.dart';
@@ -37,7 +36,7 @@ void main() {
       () async {
         await userSdk.updateUser(
           userId: userId,
-          accounts: ['ttt.m10/05800002000000003d00000000000003'.parse()],
+          accounts: ['05800002000000003d00000000000003'],
           operator: operator,
         );
 
@@ -49,7 +48,7 @@ void main() {
         );
 
         final found = alice.accounts.any(
-          (account) => account.accountId == '05800002000000003d00000000000003',
+          (account) => account == '05800002000000003d00000000000003',
         );
         expect(found, true);
       },

@@ -1,7 +1,6 @@
 
 # build
 out
-.yarn/
 index.d.ts
 
 # tests
@@ -11,3 +10,24 @@ coverage
 # generated documentation
 docs
 
+# https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+protobufs/*.js
+node_modules/
+tsconfig.tsbuildinfo
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# config
+.env
+
+src/protobufs/**/*.ts

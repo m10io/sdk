@@ -1,5 +1,5 @@
 use clap::Parser;
-use m10_sdk::{sdk, PublicKey};
+use m10_sdk::{account::AccountId, sdk, PublicKey};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ pub(crate) struct CreateAccountSetArgs {
     /// Set account references
     #[arg(short, long)]
     #[serde(default)]
-    accounts: Vec<sdk::AccountRef>,
+    accounts: Vec<AccountId>,
     /// Set owner of the account set record
     #[arg(short, long)]
     owner: Option<PublicKey>,
@@ -29,7 +29,11 @@ impl super::BuildFromArgs for CreateAccountSetArgs {
         Ok(sdk::AccountSet {
             id,
             owner,
-            accounts: self.accounts,
+            accounts: self
+                .accounts
+                .into_iter()
+                .map(|account_id| account_id.to_vec())
+                .collect(),
         })
     }
 }

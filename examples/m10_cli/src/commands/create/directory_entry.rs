@@ -1,5 +1,7 @@
 use clap::Subcommand;
-use m10_sdk::directory::{directory_service_client::DirectoryServiceClient, Alias, Ledger};
+use m10_sdk::directory::{
+    alias::Type, directory_service_client::DirectoryServiceClient, Alias, Ledger,
+};
 use serde::{Deserialize, Serialize};
 use tonic::{
     metadata::MetadataValue, service::interceptor::InterceptedService, transport::Channel,
@@ -32,7 +34,8 @@ pub(crate) enum CreateDirEntry {
         operator: String,
     },
     /// Create a new ledger entry in directory
-    #[command(alias = "l")]
+    #[cfg_attr(feature = "customers", command(alias = "l", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "l"))]
     Ledger {
         /// Operator id
         #[arg(short, long)]
@@ -51,7 +54,7 @@ impl CreateDirEntry {
         let channel = context.channel()?;
         let access_token = std::fs::read_to_string(m10_config_path().join("access.token"))?;
         let access_token = format!("Bearer {}", access_token.trim());
-        let access_token = MetadataValue::from_str(access_token.as_str())?;
+        let access_token = MetadataValue::try_from(access_token.as_str())?;
         let mut client =
             DirectoryServiceClient::with_interceptor(channel, move |mut req: tonic::Request<()>| {
                 req.metadata_mut()
@@ -117,10 +120,13 @@ pub async fn create_alias<
     operator: String,
     client: &mut DirectoryServiceClient<InterceptedService<Channel, F>>,
 ) -> anyhow::Result<()> {
+    let alias_enum = Type::from_str_name(&alias_type.to_uppercase())
+        .ok_or_else(|| anyhow::anyhow!("Invalid alias type"))?;
+
     let request = Alias {
         handle,
         display_name,
-        alias_type: alias_type.parse()?,
+        alias_type: alias_enum as i32,
         account_set_id: account_set_id.as_bytes().to_vec(),
         operator,
     };

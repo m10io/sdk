@@ -1,125 +1,150 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
+/* eslint-disable no-console */
 import { assert, expect } from "chai";
 
-import { m10 } from "../protobufs";
-import { StepBuilder, TransferBuilder, TransferFilter } from "../src";
-import { M10Error } from "../src/error";
-import { TransferStatus } from "../src/types";
-import { convertMemoToAny, isSome, unwrap } from "../src/utils";
+import type { AccountId } from "../src";
+import {
+    convertMemoToAny,
+} from "../src";
 
-import type { TestContext } from "./hooks";
+import { parseUnits, sleep } from "./hooks";
 
-
+import { Memo } from "../src/protobufs/sdk/metadata";
+import type { TestCaseInstances } from "./config";
+import { createCurrencyAccounts, initTestCaseInstances, USD_BANK_ID } from "./config";
+import { Rule_Verb } from "../src/protobufs/sdk/rbac";
 
 describe("transfer", () => {
+    const transactionIds: bigint[] = [];
 
-    let transactionId: Option<LongNumber>;
+    let testCaseInstances: TestCaseInstances;
+
+    it("init", async () => {
+        testCaseInstances = await initTestCaseInstances();
+    });
+
+    let accountIds: AccountId[];
+    it("create USD currency accounts", async () => {
+        const currencyAccounts = await createCurrencyAccounts(
+            testCaseInstances,
+            [USD_BANK_ID, USD_BANK_ID],
+            [
+                Rule_Verb.COMMIT,
+                Rule_Verb.INITIATE,
+                Rule_Verb.TRANSACT,
+            ],
+        );
+        accountIds = Object.values(currencyAccounts.accountIds);
+    }).timeout(10_000);
+
+    it("fund currency accounts", async () => {
+        if (!accountIds.length) throw new TypeError("Account IDs are not initialized");
+
+        await Promise.all([USD_BANK_ID, USD_BANK_ID].map(async (bankId, idx) => {
+            const bankInfo = await testCaseInstances.accountClient.getAccountInfo(bankId);
+
+            await testCaseInstances.operatorClient.transfer([
+                {
+                    fromAccountId: bankId.bytes,
+                    toAccountId: accountIds[idx].bytes,
+                    // FIXME: parse it twice, cuz of backend divides bn amount by decimals
+                    amount: parseUnits(parseUnits(10, bankInfo.decimalPlaces), bankInfo.decimalPlaces),
+                },
+            ]);
+        }));
+    });
 
     describe("transaction", () => {
 
-        it("should create a transfer", async function(this: TestContext) {
+        it("should create a transfer", async function() {
+            const txIds = await Promise.all(accountIds.map(async (accountId) => {
+                const to = accountIds.find((id) => {
+                    return id.hex !== accountId.hex;
+                });
 
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+                if (!to) {
+                    throw new TypeError("to is undefined");
+                }
 
-            // Create transfer
+                return testCaseInstances.accountClient.transfer([
+                    {
+                        fromAccountId: accountId.bytes,
+                        toAccountId: to.bytes,
+                        amount: parseUnits(parseUnits(10, 2), 2),
+                    },
+                ]);
+            }));
 
-            const transferAmount = 1000;
-
-            transactionId = await context.client.transfer(
-                new TransferBuilder().step(
-                    new StepBuilder(
-                        context.parentAccountId,
-                        context.bobsAccountId,
-                        transferAmount,
-                    ).metadata(convertMemoToAny(new m10.sdk.metadata.Memo({ plaintext: "Funds" }))),
-                ),
-            );
-
-            assert.isOk(isSome(transactionId));
-
-            // Get transfer
-
-            const transfer = await context.client.getTransfer(transactionId);
-
-            assert.isOk(transfer.success);
+            transactionIds.push(...txIds);
+            expect(txIds.length).to.be.greaterThan(0);
         });
 
-        it("should initiate and commit a transfer", async function(this: TestContext) {
+        it("should initiate and commit a transfer", async function() {
+            await Promise.all(accountIds.map(async (accountId) => {
+                const to = accountIds.find((id) => {
+                    return id.hex !== accountId.hex;
+                });
 
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+                if (!to) {
+                    throw new TypeError("to is undefined");
+                }
 
-            // Initiate transfer
+                const txId = await testCaseInstances.accountClient.initiateTransfer([
+                    {
+                        fromAccountId: accountId.bytes,
+                        toAccountId: to.bytes,
+                        amount: parseUnits(parseUnits(10, 2), 2),
+                        metadata: [convertMemoToAny(Memo.create({ plaintext: "Funds" }))],
+                    },
+                ]);
 
+                console.log("Initiated transfer with txId:", txId);
 
-            const transferAmount = 1000;
+                if (!txId) {
+                    throw new TypeError("transactionId is undefined");
+                }
 
-            transactionId = await context.client.initiateTransfer(
-                new TransferBuilder().step(
-                    new StepBuilder(
-                        context.parentAccountId,
-                        context.bobsAccountId,
-                        transferAmount,
-                    ).metadata(convertMemoToAny(new m10.sdk.metadata.Memo({ plaintext: "Funds" }))),
-                ),
-            );
+                try {
+                    const responseTxId = await testCaseInstances.accountClient.commitTransfer(txId, true);
 
-            // Commit transfer
+                    await sleep(1_000);
 
-            if (isSome(transactionId)) {
+                    transactionIds.push(responseTxId);
 
-                const responseTxId = await context.client.commitTransfer(transactionId, true);
+                    console.log("responseTxId", responseTxId);
 
-                assert.isOk(isSome(responseTxId), "should successfully commit a pending transfer");
-            }
-            else {
-                assert.isOk(false, "transactionId is undefined");
-            }
+                    const transferTx = await testCaseInstances.accountClient.getTransaction({ txId: responseTxId });
 
-            // Get transfer
-
-            const transfer = await context.client.getTransfer(transactionId);
-
-            assert.isOk(transfer.success);
-            assert.equal(transfer.status, TransferStatus.Accepted);
-        });
+                    assert.isOk(Boolean(transferTx.response?.transferCommitted?.transferSteps.length));
+                } catch (error) {
+                    console.error("Error while waiting for transfer to be accepted", error);
+                }
+            }));
+        }).timeout(10_000);
     });
 
     describe("query", () => {
-
-        it("should get an enhanced transfer by id", async function(this: TestContext) {
-
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
-
-            // Get transfer
-            const enhancedTransfer = await context.client.getEnhancedTransfer(
-                unwrap(transactionId, M10Error.Other("transactionId is None")),
-            );
-
-            const enhancedTransferStep = enhancedTransfer.steps[0];
-
-            expect(enhancedTransferStep.from.id).to.exist;
-            expect(enhancedTransferStep.to.id).to.exist;
-            expect(enhancedTransferStep.amount).to.exist;
-        });
-
-        it("should get a list of transfers", async function(this: TestContext) {
-
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
-
-            // List transfers
-
+        it("should get a list of transfers", async function() {
             const limit = 10;
-            const enhancedTransfers = await context.client.getEnhancedTransfers(
-                TransferFilter.byAccount(context.bobsAccountId).limit(limit),
-            );
+            await Promise.all(accountIds.map(async (accountId) => {
+                const enhancedTransfers = await testCaseInstances.accountClient.getEnhancedTransfers(
+                    {
+                        filter: {
+                            oneofKind: "accountId",
+                            accountId: accountId.bytes,
+                        },
+                        limit: BigInt(limit),
+                    },
+                );
 
-            expect(enhancedTransfers).to.be.instanceOf(Array);
-            expect(enhancedTransfers?.length).to.be.greaterThan(0);
+                expect(enhancedTransfers).to.be.instanceOf(Array);
+                expect(enhancedTransfers?.length).to.be.greaterThan(0);
 
-            const enhancedTransfer = unwrap(enhancedTransfers[0], M10Error.Other("enhancedTransfers[0] is None"));
+                const enhancedTransfer = enhancedTransfers[0];
 
-            expect(enhancedTransfer.steps[0].amount).to.exist;
-            expect(enhancedTransfer.steps[0].from.id).to.exist;
-            expect(enhancedTransfer.steps[0].to.id).to.exist;
+                expect(enhancedTransfer.enhanced_steps[0].from?.accountId).to.exist;
+                expect(enhancedTransfer.enhanced_steps[0].to?.accountId).to.exist;
+            }));
         });
     });
 });

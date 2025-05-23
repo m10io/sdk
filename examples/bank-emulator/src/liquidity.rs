@@ -21,7 +21,7 @@ pub(crate) async fn check_or_inflate_reserves(
     currency: &CurrencyConfig,
     context: &Context,
 ) -> Result<u64, Error> {
-    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy()?);
+    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy());
 
     let reserve_account_id = currency.reserve_account_id(context).await?;
 
@@ -48,12 +48,7 @@ pub(crate) async fn check_or_inflate_reserves(
             return Err(Error::internal_msg("required amount too large"));
         }
         required
-    } else if new_balance
-        < currency
-            .reserve_config
-            .reserve_balance_low_bound()
-            .try_into()?
-    {
+    } else if u64::try_from(new_balance)? < currency.reserve_config.reserve_balance_low_bound() {
         currency.reserve_config.nominal_balance - u64::try_from(new_balance)?
     } else {
         0
@@ -102,7 +97,7 @@ pub(crate) async fn check_or_deflate_reserves(
     currency: &CurrencyConfig,
     context: &Context,
 ) -> Result<u64, Error> {
-    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy()?);
+    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy());
 
     let reserve_account_id = currency.reserve_account_id(context).await?;
 
@@ -179,7 +174,7 @@ pub(crate) async fn reserve_cbdc(
 ) -> Result<(), Error> {
     check_or_inflate_reserves(amount, currency, context).await?;
 
-    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy()?);
+    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy());
 
     let account_req = AccountRequest {
         institute: currency.cb_name.clone(),
@@ -216,7 +211,7 @@ pub(crate) async fn release_cbdc(
     currency: &CurrencyConfig,
     context: &Context,
 ) -> Result<(), Error> {
-    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy()?);
+    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy());
 
     let cbdc_reserve_account = parent_of(&account[..])?;
     let ledger_txn = ledger_transfer(
@@ -261,7 +256,7 @@ pub(crate) async fn reserve_drc_holding(
 ) -> Result<(), Error> {
     check_or_inflate_reserves(amount, currency, context).await?;
 
-    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy()?);
+    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy());
 
     let account_req = AccountRequest {
         institute: currency.cb_name.clone(),
@@ -299,7 +294,7 @@ pub(crate) async fn release_drc_holding(
     currency: &CurrencyConfig,
     context: &Context,
 ) -> Result<(), Error> {
-    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy()?);
+    let mut rtgs = RtgsServiceClient::new(currency.rtgs_addr.connect_lazy());
 
     let cbdc_reserve_account = parent_of(&account[..])?;
     let ledger_txn = ledger_transfer(

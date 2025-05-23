@@ -6,8 +6,10 @@ use m10_sdk::M10CoreClient;
 use m10_sdk::{directory::directory_service_client::DirectoryServiceClient, GrpcClient};
 use sqlx::Acquire;
 
+use crate::config::make_endpoint;
 use crate::emulator::BankEmulator;
 use crate::models::Currency;
+use crate::requiem::RequiemService;
 use crate::{
     config::{BankConfig, Config, CurrencyConfig},
     error::Error,
@@ -19,6 +21,7 @@ pub(crate) struct Context {
     pub(crate) ledger: Arc<Box<dyn M10CoreClient<Signer = ProxySigner> + Send + Sync>>,
     pub(crate) directory: DirectoryServiceClient<tonic::transport::Channel>,
     pub(crate) bank: BankEmulator,
+    pub(crate) requiem: RequiemService,
     pub(crate) db_pool: bb8::Pool<RdsManager>,
     pub(crate) config: Config,
 }
@@ -26,6 +29,7 @@ pub(crate) struct Context {
 impl Context {
     pub async fn new_from_config(config: Config) -> Result<Self, Error> {
         let db_pool = RdsManager::new(config.database_url.clone()).pool().await?;
+
         match &config.bank {
             BankConfig::Emulator(emulator_config) => {
                 let bank_db_pool = if let Some(db_url) = emulator_config.database_url.as_ref() {
@@ -33,13 +37,17 @@ impl Context {
                 } else {
                     db_pool.clone()
                 };
+
                 Ok(Self {
                     ledger: Arc::new(Box::new(GrpcClient::new(
-                        config.ledger_addr.clone(),
+                        make_endpoint(config.ledger_addr.uri().clone())?,
                         Some(std::sync::Arc::new(ProxySigner::new(&config))),
                     )?)),
-                    directory: DirectoryServiceClient::new(config.directory_addr.connect_lazy()?),
+                    directory: DirectoryServiceClient::new(
+                        make_endpoint(config.directory_addr.uri().clone())?.connect_lazy(),
+                    ),
                     bank: BankEmulator::new_from_config(emulator_config, bank_db_pool).await?,
+                    requiem: RequiemService::new_from_config(config.requiem.clone()),
                     db_pool,
                     config,
                 })
@@ -48,16 +56,16 @@ impl Context {
         }
     }
 
-    pub(crate) async fn init(&self) -> Result<(), Error> {
+    pub(crate) async fn init(&mut self) -> Result<(), Error> {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         for currency in self.config.currencies.values() {
-            if Currency::get(&currency.code, &mut txn).await.is_err() {
+            if Currency::get(&currency.code, &mut *txn).await.is_err() {
                 let mut entry = Currency {
                     code: currency.code.to_string(),
                     ..Default::default()
                 };
-                entry.insert(&mut txn).await?;
+                entry.insert(&mut *txn).await?;
             }
         }
         txn.commit().await?;

@@ -792,8 +792,13 @@ impl std::str::FromStr for AccountId {
     type Err = AccountIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s_clean: String = s.chars().filter(|&c| c != '-').collect();
+        if s_clean.len() != 32 {
+            return Err(AccountIdError::InvalidLen);
+        }
+
         let mut buf = [0u8; 16];
-        hex::decode_to_slice(s, &mut buf).map_err(|_| AccountIdError::InvalidLen)?;
+        hex::decode_to_slice(&s_clean, &mut buf).map_err(|_| AccountIdError::InvalidLen)?;
         Self::try_from_be_bytes(buf)
     }
 }
@@ -812,7 +817,7 @@ impl Serialize for AccountId {
 
 struct HexAccountId;
 
-impl<'de> Visitor<'de> for HexAccountId {
+impl Visitor<'_> for HexAccountId {
     type Value = AccountId;
 
     fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {

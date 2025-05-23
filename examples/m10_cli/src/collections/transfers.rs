@@ -1,7 +1,6 @@
 use m10_sdk::contract::{FinalizedContractExt, TransferInfo};
 use m10_sdk::prost::{Any, Message};
 use m10_sdk::sdk::{self, commit_transfer};
-use m10_sdk::TransferStep;
 use std::convert::{TryFrom, TryInto};
 
 const ATTACHMENT_TYPE_URL: &str = "m10.sdk.metadata.Attachment";
@@ -123,11 +122,6 @@ impl TryFrom<Any> for Metadata {
             _ => Metadata::Unknown,
         })
     }
-}
-
-#[derive(Debug, serde::Serialize)]
-pub(crate) struct CreateTransfer {
-    pub(crate) steps: Vec<TransferStep>,
 }
 
 #[derive(Debug, serde::Serialize)]

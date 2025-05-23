@@ -27,14 +27,14 @@ pub(crate) struct CreateRoleBindingArgs {
     #[arg(short, long)]
     #[serde_as(as = "DisplayFromStr")]
     role: PrettyId,
-    /// Set subjects (list of public keys in base64 format)
+    /// Set subject (public key)
     #[arg(long, alias = "subjs")]
     #[serde(default)]
-    subjects: Vec<String>,
-    /// Set extra guard expressions
+    subject: Vec<String>,
+    /// Set extra guard expressions (MQL4 syntax)
     #[arg(short = 'g', long, alias = "exps")]
     expressions: Option<Expression>,
-    /// Set role binding to 'universal'
+    /// Sets role binding to be used by any public key. Default: False
     #[arg(short = 'u', long, alias = "universal")]
     is_universal: bool,
 }
@@ -45,7 +45,7 @@ impl super::BuildFromArgs for CreateRoleBindingArgs {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
         let owner = self.owner.unwrap_or(default_owner).0;
         let subjects = self
-            .subjects
+            .subject
             .iter()
             .map(base64::decode)
             .collect::<Result<Vec<Vec<u8>>, _>>()?

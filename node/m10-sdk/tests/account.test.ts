@@ -1,24 +1,29 @@
 import { assert } from "chai";
 
-import { M10Client } from "../src";
-import { PageBuilder } from "../src/builders/page";
-import { CryptoSigner } from "../src/utils";
-
-const BANK_ADMIN = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
-const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
-
+import type { TestCaseInstances } from "./config";
+import { createCurrencyAccounts, initTestCaseInstances } from "./config";
 
 describe("account", () => {
+    let testCaseInstances: TestCaseInstances;
+
+    it("init", async () => {
+        testCaseInstances = await initTestCaseInstances();
+    });
+
+    it("create currency accounts", async () => {
+        await createCurrencyAccounts(testCaseInstances);
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    }).timeout(10_000);
 
     describe("query", () => {
-
         it("listAccounts", async () => {
-
-            const bankAdminSigner = CryptoSigner.getSignerFromPkcs8V1(BANK_ADMIN);
-            const client = new M10Client(LEDGER_URL, bankAdminSigner);
-
-            const accountMetadatas = await client.listAccountMetadatas(
-                PageBuilder.byOwner(bankAdminSigner.getPublicKey()),
+            const accountMetadatas = await testCaseInstances.accountClient.listAccountMetadata(
+                {
+                    filter: {
+                        oneofKind: "owner",
+                        owner: testCaseInstances.accountSigner.getPublicKey().toUint8Array(),
+                    },
+                },
             );
 
             assert.isNotEmpty(accountMetadatas);

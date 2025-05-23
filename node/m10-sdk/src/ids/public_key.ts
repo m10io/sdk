@@ -1,5 +1,5 @@
-import { BASE64_REGEX, validate } from ".";
-
+// eslint-disable-next-line import/no-nodejs-modules
+import { Buffer } from "buffer";
 
 export class PublicKey {
 
@@ -7,11 +7,9 @@ export class PublicKey {
 
     public constructor(value: string | Buffer) {
         if (typeof value === "string") {
-            validate(value, "base64", BASE64_REGEX.test.bind(BASE64_REGEX));
             this.value = Uint8Array.from(Buffer.from(value, "base64"));
         }
         else {
-            validate(Buffer.from(value).toString("base64"), "base64", BASE64_REGEX.test.bind(BASE64_REGEX));
             this.value = Uint8Array.from(value);
         }
     }

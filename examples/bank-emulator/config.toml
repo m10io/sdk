@@ -42,3 +42,7 @@ type = "Mock"
 [directory]
 address = "https://develop.m10.net"
 is_secure = true
+
+[requiem]
+url = "0.0.0.0:80"
+public_key = "Z/o13EZ8xHk132oe57ogZUT/N7vPGdGQmV6053pO1bw="

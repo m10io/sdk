@@ -43,16 +43,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
             .type_attribute(
                 ".m10.sdk.Expression",
-                "#[derive(looking_glass_derive::Instance)]",
+                "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(".m10.sdk.Role", "#[derive(looking_glass_derive::Instance)]")
-            .type_attribute(".m10.sdk.Rule", "#[derive(looking_glass_derive::Instance)]")
             .type_attribute(
-                ".m10.sdk.Value",
+                ".m10.sdk.Rule",
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
-                ".m10.sdk.Value.value",
+                ".m10.sdk.Value",
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
@@ -84,6 +83,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "#[serde_with::serde_as] #[derive(serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
+                ".m10.sdk.transaction.signature.Algorithm",
+                "#[derive(serde::Serialize, serde::Deserialize)]",
+            )
+            .type_attribute(
                 ".m10.sdk.FinalizedTransaction",
                 "#[serde_with::serde_as] #[derive(serde::Serialize, serde::Deserialize)]",
             )
@@ -110,7 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     prost_config
-        .bytes([".m10.sdk.RoleBinding", ".m10.sdk.Role", "Value"])
+        .bytes([".m10.sdk.RoleBinding", ".m10.sdk.Role", ".m10.sdk.Value"])
         .file_descriptor_set_path(out_dir.join("m10.sdk.bin"));
 
     let service_protos = with_additional_protos(
@@ -120,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .build_server(cfg!(feature = "server"))
         .build_client(cfg!(feature = "client"))
-        .compile_with_config(prost_config, &service_protos, &[protobuf_dir()])?;
+        .compile_protos_with_config(prost_config, &service_protos, &[protobuf_dir()])?;
     Ok(())
 }
 

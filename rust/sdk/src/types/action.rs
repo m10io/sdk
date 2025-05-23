@@ -7,6 +7,7 @@ use core::result::Result;
 use m10_protos::sdk;
 use m10_protos::sdk::transaction_data::Data;
 use serde::Serialize;
+use serde_with::serde_as;
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[derive(Clone, Debug, Serialize)]
@@ -42,9 +43,11 @@ impl TryFrom<sdk::Target> for Target {
     }
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct Action {
     pub tx_id: TxId,
+    #[serde_as(as = "serde_with::hex::Hex")]
     pub context_id: Vec<u8>,
     pub name: String,
     pub from_account: AccountId,

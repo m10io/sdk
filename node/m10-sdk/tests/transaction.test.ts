@@ -1,9 +1,10 @@
 import { assert } from "chai";
 
-import { LedgerClient } from "../src/ledger_client";
+import { M10Client } from "../src";
+import { Empty } from "../src/protobufs/google/protobuf/empty";
 
 
-const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
+const LEDGER_URL = process.env.LEDGER_URL || "https://app.dev.m10.net";
 
 describe("transaction", () => {
 
@@ -11,10 +12,10 @@ describe("transaction", () => {
 
         it("blockHeight", async () => {
 
-            const ledgerClient = new LedgerClient(LEDGER_URL, true);
-            const response = await ledgerClient.blockHeight();
+            const queryClient = M10Client.createQueryClient(LEDGER_URL);
+            const response = await queryClient.getChainInfo(Empty.create());
 
-            assert.isOk(response > 0);
+            assert.isOk(response.response.blockHeight > 0);
         });
     });
 });

@@ -14,7 +14,7 @@ message TransactionRequestPayload {
   // UNIX timestamp in microseconds
   uint64 timestamp = 2;
 
-  // \[optional\] unique Context ID, allowing linking of multiple requests
+  // [optional] unique Context ID, allowing linking of multiple requests
   bytes context_id = 5;
 
   // Request payload data.
@@ -38,18 +38,25 @@ message TransactionData {
 }
 
 message TransactionResponse {
+  /// Unique transaction ID.
   uint64 tx_id = 1;
+  /// Error information, if any.
   TransactionError error = 2;
+  /// Transaction timestamp.
   fixed64 timestamp = 4;
 
   // Responses
+  /// account ID.
   bytes account_created = 3;
+  /// Committed transfer details.
   CreateTransfer transfer_committed = 5;
   OfflineToken token = 6;
 }
 
 message TransactionError {
+  /// Error code.
   Code code = 1;
+  /// Error message.
   string message = 2;
 
   enum Code {
@@ -60,11 +67,11 @@ message TransactionError {
     ALREADY_EXISTS = 3;
     UNAUTHORIZED = 4;
 
-    // User request is malformed
+    // Request is malformed
     BAD_REQUEST = 5;
     // Invalid/unsupported transaction request type
     INVALID_REQUEST_TYPE = 6;
-    // Invalid account ID bytes in request
+    // Invalid account ID
     INVALID_ACCOUNT_ID = 7;
     // Invalid transfer parameters (amount, accounts, etc)
     INVALID_TRANSFER = 8;
@@ -73,13 +80,13 @@ message TransactionError {
     // The request signature does not match the request payload
     INVALID_SIGNATURE = 11;
 
-    // Verification-specific status codes
+    // Signature verification failed
     VERIFICATION_FAILED = 12;
 
     // Replay protection was triggered, e.g. nonce reuse, bad block window
     REPLAY_PROTECTION = 20;
 
-    // Arcadius/RBAC-specific status codes
+    // Invalid expression used
     INVALID_EXPRESSION = 21;
     INCORRECT_TYPE = 22;
 
@@ -97,49 +104,74 @@ message TransactionError {
 }
 
 message CreateLedgerTransfer {
+  /// Ledger identifier.
   string ledger_id = 1;
+  /// Nonce for replay protection.
   uint64 nonce = 2;
+  /// Transfer details.
   CreateTransfer transfer = 3;
 }
 
 message CreateLedgerTransfers {
-  // List of ledger targeted transfers that are part of the contract
+  // Ledger transfers
   repeated CreateLedgerTransfer transfers = 1;
   // UTC timestamp defining the end date of the contract
   // Interpret as microseconds since the UNIX_EPOCH
   uint64 valid_until = 2;
 }
 
-message GetTransferRequest { uint64 tx_id = 1; }
+message GetTransferRequest { 
+  /// Transaction ID of the transfer.
+  uint64 tx_id = 1; 
+}
 
 // Transfers are returned in descending order from max_tx_id to min_tx_id
 message ListTransferRequest {
   oneof filter {
+    /// Account ID to filter transfers by.
     bytes account_id = 1;
+    /// Context ID to filter transfers by.
     bytes context_id = 2;
   }
+  /// Maximum number of transfers to return.
   uint64 limit = 4;
+  /// Whether to include transfers from child accounts.
   bool include_child_accounts = 5;
+  /// Minimum transaction ID to include.
   uint64 min_tx_id = 6;
   // default = maximum possible tx id
+  /// Maximum transaction ID to include.
   uint64 max_tx_id = 7;
 }
 
-message CreateTransfer { repeated TransferStep transfer_steps = 1; }
+message CreateTransfer { 
+  /// List of transfer steps.
+  repeated TransferStep transfer_steps = 1; 
+}
 
 message TransferStep {
+  /// Source account ID.
   bytes from_account_id = 1;
+  /// Destination account ID.
   bytes to_account_id = 2;
+  /// Amount to transfer.
   uint64 amount = 4;
+  /// Metadata associated with the transfer step.
   repeated google.protobuf.Any metadata = 7;
 }
 
 message FinalizedTransfer {
+  /// Transaction ID of the finalized transfer.
   uint64 tx_id = 1;
+  /// Context ID associated with the transfer.
   bytes context_id = 2;
+  /// List of transfer steps.
   repeated TransferStep transfer_steps = 3;
+  /// Error information, if any.
   TransactionError error = 4;
+  /// Timestamp of the transfer.
   fixed64 timestamp = 5;
+  /// State of the transfer.
   TransferState state = 7;
   enum TransferState {
     ACCEPTED = 0;
@@ -149,51 +181,82 @@ message FinalizedTransfer {
   }
 }
 
-message FinalizedTransfers { repeated FinalizedTransfer transfers = 1; }
+message FinalizedTransfers { 
+  /// List of finalized transfers.
+  repeated FinalizedTransfer transfers = 1; 
+}
 
 message Instrument {
+  /// Instrument code (e.g., currency code).
   string code = 1;
+  /// Number of decimal places for the instrument.
   uint32 decimal_places = 2;
+  /// Description of the instrument.
   string description = 3;
 }
 
 message CreateLedgerAccount {
+  /// Parent account ID.
   bytes parent_id = 1;
+  /// Whether this is an issuance account.
   bool issuance = 2;
+  /// Whether the account is initially frozen.
   bool frozen = 3;
+  /// Instrument associated with the account.
   Instrument instrument = 4;
+  /// Balance limit for the account.
   uint64 balance_limit = 5;
 }
 
 message SetFreezeState {
+  /// Account ID to set freeze state for.
   bytes account_id = 1;
+  /// Whether to freeze the account.
   bool frozen = 2;
 }
 
 message SetInstrument {
+  /// Account ID to set the instrument for.
   bytes account_id = 1;
+  /// Instrument code.
   string code = 2;
+  /// Number of decimal places.
   uint32 decimal_places = 3;
+  /// Instrument description.
   string description = 4;
 }
 
 message SetBalanceLimit {
+  /// Account ID to set the balance limit for.
   bytes account_id = 1;
+  /// New balance limit.
   uint64 balance_limit = 2;
 }
 
-message GetAccountRequest { bytes id = 1; }
+message GetAccountRequest { 
+  /// ID of the account to retrieve.
+  bytes id = 1; 
+}
 
 message IndexedAccount {
+  /// Account ID.
   bytes id = 1;
+  /// Issuance information.
   Issuance issuance = 3;
+  /// Account balance.
   uint64 balance = 4;
+  /// Whether the account is frozen.
   bool frozen = 5;
+  /// Instrument associated with the account.
   Instrument instrument = 6;
+  /// Balance limit of the account.
   uint64 balance_limit = 7;
   message Issuance {
+    /// Issued balance of the account.
     uint64 issued_balance = 1;
+    /// Number of non-leaf child accounts.
     uint64 non_leaf_children = 2;
+    /// Number of leaf child accounts.
     uint64 leaf_children = 3;
   }
 }
@@ -221,50 +284,66 @@ message Target {
 }
 
 message Action {
+  /// Transaction ID of the action.
   uint64 tx_id = 1;
-  // Unique name of the action to invoke
+  /// Name of the action.
   string name = 2;
-  // \[optional\] unique Context ID, allowing linking of multiple requests
+  // [optional] unique Context ID, allowing linking of multiple requests
   bytes context_id = 3;
-  // Invoking account ID
+  /// Invoking account ID.
   bytes from_account = 4;
-  // Specifies the identity/identities who have permission to see & be notified
-  // of the invoked action
+  /// Target acount ID of the action.
   Target target = 5;
-  // Opaque payload
+  /// Action payload.
   bytes payload = 6;
 }
 
-message Actions { repeated Action actions = 1; }
+message Actions { 
+  /// List of actions.
+  repeated Action actions = 1; 
+}
 
-message GetActionRequest { uint64 tx_id = 1; }
+message GetActionRequest {
+  /// Transaction ID of the action to retrieve. 
+  uint64 tx_id = 1; 
+}
 
 message ListActionsRequest {
-  // Name of the action
+  /// Name of the action to filter by.
   string name = 1;
   oneof filter {
+    /// Account ID to filter by.
     bytes account_id = 2;
+    /// Context ID to filter by.
     bytes context_id = 3;
   }
+  /// Maximum number of actions to return.
   uint64 limit = 4;
+  /// Minimum transaction ID to include.
   uint64 min_tx_id = 5;
   // default = maximum possible tx id
+  /// Maximum transaction ID to include.
   uint64 max_tx_id = 6;
 }
 
 message CommitTransfer {
-  uint64 pending_tx_id =
-      1; // The transaction that contains a pending transfer / transaction
+  /// Transaction ID of the pending transfer.
+  uint64 pending_tx_id = 1;
   enum TransferState {
     ACCEPTED = 0;
     REJECTED = 1;
   }
+  /// New state of the transfer.
   TransferState new_state = 2;
 }
 
+
 message Signature {
+  /// Public key used for the signature.
   bytes public_key = 2;
+  /// Signature data.
   bytes signature = 3;
+  /// Signature algorithm.
   Algorithm algorithm = 4;
   enum Algorithm {
     P256_SHA256_ASN1 = 0;
@@ -273,39 +352,59 @@ message Signature {
 }
 
 message CreateToken {
+    /// Address for the token.
     bytes address = 1;
+    /// Account ID associated with the token.
     bytes account_id = 2;
+    /// Value of the token.
     uint64 value = 3;
 }
 
 message OfflineToken {
     message Data {
+        /// Token ID.
         uint64 id = 1;
+        /// Token address.
         bytes address = 2;
+        /// Account ID associated with the token.
         bytes account_id = 3;
+        /// Token value.
         uint64 value = 4;
+        /// Currency of the token.
         string currency = 5;
     }
+    /// Token data.
     Data data = 1;
+    /// Signature for the token.
     Signature signature = 2;
 }
 
 message RedeemableToken {
     message TokenInput {
+        /// Input value.
         uint64 input = 1;
+        /// Value associated with the input.
         uint64 value = 2;
     }
     message Data {
+        /// Token ID.
         bytes id = 1;
+        /// Token address.
         bytes address = 2;
+        /// List of token inputs.
         repeated TokenInput inputs = 3;
+        /// Token currency.
         string currency = 4;
     }
+    /// Token data.
     Data data = 1;
+    /// Signature for the token.
     Signature signature = 2;
 }
 
 message RedeemToken {
+    /// Redeemable token.
     RedeemableToken token = 1;
+    /// Account ID for redemption.
     bytes account_id = 2;
 }

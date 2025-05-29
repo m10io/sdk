@@ -18,4 +18,4 @@ tonic = { version = "0.12.3", default-features = false }
 tokio = { version = "1.7.0", features = ["full"] }
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
 m10-bank-emulator = { path = ".." }
-m10-sdk = "0.35.3"
+m10-sdk = "0.35.4"

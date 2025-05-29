@@ -1,6 +1,6 @@
 [package]
 name = "m10-sdk"
-version = "0.35.3"
+version = "0.35.4"
 authors = [
     "Michael Wittner <michael.wittner@m10.io>",
     "Sam De Roeck <sam.deroeck@m10.io>",
@@ -82,7 +82,7 @@ ring = { version = "0.17.13", features = ["std"], optional = true }
 async-trait = { version = "0.1", optional = true }
 futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-m10-signing = { version = "0.35.3", path = "../signing", optional = true }
+m10-signing = { version = "0.35.4", path = "../signing", optional = true }
 tonic = { version = "0.12.1", features = ["tls", "tls-roots"], optional = true }
 
 # format

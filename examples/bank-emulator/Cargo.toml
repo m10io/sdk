@@ -61,7 +61,7 @@ m10-bank-emulator-protos = { path = "../../shared/rust/bank-emulator-protos", fe
     "client",
 ] }
 m10-rds-pool = { path = "../rds-pool" }
-m10-sdk = "0.35.3"
+m10-sdk = "0.35.4"
 pala-types = { path = "../../shared/rust/pala-types" }
 
 [dependencies.uuid]

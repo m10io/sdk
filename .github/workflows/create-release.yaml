@@ -35,6 +35,15 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+      - name: Build project
+        env:
+          PROTOC: ${{ env.PROTOC }}
+        run: cargo build --workspace --release
       - uses: katyo/publish-crates@v2
         with:
           path: "./rust"
@@ -53,7 +62,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "16.x"
+          node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
       - run: npm install
       - run: npm publish

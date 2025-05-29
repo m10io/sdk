@@ -17,6 +17,7 @@ use crate::{
     auth::{AuthScope, BankEmulatorRole, User},
     bank::Bank,
     context::Context,
+    controllers::contacts::validate_signatures,
     error::Error,
     models::{
         Account, AccountStatus, AmountRequest, Asset, AssetType, AssetTypeQuery, BankTransfer,
@@ -28,6 +29,7 @@ use crate::{
 };
 
 #[post("")]
+#[allow(clippy::assigning_clones)]
 async fn create(
     request: Json<CreateAccountRequest>,
     current_user: User,
@@ -44,6 +46,8 @@ async fn create(
         .contact
         .get("profile_image_url")
         .and_then(|v| v.as_str());
+
+    validate_signatures(req.signatures.clone())?;
 
     let mut bank = context.bank.clone();
     let account_ref = bank.create_account(name).await?;
@@ -64,7 +68,7 @@ async fn create(
         bank_reference: Some(account_ref),
         ..Default::default()
     };
-    account.insert(&mut txn).await?;
+    account.insert(&mut *txn).await?;
 
     // Create Assets on ledger
     let assets = req
@@ -87,7 +91,7 @@ async fn create(
                     cbdc_asset.instrument = a.clone();
                     cbdc_asset.linked_account = account.id;
                     cbdc_asset.tenant = req.tenant.clone();
-                    cbdc_asset.insert(&mut txn).await?;
+                    cbdc_asset.insert(&mut *txn).await?;
                     ledger_accounts.push(cbdc_asset.ledger_account_id);
                 }
                 let mut asset =
@@ -97,7 +101,7 @@ async fn create(
                 asset.instrument = a;
                 asset.linked_account = account.id;
                 asset.tenant = req.tenant.clone();
-                asset.insert(&mut txn).await?;
+                asset.insert(&mut *txn).await?;
                 ledger_accounts.push(asset.ledger_account_id);
             }
         }
@@ -107,7 +111,17 @@ async fn create(
     let account_set_id = create_account_set(ledger_accounts.to_vec(), &context).await?;
 
     // Create RBAC role for contact
-    let role_id = create_contact_rbac_role(name, account_set_id, ledger_accounts, &context).await?;
+    let role_id = create_contact_rbac_role(
+        name,
+        account_set_id,
+        ledger_accounts,
+        req.signatures
+            .iter()
+            .map(|s| s.public_key.clone())
+            .collect(),
+        &context,
+    )
+    .await?;
 
     // Create Contact entry
     let mut contact = Contact {
@@ -121,7 +135,7 @@ async fn create(
         tenant: req.tenant,
         ..Default::default()
     };
-    contact.insert(&mut txn).await?;
+    contact.insert(&mut *txn).await?;
     txn.commit().await?;
 
     // Create Alias for contact
@@ -170,7 +184,7 @@ async fn delete(
     let tenant = scope.authorized_tenant()?;
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
-    let account = Account::delete(*id, &tenant, &mut txn)
+    let account = Account::delete(*id, &tenant, &mut *txn)
         .await?
         .ok_or_else(|| Error::not_found("account"))?;
     txn.commit().await?;
@@ -729,14 +743,14 @@ async fn open(
     let mut conn = context.db_pool.get().await?;
     let mut txn = conn.begin().await?;
     let mut account = query
-        .fetch_optional(&mut txn)
+        .fetch_optional(&mut *txn)
         .await?
         .ok_or_else(|| Error::not_found("account"))?;
     if let Some(account_ref) = account.bank_reference.as_ref() {
         context.bank.open_account(account_ref).await?;
     }
     account.status = AccountStatus::Open;
-    account.update_status(&mut txn).await?;
+    account.update_status(&mut *txn).await?;
     txn.commit().await?;
     Ok(Json(account))
 }

@@ -28,17 +28,17 @@ impl Run {
     ) -> anyhow::Result<()> {
         match self {
             Run::Batch => Self::run_batch(file, dry_run, context).await,
-            Run::Migration => Self::run_migragtion(file, dry_run, context).await,
+            Run::Migration => Self::run_migration(file, dry_run, context).await,
         }
     }
 
     fn load_commands(file: &str) -> anyhow::Result<Vec<super::Commands>> {
         let yaml_file = File::open(file)?;
         let reader = BufReader::new(yaml_file);
-        Ok(serde_yaml::from_reader(reader)?)
+        Ok(serde_yml::from_reader(reader)?)
     }
 
-    async fn run_migragtion(file: String, dry_run: bool, context: &Context) -> anyhow::Result<()> {
+    async fn run_migration(file: String, dry_run: bool, context: &Context) -> anyhow::Result<()> {
         let data = Self::load_commands(&file)?;
         if dry_run {
             for op in data {

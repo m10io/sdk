@@ -1,9 +1,6 @@
 use m10_bank_emulator::models::{Account, Contact, ListResponse};
 use reqwest::{Response, StatusCode};
-use ring::{
-    digest, rand,
-    signature::{self, KeyPair},
-};
+use ring::digest;
 use serde::de::DeserializeOwned;
 use std::{
     collections::HashMap,
@@ -17,17 +14,8 @@ static DEFAULT_USER_JWT: OnceCell<String> = OnceCell::const_new();
 static PREPOPULATED_USER_JWT: OnceCell<String> = OnceCell::const_new();
 static ADMIN_JWT: OnceCell<String> = OnceCell::const_new();
 
-pub(crate) fn public_key() -> String {
-    let rng = rand::SystemRandom::new();
-    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
-    let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref()).unwrap();
-    let peer_public_key_bytes = key_pair.public_key().as_ref();
-    base64::encode(peer_public_key_bytes)
-}
-
 pub(crate) fn key_pair() -> m10_sdk::Ed25519 {
-    let key_pair = m10_sdk::Ed25519::new_key_pair(None).unwrap();
-    key_pair
+    m10_sdk::Ed25519::new_key_pair(None).unwrap()
 }
 
 pub async fn admin_jwt() -> String {
@@ -42,7 +30,7 @@ pub async fn admin_jwt() -> String {
 pub async fn delete_contact(client: &reqwest::Client, jwt: &str) {
     let resp = client
         .get(format!("{}/api/v1/contacts", base_url()))
-        .bearer_auth(&jwt)
+        .bearer_auth(jwt)
         .send()
         .await
         .unwrap()
@@ -65,7 +53,7 @@ pub async fn delete_contact(client: &reqwest::Client, jwt: &str) {
 pub async fn delete_account(client: &reqwest::Client, jwt: &str) {
     let resp = client
         .get(format!("{}/api/v1/accounts", base_url()))
-        .bearer_auth(&jwt)
+        .bearer_auth(jwt)
         .send()
         .await
         .unwrap()
@@ -101,8 +89,7 @@ pub(crate) async fn prepopulated_user_jwt() -> String {
 
 pub async fn create_or_get_user(email: &str) -> String {
     // TODO: Own scope for omega Bank
-    let jwt = create_or_get_auth_token(email, "openid").await;
-    jwt
+    create_or_get_auth_token(email, "openid").await
 }
 
 pub async fn create_or_get_auth_token(email: &str, scope: &str) -> String {

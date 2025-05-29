@@ -1,5 +1,7 @@
+use crate::account::AccountId;
+
 use super::*;
-use m10_protos::sdk::{AccountRef, AccountSet};
+use m10_protos::sdk::AccountSet;
 
 impl DocumentUpdate<AccountSet> {
     pub fn owner(&mut self, owner: Vec<u8>) -> &mut Self {
@@ -11,8 +13,8 @@ impl DocumentUpdate<AccountSet> {
         self
     }
 
-    pub fn account(&mut self, account: AccountRef) -> &mut Self {
-        self.document.accounts.push(account);
+    pub fn account(&mut self, account: AccountId) -> &mut Self {
+        self.document.accounts.push(account.to_vec());
         let path = "accounts".to_string();
         if !self.mask.paths.contains(&path) {
             self.mask.paths.push(path);
@@ -20,9 +22,9 @@ impl DocumentUpdate<AccountSet> {
         self
     }
 
-    pub fn accounts(&mut self, accounts: Vec<AccountRef>) -> &mut Self {
+    pub fn accounts(&mut self, accounts: Vec<AccountId>) -> &mut Self {
         for account in accounts {
-            self.document.accounts.push(account);
+            self.document.accounts.push(account.to_vec());
         }
         let path = "accounts".to_string();
         if !self.mask.paths.contains(&path) {

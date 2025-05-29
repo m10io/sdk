@@ -1,19 +1,23 @@
 use core::convert::{Into, TryFrom};
+use std::task::{Context, Poll};
 use std::{pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 use futures_core::Stream;
 use futures_util::{future::try_join_all, StreamExt, TryStreamExt};
-use m10_protos::sdk::{
-    self, m10_query_service_client::M10QueryServiceClient,
-    m10_tx_service_client::M10TxServiceClient,
-};
-use m10_signing::Signer;
+use tonic::service::interceptor::InterceptedService;
 use tonic::{
     transport::{Channel, Endpoint},
     Request,
 };
 
+use m10_protos::sdk::{
+    self, m10_query_service_client::M10QueryServiceClient,
+    m10_tx_service_client::M10TxServiceClient,
+};
+use m10_signing::Signer;
+
+use crate::OauthInterceptor;
 use crate::{
     account::AccountId,
     builders::*,
@@ -21,9 +25,32 @@ use crate::{
     types::*,
 };
 
+struct SyncStream<S> {
+    inner: S,
+}
+
+impl<S> SyncStream<S> {
+    fn new(inner: S) -> Self {
+        Self { inner }
+    }
+}
+
+impl<S> Stream for SyncStream<S>
+where
+    S: Stream + Send + 'static,
+{
+    type Item = S::Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        unsafe { self.map_unchecked_mut(|s| &mut s.inner).poll_next(cx) }
+    }
+}
+
+unsafe impl<S> Sync for SyncStream<S> where S: Send {}
+
 pub struct GrpcClient<S> {
-    tx_client: M10TxServiceClient<Channel>,
-    query_client: M10QueryServiceClient<Channel>,
+    tx_client: M10TxServiceClient<InterceptedService<Channel, OauthInterceptor>>,
+    query_client: M10QueryServiceClient<InterceptedService<Channel, OauthInterceptor>>,
     signer: Option<Arc<S>>,
 }
 
@@ -39,9 +66,31 @@ impl<S> Clone for GrpcClient<S> {
 
 impl<S> GrpcClient<S> {
     pub fn new(endpoint: Endpoint, signer: Option<Arc<S>>) -> M10Result<Self> {
-        let channel = endpoint.connect_lazy()?;
-        let tx_client = M10TxServiceClient::new(channel.clone());
-        let query_client = M10QueryServiceClient::new(channel);
+        let oauth_interceptor = OauthInterceptor::new();
+        let intercepted_channel =
+            InterceptedService::new(endpoint.connect_lazy(), oauth_interceptor);
+        let tx_client = M10TxServiceClient::new(intercepted_channel.clone());
+        let query_client = M10QueryServiceClient::new(intercepted_channel);
+        Ok(Self {
+            tx_client,
+            query_client,
+            signer,
+        })
+    }
+
+    pub fn new_with_access_token(
+        endpoint: Endpoint,
+        signer: Option<Arc<S>>,
+        access_token: Option<&str>,
+    ) -> M10Result<Self> {
+        let oauth_interceptor = OauthInterceptor::new();
+        if let Some(token) = access_token {
+            oauth_interceptor.set_token(token);
+        };
+        let intercepted_channel =
+            InterceptedService::new(endpoint.connect_lazy(), oauth_interceptor);
+        let tx_client = M10TxServiceClient::new(intercepted_channel.clone());
+        let query_client = M10QueryServiceClient::new(intercepted_channel);
         Ok(Self {
             tx_client,
             query_client,
@@ -50,9 +99,11 @@ impl<S> GrpcClient<S> {
     }
 
     pub async fn connect(endpoint: Endpoint, signer: Option<Arc<S>>) -> M10Result<Self> {
-        let channel = endpoint.connect().await?;
-        let tx_client = M10TxServiceClient::new(channel.clone());
-        let query_client = M10QueryServiceClient::new(channel);
+        let oauth_interceptor = OauthInterceptor::new();
+        let intercepted_channel =
+            InterceptedService::new(endpoint.connect().await?, oauth_interceptor);
+        let tx_client = M10TxServiceClient::new(intercepted_channel.clone());
+        let query_client = M10QueryServiceClient::new(intercepted_channel);
         Ok(Self {
             tx_client,
             query_client,
@@ -505,10 +556,10 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
     }
     // Account Metadata
 
-    async fn get_account_metadata(&self, id: AccountId) -> M10Result<AccountMetadata> {
+    async fn get_account_metadata(&self, id: Vec<u8>) -> M10Result<AccountMetadata> {
         let req = self
             .signer()?
-            .sign_request(sdk::GetAccountRequest { id: id.to_vec() })
+            .sign_request(sdk::GetAccountRequest { id })
             .await?;
         let metadata = self
             .query_client
@@ -566,7 +617,9 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
                     .collect::<M10Result<Vec<_>>>()?),
                 Err(err) => Err(M10Error::from(err)),
             });
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 
     async fn observe_transfers(
@@ -593,7 +646,9 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
                     .collect::<M10Result<Vec<_>>>()?),
                 Err(err) => Err(M10Error::from(err)),
             });
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 
     async fn observe_transactions(
@@ -617,7 +672,9 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
                 Ok(txs) => Ok(txs),
                 Err(err) => Err(M10Error::from(err)),
             });
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 
     async fn observe_actions(
@@ -644,7 +701,9 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
                     .collect::<M10Result<Vec<_>>>()?),
                 Err(err) => Err(M10Error::from(err)),
             });
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 
     async fn observe_raw_actions(
@@ -668,7 +727,9 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
                 Ok(txs) => Ok(txs),
                 Err(err) => Err(M10Error::from(err)),
             });
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 
     async fn observe_resources(
@@ -689,7 +750,9 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
                 Ok(txs) => Ok(txs),
                 Err(err) => Err(M10Error::from(err)),
             });
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 
     async fn observe_metrics(
@@ -710,6 +773,8 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
             .map(tonic::Response::into_inner)?
             .into_stream()
             .map_err(M10Error::from);
-        Ok(Box::pin(stream))
+
+        let sync_stream = SyncStream::new(stream);
+        Ok(Box::pin(sync_stream))
     }
 }

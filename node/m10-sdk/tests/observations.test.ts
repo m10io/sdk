@@ -1,118 +1,156 @@
-import { assert } from "chai";
+/* eslint-disable @typescript-eslint/no-magic-numbers */
+/* eslint-disable no-console */
+import "./hooks";
 
-import type { m10 } from "../protobufs";
-import { AccountFilter } from "../src";
-import { ActionBuilder,StepBuilder, TransferBuilder } from "../src/builders";
-import { M10Error } from "../src/error";
-import { unwrap } from "../src/utils";
-
-import type { TestContext } from "./hooks";
-
+import type {
+    AccountId } from "../src";
+import { Target } from "../src/protobufs/sdk/transaction/transaction";
+import { parseUnits } from "./hooks";
+import type { TestCaseInstances } from "./config";
+import { initTestCaseInstances, createCurrencyAccounts, USD_BANK_ID, EUR_BANK_ID } from "./config";
 
 // Too many async calls to finish under default timeout
 const INCREASED_TEST_TIMEOUT: number = 6000;
 
 describe("observations", () => {
+    let testCaseInstances: TestCaseInstances;
+
+    it("init", async () => {
+        testCaseInstances = await initTestCaseInstances();
+    });
+
+    let accountIds: Record<string, AccountId> = {};
+    it("create USD/EUR/TOKEN currency accounts", async () => {
+        const currencyAccounts = await createCurrencyAccounts(testCaseInstances);
+        accountIds = currencyAccounts.accountIds;
+    }).timeout(10_000);
+
+    it("fund currency accounts", async () => {
+        if (!Object.values(accountIds).length) throw new TypeError("Account IDs are not initialized");
+
+        await Promise.all([USD_BANK_ID, EUR_BANK_ID].map(async (bankId) => {
+            const bankInfo = await testCaseInstances.accountClient.getAccountInfo(bankId);
+
+            await testCaseInstances.operatorClient.transfer([
+                {
+                    fromAccountId: bankId.bytes,
+                    toAccountId: accountIds[bankId.hex].bytes,
+                    amount: parseUnits(parseUnits(10, bankInfo.decimalPlaces), bankInfo.decimalPlaces),
+                },
+            ]);
+        }));
+    });
 
     describe("stream", () => {
 
-        it("observe transfer", function(this: TestContext, done: Mocha.Done) {
+        it("observe transfer", async function() {
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                const abortController = new AbortController();
 
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
-
-            const TRANSFER_CREATION_INTERVAL_MS: number = 1000;
-            const REQUESTS_SENT_COUNT: number = 2;
-
-            let transfersSent: number = 0;
-            let transfersReceived: number = 0;
-
-            const [service, startObserver] = context.client.observeTransfers(
-                new AccountFilter().involves(context.parentAccountId),
-            );
-
-            service.on("data", (response: m10.sdk.IFinalizedTransactions) => {
-                assert.isAbove((response.transactions || []).length, 0);
-                transfersReceived++;
-            });
-
-            startObserver();
-
-            // -----------------------------------------------------------------
-
-            const intervalId = setInterval(async () => {
-
-                // Clear interval after 2 requests are sent
-                if (transfersSent === REQUESTS_SENT_COUNT) {
-                    clearInterval(intervalId);
-
-                    service.end(false);
-
-                    // Validate that all requests were observed
-                    assert.equal(transfersReceived, REQUESTS_SENT_COUNT);
-                    done();
-
-                    return;
-                }
-
-                const TRANSFER_AMOUNT = 1;
-
-                await context.client.transfer(
-                    new TransferBuilder()
-                        .step(
-                            new StepBuilder(
-                                context.parentAccountId,
-                                context.bobsAccountId,
-                                TRANSFER_AMOUNT,
-                            ),
-                        ),
+                const startObserve = await testCaseInstances.accountClient.observeTransfers(
+                    {
+                        involvedAccounts: [accountId.bytes],
+                    },
+                    {
+                        abort: abortController.signal,
+                    },
                 );
 
-                // Increment number of requests sent
-                transfersSent++;
-            }, TRANSFER_CREATION_INTERVAL_MS);
-        })
-            .timeout(INCREASED_TEST_TIMEOUT);
+                const service = startObserve();
 
-        it("observe actions", function(this: TestContext, done: Mocha.Done) {
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+                return new Promise((resolve, reject) => {
+                    (async ()=>{
+                        service.responses.onNext((message, error) => {
+                            if (error) {
+                                abortController.abort();
+                                reject(new Error("Error in transfer observation: " + error));
+                                return;
+                            }
+                            if (message) {
+                                console.log("Transfer observation: ", message);
+                                abortController.abort();
+                                resolve(true);
+                            }
+                        });
 
-            const ACTIONS_CREATION_INTERVAL_MS: number = 1000;
-            const REQUESTS_SENT_COUNT: number = 2;
+                        const to = Object.values(accountIds).find((id) => {
+                            return id.hex !== accountId.hex;
+                        });
 
-            let actionsSent: number = 0;
-            let actionsReceived: number = 0;
+                        if (!to) {
+                            abortController.abort();
+                            reject(new Error("No other account found"));
+                            return;
+                        }
 
-            const [service, startObserver] = context.client.observeActions(
-                new AccountFilter().involves(context.bobsAccountId).name("test.action"),
-            );
+                        const txId = await testCaseInstances.accountClient.transfer([
+                            {
+                                fromAccountId: accountId.bytes,
+                                toAccountId: to.bytes,
+                                amount: parseUnits(parseUnits(10, 2), 2),
+                            },
+                        ]);
 
-            service.on("data", (response: m10.sdk.IFinalizedTransactions) => {
-                assert.isAbove((response.transactions || []).length, 0);
-                actionsReceived++;
-            });
+                        console.log("Transfer sent, txId: ", txId);
+                    })();
+                });
+            }));
+        }).timeout(INCREASED_TEST_TIMEOUT);
 
-            startObserver();
-            // -----------------------------------------------------------------
-            const intervalId = setInterval(async () => {
-                // Clear interval after 2 requests are sent
-                if (actionsSent === REQUESTS_SENT_COUNT) {
-                    clearInterval(intervalId);
-                    service.end(false);
-                    // Validate that all requests were observed
-                    assert.equal(actionsReceived, REQUESTS_SENT_COUNT);
-                    done();
-                    return;
-                }
+        it("observe actions", async function() {
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                const abortController = new AbortController();
 
-                await context.client.action(
-                    ActionBuilder.forAccount(
-                        "test.action",
-                        context.parentAccountId,
-                        context.bobsAccountId),
+                const startObserve = await testCaseInstances.accountClient.observeActions(
+                    {
+                        involvesAccounts: [accountId.bytes],
+                        name: "test.action",
+                    },
+                    {
+                        abort: abortController.signal,
+                    },
                 );
-                // Increment number of requests sent
-                actionsSent++;
-            }, ACTIONS_CREATION_INTERVAL_MS);
+
+                const service = startObserve();
+
+                return new Promise((resolve, reject) => {
+                    (async ()=>{
+                        service.responses.onNext((message, error) => {
+                            if (error) {
+                                abortController.abort();
+                                reject(new Error("Error in transfer observation: " + error));
+                                return;
+                            }
+                            if (message) {
+                                console.log("Action observation: ", message.transactions);
+                                abortController.abort();
+                                resolve(true);
+                            }
+                        });
+
+                        const to = Object.values(accountIds).find((id) => id.hex !== accountId.hex);
+
+                        if (!to) {
+                            abortController.abort();
+                            reject(new Error("No other account found"));
+                            return;
+                        }
+
+                        const txId = await testCaseInstances.accountClient.action({
+                            name: "test.action",
+                            fromAccount: accountId.bytes,
+                            target: Target.create({
+                                target: {
+                                    oneofKind: "accountId",
+                                    accountId: to.bytes,
+                                },
+                            }),
+                        });
+
+                        console.log("Action sent, txId: ", txId);
+                    })();
+                });
+            }));
         }).timeout(INCREASED_TEST_TIMEOUT);
     });
 });

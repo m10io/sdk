@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/api.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -70,12 +70,12 @@ abstract class M10TxServiceBase extends $grpc.Service {
         ($0.BulkTransactionsResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$1.TransactionResponse> createTransaction_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return createTransaction(call, await request);
+  $async.Future<$1.TransactionResponse> createTransaction_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return createTransaction($call, await $request);
   }
 
-  $async.Future<$0.BulkTransactionsResponse> bulkCreateTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.BulkTransactions> request) async {
-    return bulkCreateTransactions(call, await request);
+  $async.Future<$0.BulkTransactionsResponse> bulkCreateTransactions_Pre($grpc.ServiceCall $call, $async.Future<$0.BulkTransactions> $request) async {
+    return bulkCreateTransactions($call, await $request);
   }
 
   $async.Future<$1.TransactionResponse> createTransaction($grpc.ServiceCall call, $0.RequestEnvelope request);
@@ -488,108 +488,108 @@ abstract class M10QueryServiceBase extends $grpc.Service {
         ($0.OfflineKey value) => value.writeToBuffer()));
   }
 
-  $async.Future<$1.FinalizedTransfer> getTransfer_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getTransfer(call, await request);
+  $async.Future<$1.FinalizedTransfer> getTransfer_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getTransfer($call, await $request);
   }
 
-  $async.Future<$1.FinalizedTransfers> listTransfers_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listTransfers(call, await request);
+  $async.Future<$1.FinalizedTransfers> listTransfers_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listTransfers($call, await $request);
   }
 
-  $async.Stream<$0.FinalizedTransactions> observeTransfers_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async* {
-    yield* observeTransfers(call, await request);
+  $async.Stream<$0.FinalizedTransactions> observeTransfers_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async* {
+    yield* observeTransfers($call, await $request);
   }
 
-  $async.Future<$1.IndexedAccount> getIndexedAccount_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getIndexedAccount(call, await request);
+  $async.Future<$1.IndexedAccount> getIndexedAccount_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getIndexedAccount($call, await $request);
   }
 
-  $async.Future<$2.AccountMetadata> getAccountMetadata_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getAccountMetadata(call, await request);
+  $async.Future<$2.AccountMetadata> getAccountMetadata_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getAccountMetadata($call, await $request);
   }
 
-  $async.Future<$2.AccountInfo> getAccountInfo_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getAccountInfo(call, await request);
+  $async.Future<$2.AccountInfo> getAccountInfo_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getAccountInfo($call, await $request);
   }
 
-  $async.Future<$0.ListAccountMetadataResponse> listAccountMetadata_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listAccountMetadata(call, await request);
+  $async.Future<$0.ListAccountMetadataResponse> listAccountMetadata_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listAccountMetadata($call, await $request);
   }
 
-  $async.Stream<$0.FinalizedTransactions> observeAccounts_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async* {
-    yield* observeAccounts(call, await request);
+  $async.Stream<$0.FinalizedTransactions> observeAccounts_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async* {
+    yield* observeAccounts($call, await $request);
   }
 
-  $async.Future<$1.Action> getAction_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getAction(call, await request);
+  $async.Future<$1.Action> getAction_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getAction($call, await $request);
   }
 
-  $async.Future<$1.Actions> listActions_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listActions(call, await request);
+  $async.Future<$1.Actions> listActions_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listActions($call, await $request);
   }
 
-  $async.Stream<$0.FinalizedTransactions> observeActions_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async* {
-    yield* observeActions(call, await request);
+  $async.Stream<$0.FinalizedTransactions> observeActions_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async* {
+    yield* observeActions($call, await $request);
   }
 
-  $async.Future<$0.ChainInfo> getChainInfo_Pre($grpc.ServiceCall call, $async.Future<$3.Empty> request) async {
-    return getChainInfo(call, await request);
+  $async.Future<$0.ChainInfo> getChainInfo_Pre($grpc.ServiceCall $call, $async.Future<$3.Empty> $request) async {
+    return getChainInfo($call, await $request);
   }
 
-  $async.Future<$0.FinalizedTransaction> getTransaction_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getTransaction(call, await request);
+  $async.Future<$0.FinalizedTransaction> getTransaction_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getTransaction($call, await $request);
   }
 
-  $async.Future<$0.FinalizedTransactions> listTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listTransactions(call, await request);
+  $async.Future<$0.FinalizedTransactions> listTransactions_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listTransactions($call, await $request);
   }
 
-  $async.Future<$0.GroupedFinalizedTransactions> groupTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return groupTransactions(call, await request);
+  $async.Future<$0.GroupedFinalizedTransactions> groupTransactions_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return groupTransactions($call, await $request);
   }
 
-  $async.Future<$2.AccountSet> getAccountSet_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getAccountSet(call, await request);
+  $async.Future<$2.AccountSet> getAccountSet_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getAccountSet($call, await $request);
   }
 
-  $async.Future<$0.ListAccountSetsResponse> listAccountSets_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listAccountSets(call, await request);
+  $async.Future<$0.ListAccountSetsResponse> listAccountSets_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listAccountSets($call, await $request);
   }
 
-  $async.Future<$4.RoleBinding> getRoleBinding_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getRoleBinding(call, await request);
+  $async.Future<$4.RoleBinding> getRoleBinding_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getRoleBinding($call, await $request);
   }
 
-  $async.Future<$0.ListRoleBindingsResponse> listRoleBindings_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listRoleBindings(call, await request);
+  $async.Future<$0.ListRoleBindingsResponse> listRoleBindings_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listRoleBindings($call, await $request);
   }
 
-  $async.Future<$4.Role> getRole_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getRole(call, await request);
+  $async.Future<$4.Role> getRole_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getRole($call, await $request);
   }
 
-  $async.Future<$0.ListRolesResponse> listRoles_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listRoles(call, await request);
+  $async.Future<$0.ListRolesResponse> listRoles_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listRoles($call, await $request);
   }
 
-  $async.Stream<$0.FinalizedTransactions> observeResources_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async* {
-    yield* observeResources(call, await request);
+  $async.Stream<$0.FinalizedTransactions> observeResources_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async* {
+    yield* observeResources($call, await $request);
   }
 
-  $async.Stream<$0.TransactionMetrics> observeMetrics_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async* {
-    yield* observeMetrics(call, await request);
+  $async.Stream<$0.TransactionMetrics> observeMetrics_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async* {
+    yield* observeMetrics($call, await $request);
   }
 
-  $async.Future<$0.ListBanksResponse> listBanks_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return listBanks(call, await request);
+  $async.Future<$0.ListBanksResponse> listBanks_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return listBanks($call, await $request);
   }
 
-  $async.Future<$2.Bank> getBank_Pre($grpc.ServiceCall call, $async.Future<$0.RequestEnvelope> request) async {
-    return getBank(call, await request);
+  $async.Future<$2.Bank> getBank_Pre($grpc.ServiceCall $call, $async.Future<$0.RequestEnvelope> $request) async {
+    return getBank($call, await $request);
   }
 
-  $async.Future<$0.OfflineKey> getOfflineKey_Pre($grpc.ServiceCall call, $async.Future<$3.Empty> request) async {
-    return getOfflineKey(call, await request);
+  $async.Future<$0.OfflineKey> getOfflineKey_Pre($grpc.ServiceCall $call, $async.Future<$3.Empty> $request) async {
+    return getOfflineKey($call, await $request);
   }
 
   $async.Future<$1.FinalizedTransfer> getTransfer($grpc.ServiceCall call, $0.RequestEnvelope request);

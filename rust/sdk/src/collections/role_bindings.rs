@@ -49,4 +49,9 @@ impl DocumentUpdate<RoleBinding> {
         }
         self
     }
+
+    pub fn merge_repeated(&mut self, merge_repeated: bool) -> &mut Self {
+        self.merge_repeated = merge_repeated;
+        self
+    }
 }

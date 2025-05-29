@@ -5,57 +5,100 @@ import "google/protobuf/field_mask.proto";
 
 package m10.sdk;
 
-message DocumentOperations { repeated Operation operations = 2; }
+// Operations to be performed on a document.
+message DocumentOperations {
+  // List of operations.
+  repeated Operation operations = 2;
+}
 
+// A single operation on a document database.
 message Operation {
+  // The specific operation to be performed.
   oneof operation {
+    // Inserts a new document into a collection.
     InsertDocument insert_document = 1;
+    // Updates an existing document in a collection.
     UpdateDocument update_document = 2;
+    // Deletes a document from a collection.
     DeleteDocument delete_document = 3;
+    // Inserts metadata for a collection.
     CollectionMetadata insert_collection = 4;
+    // Inserts an index for a collection.
     InsertIndex insert_index = 5;
   }
 
+  // Operation to insert a new document.
   message InsertDocument {
+    // The collection to insert the document into.
     string collection = 1;
+    // The document to be inserted, serialized as bytes.
     bytes document = 3;
   }
 
+  // Operation to update an existing document.
   message UpdateDocument {
+    // The collection containing the document to update.
     string collection = 1;
+    // The primary key of the document to update.
     Value primary_key = 2;
+    // The updated document, serialized as bytes.
     bytes document = 3;
+    // A field mask specifying which fields to update.
     google.protobuf.FieldMask field_mask = 4;
+    // Whether to merge repeated fields instead of replacing them entirely.
     bool merge_repeated = 5;
   }
 
+  // Operation to delete a document.
   message DeleteDocument {
+    // The collection containing the document to delete.
     string collection = 1;
+    // The primary key of the document to delete.
     Value primary_key = 2;
   }
 
+    // Operation to insert an index for a collection.
   message InsertIndex {
+    // The collection to create the index on.
     string collection = 1;
+    // Path of the field being indexed
     string path = 2;
   }
 }
 
+
+
+// Metadata for a document collection.
 message CollectionMetadata {
+  // Name of the collection.
   string name = 1;
+  // Name of the protobuf message descriptor for documents in this collection.
   string descriptor_name = 2;
+  // File descriptor set containing the message descriptor.
   google.protobuf.FileDescriptorSet file_descriptor_set = 3;
+  // Metadata for indexes on this collection.
   repeated IndexMetadata index_metadata = 4;
+  // Path to the field that serves as the collection's primary key.
   string primary_key_path = 5;
 }
 
-message IndexMetadata { repeated string path = 1; }
+// Metadata for an index.
+message IndexMetadata {
+  // Paths of the indexed fields.  Compound indexes are represented using a repeated path.
+  repeated string path = 1;
+}
 
+// An expression that can be evaluated.
 message Exp {
+  // The expression string.
   string exp = 1;
+  // Variables used in the expression.
   map<string, Value> vars = 2;
 }
 
+// A value that can be stored in a document.
 message Value {
+  // The actual value.
   oneof value {
     string string_value = 1;
     int32 int8_value = 2;
@@ -73,8 +116,12 @@ message Value {
   }
 }
 
+// A query request against a collection.
 message QueryRequest {
+  // The collection to query.
   string collection = 1;
+  // The query expression.
   Exp expression = 2;
+    // An optional public key, for use in encrypted queries
   optional bytes public_key = 3;
 }

@@ -198,7 +198,7 @@ async fn create_notification_preferences(
     preferences.contacts_id = contact.id;
     preferences.asset_id = asset.id;
     let mut txn = conn.begin().await?;
-    preferences.insert(&mut txn).await?;
+    preferences.insert(&mut *txn).await?;
     txn.commit().await?;
 
     Ok(Json(preferences))

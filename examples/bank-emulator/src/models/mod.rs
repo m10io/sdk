@@ -7,6 +7,7 @@ pub use currencies::*;
 pub use fees::*;
 pub use notification_preferences::*;
 pub use payments::*;
+pub use signature::*;
 #[allow(unused_imports)]
 pub use transfers::*;
 
@@ -17,6 +18,7 @@ mod currencies;
 mod fees;
 mod notification_preferences;
 mod payments;
+mod signature;
 mod transfers;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

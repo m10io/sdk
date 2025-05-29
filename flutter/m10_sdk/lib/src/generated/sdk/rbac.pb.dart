@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/rbac.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -16,10 +16,45 @@ import 'package:protobuf/protobuf.dart' as $pb;
 import 'document.pb.dart' as $7;
 import 'rbac.pbenum.dart';
 
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
 export 'rbac.pbenum.dart';
 
+/// RoleBinding represents the binding of a Role to a set of subjects.
 class RoleBinding extends $pb.GeneratedMessage {
-  factory RoleBinding() => create();
+  factory RoleBinding({
+    $core.List<$core.int>? id,
+    $core.String? name,
+    $core.List<$core.int>? role,
+    $core.Iterable<$core.List<$core.int>>? subjects,
+    $core.Iterable<Expression>? expressions,
+    $core.bool? isUniversal,
+    $core.List<$core.int>? owner,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (role != null) {
+      $result.role = role;
+    }
+    if (subjects != null) {
+      $result.subjects.addAll(subjects);
+    }
+    if (expressions != null) {
+      $result.expressions.addAll(expressions);
+    }
+    if (isUniversal != null) {
+      $result.isUniversal = isUniversal;
+    }
+    if (owner != null) {
+      $result.owner = owner;
+    }
+    return $result;
+  }
   RoleBinding._() : super();
   factory RoleBinding.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory RoleBinding.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -56,6 +91,7 @@ class RoleBinding extends $pb.GeneratedMessage {
   static RoleBinding getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RoleBinding>(create);
   static RoleBinding? _defaultInstance;
 
+  /// Unique identifier (uuid) for the RoleBinding.
   @$pb.TagNumber(1)
   $core.List<$core.int> get id => $_getN(0);
   @$pb.TagNumber(1)
@@ -63,8 +99,9 @@ class RoleBinding extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
+  /// Human-readable name for the RoleBinding.
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -72,8 +109,9 @@ class RoleBinding extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
-  void clearName() => clearField(2);
+  void clearName() => $_clearField(2);
 
+  /// Reference to the Role being bound. This is expected to be the Role's ID.
   @$pb.TagNumber(3)
   $core.List<$core.int> get role => $_getN(2);
   @$pb.TagNumber(3)
@@ -81,14 +119,17 @@ class RoleBinding extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasRole() => $_has(2);
   @$pb.TagNumber(3)
-  void clearRole() => clearField(3);
+  void clearRole() => $_clearField(3);
 
+  /// List of subjects (public keys) this role binding applies to.
   @$pb.TagNumber(4)
-  $core.List<$core.List<$core.int>> get subjects => $_getList(3);
+  $pb.PbList<$core.List<$core.int>> get subjects => $_getList(3);
 
+  /// List of expressions that further refine the scope of the role binding.
   @$pb.TagNumber(5)
-  $core.List<Expression> get expressions => $_getList(4);
+  $pb.PbList<Expression> get expressions => $_getList(4);
 
+  /// If true, this RoleBinding applies universally, regardless of expressions or subjects.
   @$pb.TagNumber(6)
   $core.bool get isUniversal => $_getBF(5);
   @$pb.TagNumber(6)
@@ -96,8 +137,9 @@ class RoleBinding extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasIsUniversal() => $_has(5);
   @$pb.TagNumber(6)
-  void clearIsUniversal() => clearField(6);
+  void clearIsUniversal() => $_clearField(6);
 
+  /// ID (public key) of the owner of this RoleBinding.
   @$pb.TagNumber(7)
   $core.List<$core.int> get owner => $_getN(6);
   @$pb.TagNumber(7)
@@ -105,11 +147,24 @@ class RoleBinding extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.bool hasOwner() => $_has(6);
   @$pb.TagNumber(7)
-  void clearOwner() => clearField(7);
+  void clearOwner() => $_clearField(7);
 }
 
+/// Expression represents a conditional expression that refines the scope of a RoleBinding.
 class Expression extends $pb.GeneratedMessage {
-  factory Expression() => create();
+  factory Expression({
+    $core.String? collection,
+    $core.String? expression,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (expression != null) {
+      $result.expression = expression;
+    }
+    return $result;
+  }
   Expression._() : super();
   factory Expression.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Expression.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -141,6 +196,7 @@ class Expression extends $pb.GeneratedMessage {
   static Expression getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Expression>(create);
   static Expression? _defaultInstance;
 
+  /// The collection the expression applies to.
   @$pb.TagNumber(1)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -148,8 +204,9 @@ class Expression extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCollection() => clearField(1);
+  void clearCollection() => $_clearField(1);
 
+  /// The actual expression string. The syntax and semantics of this string are context-dependent.
   @$pb.TagNumber(2)
   $core.String get expression => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -157,11 +214,32 @@ class Expression extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasExpression() => $_has(1);
   @$pb.TagNumber(2)
-  void clearExpression() => clearField(2);
+  void clearExpression() => $_clearField(2);
 }
 
+/// Role defines a set of permissions.
 class Role extends $pb.GeneratedMessage {
-  factory Role() => create();
+  factory Role({
+    $core.List<$core.int>? id,
+    $core.List<$core.int>? owner,
+    $core.String? name,
+    $core.Iterable<Rule>? rules,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (owner != null) {
+      $result.owner = owner;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (rules != null) {
+      $result.rules.addAll(rules);
+    }
+    return $result;
+  }
   Role._() : super();
   factory Role.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Role.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -195,6 +273,7 @@ class Role extends $pb.GeneratedMessage {
   static Role getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Role>(create);
   static Role? _defaultInstance;
 
+  /// Unique identifier for the Role.
   @$pb.TagNumber(1)
   $core.List<$core.int> get id => $_getN(0);
   @$pb.TagNumber(1)
@@ -202,8 +281,9 @@ class Role extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
+  /// ID (public key) of the owner of this Role.
   @$pb.TagNumber(2)
   $core.List<$core.int> get owner => $_getN(1);
   @$pb.TagNumber(2)
@@ -211,8 +291,9 @@ class Role extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasOwner() => $_has(1);
   @$pb.TagNumber(2)
-  void clearOwner() => clearField(2);
+  void clearOwner() => $_clearField(2);
 
+  /// Human-readable name for the Role.
   @$pb.TagNumber(3)
   $core.String get name => $_getSZ(2);
   @$pb.TagNumber(3)
@@ -220,14 +301,36 @@ class Role extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasName() => $_has(2);
   @$pb.TagNumber(3)
-  void clearName() => clearField(3);
+  void clearName() => $_clearField(3);
 
+  /// List of rules that define the permissions granted by this role.
   @$pb.TagNumber(4)
-  $core.List<Rule> get rules => $_getList(3);
+  $pb.PbList<Rule> get rules => $_getList(3);
 }
 
+/// Rule specifies permissions on a particular collection.
 class Rule extends $pb.GeneratedMessage {
-  factory Rule() => create();
+  factory Rule({
+    $core.String? collection,
+    $core.Iterable<$7.Value>? instanceKeys,
+    $core.Iterable<Rule_Verb>? verbs,
+    $core.Iterable<$7.Value>? excludedInstanceKeys,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (instanceKeys != null) {
+      $result.instanceKeys.addAll(instanceKeys);
+    }
+    if (verbs != null) {
+      $result.verbs.addAll(verbs);
+    }
+    if (excludedInstanceKeys != null) {
+      $result.excludedInstanceKeys.addAll(excludedInstanceKeys);
+    }
+    return $result;
+  }
   Rule._() : super();
   factory Rule.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Rule.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -236,6 +339,7 @@ class Rule extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'collection')
     ..pc<$7.Value>(3, _omitFieldNames ? '' : 'instanceKeys', $pb.PbFieldType.PM, subBuilder: $7.Value.create)
     ..pc<Rule_Verb>(4, _omitFieldNames ? '' : 'verbs', $pb.PbFieldType.KE, valueOf: Rule_Verb.valueOf, enumValues: Rule_Verb.values, defaultEnumValue: Rule_Verb.READ)
+    ..pc<$7.Value>(5, _omitFieldNames ? '' : 'excludedInstanceKeys', $pb.PbFieldType.PM, subBuilder: $7.Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -260,6 +364,7 @@ class Rule extends $pb.GeneratedMessage {
   static Rule getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Rule>(create);
   static Rule? _defaultInstance;
 
+  /// The collection this rule applies to.
   @$pb.TagNumber(2)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(2)
@@ -267,13 +372,19 @@ class Rule extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(2)
-  void clearCollection() => clearField(2);
+  void clearCollection() => $_clearField(2);
 
+  /// Optional list of instance keys. If provided, the rule only applies to these specific instances within the collection.
   @$pb.TagNumber(3)
-  $core.List<$7.Value> get instanceKeys => $_getList(1);
+  $pb.PbList<$7.Value> get instanceKeys => $_getList(1);
 
+  /// List of verbs allowed for this rule.
   @$pb.TagNumber(4)
-  $core.List<Rule_Verb> get verbs => $_getList(2);
+  $pb.PbList<Rule_Verb> get verbs => $_getList(2);
+
+  /// Exclusion: If present, these instance keys are explicitly NOT allowed
+  @$pb.TagNumber(5)
+  $pb.PbList<$7.Value> get excludedInstanceKeys => $_getList(3);
 }
 
 

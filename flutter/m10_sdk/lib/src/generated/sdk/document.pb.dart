@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/document.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -17,8 +17,19 @@ import 'package:protobuf/protobuf.dart' as $pb;
 import '../google/protobuf/descriptor.pb.dart' as $6;
 import '../google/protobuf/field_mask.pb.dart' as $5;
 
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+/// Operations to be performed on a document.
 class DocumentOperations extends $pb.GeneratedMessage {
-  factory DocumentOperations() => create();
+  factory DocumentOperations({
+    $core.Iterable<Operation>? operations,
+  }) {
+    final $result = create();
+    if (operations != null) {
+      $result.operations.addAll(operations);
+    }
+    return $result;
+  }
   DocumentOperations._() : super();
   factory DocumentOperations.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory DocumentOperations.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -48,12 +59,26 @@ class DocumentOperations extends $pb.GeneratedMessage {
   static DocumentOperations getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DocumentOperations>(create);
   static DocumentOperations? _defaultInstance;
 
+  /// List of operations.
   @$pb.TagNumber(2)
-  $core.List<Operation> get operations => $_getList(0);
+  $pb.PbList<Operation> get operations => $_getList(0);
 }
 
+/// Operation to insert a new document.
 class Operation_InsertDocument extends $pb.GeneratedMessage {
-  factory Operation_InsertDocument() => create();
+  factory Operation_InsertDocument({
+    $core.String? collection,
+    $core.List<$core.int>? document,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (document != null) {
+      $result.document = document;
+    }
+    return $result;
+  }
   Operation_InsertDocument._() : super();
   factory Operation_InsertDocument.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Operation_InsertDocument.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -85,6 +110,7 @@ class Operation_InsertDocument extends $pb.GeneratedMessage {
   static Operation_InsertDocument getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Operation_InsertDocument>(create);
   static Operation_InsertDocument? _defaultInstance;
 
+  /// The collection to insert the document into.
   @$pb.TagNumber(1)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -92,8 +118,9 @@ class Operation_InsertDocument extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCollection() => clearField(1);
+  void clearCollection() => $_clearField(1);
 
+  /// The document to be inserted, serialized as bytes.
   @$pb.TagNumber(3)
   $core.List<$core.int> get document => $_getN(1);
   @$pb.TagNumber(3)
@@ -101,11 +128,36 @@ class Operation_InsertDocument extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasDocument() => $_has(1);
   @$pb.TagNumber(3)
-  void clearDocument() => clearField(3);
+  void clearDocument() => $_clearField(3);
 }
 
+/// Operation to update an existing document.
 class Operation_UpdateDocument extends $pb.GeneratedMessage {
-  factory Operation_UpdateDocument() => create();
+  factory Operation_UpdateDocument({
+    $core.String? collection,
+    Value? primaryKey,
+    $core.List<$core.int>? document,
+    $5.FieldMask? fieldMask,
+    $core.bool? mergeRepeated,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (primaryKey != null) {
+      $result.primaryKey = primaryKey;
+    }
+    if (document != null) {
+      $result.document = document;
+    }
+    if (fieldMask != null) {
+      $result.fieldMask = fieldMask;
+    }
+    if (mergeRepeated != null) {
+      $result.mergeRepeated = mergeRepeated;
+    }
+    return $result;
+  }
   Operation_UpdateDocument._() : super();
   factory Operation_UpdateDocument.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Operation_UpdateDocument.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -140,6 +192,7 @@ class Operation_UpdateDocument extends $pb.GeneratedMessage {
   static Operation_UpdateDocument getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Operation_UpdateDocument>(create);
   static Operation_UpdateDocument? _defaultInstance;
 
+  /// The collection containing the document to update.
   @$pb.TagNumber(1)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -147,19 +200,21 @@ class Operation_UpdateDocument extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCollection() => clearField(1);
+  void clearCollection() => $_clearField(1);
 
+  /// The primary key of the document to update.
   @$pb.TagNumber(2)
   Value get primaryKey => $_getN(1);
   @$pb.TagNumber(2)
-  set primaryKey(Value v) { setField(2, v); }
+  set primaryKey(Value v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasPrimaryKey() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPrimaryKey() => clearField(2);
+  void clearPrimaryKey() => $_clearField(2);
   @$pb.TagNumber(2)
   Value ensurePrimaryKey() => $_ensure(1);
 
+  /// The updated document, serialized as bytes.
   @$pb.TagNumber(3)
   $core.List<$core.int> get document => $_getN(2);
   @$pb.TagNumber(3)
@@ -167,19 +222,21 @@ class Operation_UpdateDocument extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasDocument() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDocument() => clearField(3);
+  void clearDocument() => $_clearField(3);
 
+  /// A field mask specifying which fields to update.
   @$pb.TagNumber(4)
   $5.FieldMask get fieldMask => $_getN(3);
   @$pb.TagNumber(4)
-  set fieldMask($5.FieldMask v) { setField(4, v); }
+  set fieldMask($5.FieldMask v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasFieldMask() => $_has(3);
   @$pb.TagNumber(4)
-  void clearFieldMask() => clearField(4);
+  void clearFieldMask() => $_clearField(4);
   @$pb.TagNumber(4)
   $5.FieldMask ensureFieldMask() => $_ensure(3);
 
+  /// Whether to merge repeated fields instead of replacing them entirely.
   @$pb.TagNumber(5)
   $core.bool get mergeRepeated => $_getBF(4);
   @$pb.TagNumber(5)
@@ -187,11 +244,24 @@ class Operation_UpdateDocument extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasMergeRepeated() => $_has(4);
   @$pb.TagNumber(5)
-  void clearMergeRepeated() => clearField(5);
+  void clearMergeRepeated() => $_clearField(5);
 }
 
+/// Operation to delete a document.
 class Operation_DeleteDocument extends $pb.GeneratedMessage {
-  factory Operation_DeleteDocument() => create();
+  factory Operation_DeleteDocument({
+    $core.String? collection,
+    Value? primaryKey,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (primaryKey != null) {
+      $result.primaryKey = primaryKey;
+    }
+    return $result;
+  }
   Operation_DeleteDocument._() : super();
   factory Operation_DeleteDocument.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Operation_DeleteDocument.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -223,6 +293,7 @@ class Operation_DeleteDocument extends $pb.GeneratedMessage {
   static Operation_DeleteDocument getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Operation_DeleteDocument>(create);
   static Operation_DeleteDocument? _defaultInstance;
 
+  /// The collection containing the document to delete.
   @$pb.TagNumber(1)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -230,22 +301,36 @@ class Operation_DeleteDocument extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCollection() => clearField(1);
+  void clearCollection() => $_clearField(1);
 
+  /// The primary key of the document to delete.
   @$pb.TagNumber(2)
   Value get primaryKey => $_getN(1);
   @$pb.TagNumber(2)
-  set primaryKey(Value v) { setField(2, v); }
+  set primaryKey(Value v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasPrimaryKey() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPrimaryKey() => clearField(2);
+  void clearPrimaryKey() => $_clearField(2);
   @$pb.TagNumber(2)
   Value ensurePrimaryKey() => $_ensure(1);
 }
 
+/// Operation to insert an index for a collection.
 class Operation_InsertIndex extends $pb.GeneratedMessage {
-  factory Operation_InsertIndex() => create();
+  factory Operation_InsertIndex({
+    $core.String? collection,
+    $core.String? path,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (path != null) {
+      $result.path = path;
+    }
+    return $result;
+  }
   Operation_InsertIndex._() : super();
   factory Operation_InsertIndex.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Operation_InsertIndex.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -277,6 +362,7 @@ class Operation_InsertIndex extends $pb.GeneratedMessage {
   static Operation_InsertIndex getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Operation_InsertIndex>(create);
   static Operation_InsertIndex? _defaultInstance;
 
+  /// The collection to create the index on.
   @$pb.TagNumber(1)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -284,8 +370,9 @@ class Operation_InsertIndex extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCollection() => clearField(1);
+  void clearCollection() => $_clearField(1);
 
+  /// Path of the field being indexed
   @$pb.TagNumber(2)
   $core.String get path => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -293,7 +380,7 @@ class Operation_InsertIndex extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasPath() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPath() => clearField(2);
+  void clearPath() => $_clearField(2);
 }
 
 enum Operation_Operation {
@@ -305,8 +392,33 @@ enum Operation_Operation {
   notSet
 }
 
+/// A single operation on a document database.
 class Operation extends $pb.GeneratedMessage {
-  factory Operation() => create();
+  factory Operation({
+    Operation_InsertDocument? insertDocument,
+    Operation_UpdateDocument? updateDocument,
+    Operation_DeleteDocument? deleteDocument,
+    CollectionMetadata? insertCollection,
+    Operation_InsertIndex? insertIndex,
+  }) {
+    final $result = create();
+    if (insertDocument != null) {
+      $result.insertDocument = insertDocument;
+    }
+    if (updateDocument != null) {
+      $result.updateDocument = updateDocument;
+    }
+    if (deleteDocument != null) {
+      $result.deleteDocument = deleteDocument;
+    }
+    if (insertCollection != null) {
+      $result.insertCollection = insertCollection;
+    }
+    if (insertIndex != null) {
+      $result.insertIndex = insertIndex;
+    }
+    return $result;
+  }
   Operation._() : super();
   factory Operation.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Operation.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -350,66 +462,96 @@ class Operation extends $pb.GeneratedMessage {
   static Operation? _defaultInstance;
 
   Operation_Operation whichOperation() => _Operation_OperationByTag[$_whichOneof(0)]!;
-  void clearOperation() => clearField($_whichOneof(0));
+  void clearOperation() => $_clearField($_whichOneof(0));
 
+  /// Inserts a new document into a collection.
   @$pb.TagNumber(1)
   Operation_InsertDocument get insertDocument => $_getN(0);
   @$pb.TagNumber(1)
-  set insertDocument(Operation_InsertDocument v) { setField(1, v); }
+  set insertDocument(Operation_InsertDocument v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasInsertDocument() => $_has(0);
   @$pb.TagNumber(1)
-  void clearInsertDocument() => clearField(1);
+  void clearInsertDocument() => $_clearField(1);
   @$pb.TagNumber(1)
   Operation_InsertDocument ensureInsertDocument() => $_ensure(0);
 
+  /// Updates an existing document in a collection.
   @$pb.TagNumber(2)
   Operation_UpdateDocument get updateDocument => $_getN(1);
   @$pb.TagNumber(2)
-  set updateDocument(Operation_UpdateDocument v) { setField(2, v); }
+  set updateDocument(Operation_UpdateDocument v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasUpdateDocument() => $_has(1);
   @$pb.TagNumber(2)
-  void clearUpdateDocument() => clearField(2);
+  void clearUpdateDocument() => $_clearField(2);
   @$pb.TagNumber(2)
   Operation_UpdateDocument ensureUpdateDocument() => $_ensure(1);
 
+  /// Deletes a document from a collection.
   @$pb.TagNumber(3)
   Operation_DeleteDocument get deleteDocument => $_getN(2);
   @$pb.TagNumber(3)
-  set deleteDocument(Operation_DeleteDocument v) { setField(3, v); }
+  set deleteDocument(Operation_DeleteDocument v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasDeleteDocument() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDeleteDocument() => clearField(3);
+  void clearDeleteDocument() => $_clearField(3);
   @$pb.TagNumber(3)
   Operation_DeleteDocument ensureDeleteDocument() => $_ensure(2);
 
+  /// Inserts metadata for a collection.
   @$pb.TagNumber(4)
   CollectionMetadata get insertCollection => $_getN(3);
   @$pb.TagNumber(4)
-  set insertCollection(CollectionMetadata v) { setField(4, v); }
+  set insertCollection(CollectionMetadata v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasInsertCollection() => $_has(3);
   @$pb.TagNumber(4)
-  void clearInsertCollection() => clearField(4);
+  void clearInsertCollection() => $_clearField(4);
   @$pb.TagNumber(4)
   CollectionMetadata ensureInsertCollection() => $_ensure(3);
 
+  /// Inserts an index for a collection.
   @$pb.TagNumber(5)
   Operation_InsertIndex get insertIndex => $_getN(4);
   @$pb.TagNumber(5)
-  set insertIndex(Operation_InsertIndex v) { setField(5, v); }
+  set insertIndex(Operation_InsertIndex v) { $_setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasInsertIndex() => $_has(4);
   @$pb.TagNumber(5)
-  void clearInsertIndex() => clearField(5);
+  void clearInsertIndex() => $_clearField(5);
   @$pb.TagNumber(5)
   Operation_InsertIndex ensureInsertIndex() => $_ensure(4);
 }
 
+/// Metadata for a document collection.
 class CollectionMetadata extends $pb.GeneratedMessage {
-  factory CollectionMetadata() => create();
+  factory CollectionMetadata({
+    $core.String? name,
+    $core.String? descriptorName,
+    $6.FileDescriptorSet? fileDescriptorSet,
+    $core.Iterable<IndexMetadata>? indexMetadata,
+    $core.String? primaryKeyPath,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (descriptorName != null) {
+      $result.descriptorName = descriptorName;
+    }
+    if (fileDescriptorSet != null) {
+      $result.fileDescriptorSet = fileDescriptorSet;
+    }
+    if (indexMetadata != null) {
+      $result.indexMetadata.addAll(indexMetadata);
+    }
+    if (primaryKeyPath != null) {
+      $result.primaryKeyPath = primaryKeyPath;
+    }
+    return $result;
+  }
   CollectionMetadata._() : super();
   factory CollectionMetadata.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory CollectionMetadata.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -443,6 +585,7 @@ class CollectionMetadata extends $pb.GeneratedMessage {
   static CollectionMetadata getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CollectionMetadata>(create);
   static CollectionMetadata? _defaultInstance;
 
+  /// Name of the collection.
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -450,8 +593,9 @@ class CollectionMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
-  void clearName() => clearField(1);
+  void clearName() => $_clearField(1);
 
+  /// Name of the protobuf message descriptor for documents in this collection.
   @$pb.TagNumber(2)
   $core.String get descriptorName => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -459,22 +603,25 @@ class CollectionMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasDescriptorName() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDescriptorName() => clearField(2);
+  void clearDescriptorName() => $_clearField(2);
 
+  /// File descriptor set containing the message descriptor.
   @$pb.TagNumber(3)
   $6.FileDescriptorSet get fileDescriptorSet => $_getN(2);
   @$pb.TagNumber(3)
-  set fileDescriptorSet($6.FileDescriptorSet v) { setField(3, v); }
+  set fileDescriptorSet($6.FileDescriptorSet v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasFileDescriptorSet() => $_has(2);
   @$pb.TagNumber(3)
-  void clearFileDescriptorSet() => clearField(3);
+  void clearFileDescriptorSet() => $_clearField(3);
   @$pb.TagNumber(3)
   $6.FileDescriptorSet ensureFileDescriptorSet() => $_ensure(2);
 
+  /// Metadata for indexes on this collection.
   @$pb.TagNumber(4)
-  $core.List<IndexMetadata> get indexMetadata => $_getList(3);
+  $pb.PbList<IndexMetadata> get indexMetadata => $_getList(3);
 
+  /// Path to the field that serves as the collection's primary key.
   @$pb.TagNumber(5)
   $core.String get primaryKeyPath => $_getSZ(4);
   @$pb.TagNumber(5)
@@ -482,11 +629,20 @@ class CollectionMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasPrimaryKeyPath() => $_has(4);
   @$pb.TagNumber(5)
-  void clearPrimaryKeyPath() => clearField(5);
+  void clearPrimaryKeyPath() => $_clearField(5);
 }
 
+/// Metadata for an index.
 class IndexMetadata extends $pb.GeneratedMessage {
-  factory IndexMetadata() => create();
+  factory IndexMetadata({
+    $core.Iterable<$core.String>? path,
+  }) {
+    final $result = create();
+    if (path != null) {
+      $result.path.addAll(path);
+    }
+    return $result;
+  }
   IndexMetadata._() : super();
   factory IndexMetadata.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory IndexMetadata.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -517,12 +673,26 @@ class IndexMetadata extends $pb.GeneratedMessage {
   static IndexMetadata getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<IndexMetadata>(create);
   static IndexMetadata? _defaultInstance;
 
+  /// Paths of the indexed fields.  Compound indexes are represented using a repeated path.
   @$pb.TagNumber(1)
-  $core.List<$core.String> get path => $_getList(0);
+  $pb.PbList<$core.String> get path => $_getList(0);
 }
 
+/// An expression that can be evaluated.
 class Exp extends $pb.GeneratedMessage {
-  factory Exp() => create();
+  factory Exp({
+    $core.String? exp,
+    $pb.PbMap<$core.String, Value>? vars,
+  }) {
+    final $result = create();
+    if (exp != null) {
+      $result.exp = exp;
+    }
+    if (vars != null) {
+      $result.vars.addAll(vars);
+    }
+    return $result;
+  }
   Exp._() : super();
   factory Exp.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Exp.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -554,6 +724,7 @@ class Exp extends $pb.GeneratedMessage {
   static Exp getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Exp>(create);
   static Exp? _defaultInstance;
 
+  /// The expression string.
   @$pb.TagNumber(1)
   $core.String get exp => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -561,10 +732,11 @@ class Exp extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasExp() => $_has(0);
   @$pb.TagNumber(1)
-  void clearExp() => clearField(1);
+  void clearExp() => $_clearField(1);
 
+  /// Variables used in the expression.
   @$pb.TagNumber(2)
-  $core.Map<$core.String, Value> get vars => $_getMap(1);
+  $pb.PbMap<$core.String, Value> get vars => $_getMap(1);
 }
 
 enum Value_Value {
@@ -584,8 +756,65 @@ enum Value_Value {
   notSet
 }
 
+/// A value that can be stored in a document.
 class Value extends $pb.GeneratedMessage {
-  factory Value() => create();
+  factory Value({
+    $core.String? stringValue,
+    $core.int? int8Value,
+    $core.int? int16Value,
+    $core.int? int32Value,
+    $fixnum.Int64? int64Value,
+    $core.int? uint8Value,
+    $core.int? uint16Value,
+    $core.int? uint32Value,
+    $fixnum.Int64? uint64Value,
+    $core.double? doubleValue,
+    $core.double? floatValue,
+    $core.bool? boolValue,
+    $core.List<$core.int>? bytesValue,
+  }) {
+    final $result = create();
+    if (stringValue != null) {
+      $result.stringValue = stringValue;
+    }
+    if (int8Value != null) {
+      $result.int8Value = int8Value;
+    }
+    if (int16Value != null) {
+      $result.int16Value = int16Value;
+    }
+    if (int32Value != null) {
+      $result.int32Value = int32Value;
+    }
+    if (int64Value != null) {
+      $result.int64Value = int64Value;
+    }
+    if (uint8Value != null) {
+      $result.uint8Value = uint8Value;
+    }
+    if (uint16Value != null) {
+      $result.uint16Value = uint16Value;
+    }
+    if (uint32Value != null) {
+      $result.uint32Value = uint32Value;
+    }
+    if (uint64Value != null) {
+      $result.uint64Value = uint64Value;
+    }
+    if (doubleValue != null) {
+      $result.doubleValue = doubleValue;
+    }
+    if (floatValue != null) {
+      $result.floatValue = floatValue;
+    }
+    if (boolValue != null) {
+      $result.boolValue = boolValue;
+    }
+    if (bytesValue != null) {
+      $result.bytesValue = bytesValue;
+    }
+    return $result;
+  }
   Value._() : super();
   factory Value.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Value.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -646,7 +875,7 @@ class Value extends $pb.GeneratedMessage {
   static Value? _defaultInstance;
 
   Value_Value whichValue() => _Value_ValueByTag[$_whichOneof(0)]!;
-  void clearValue() => clearField($_whichOneof(0));
+  void clearValue() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
   $core.String get stringValue => $_getSZ(0);
@@ -655,7 +884,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasStringValue() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStringValue() => clearField(1);
+  void clearStringValue() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.int get int8Value => $_getIZ(1);
@@ -664,7 +893,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasInt8Value() => $_has(1);
   @$pb.TagNumber(2)
-  void clearInt8Value() => clearField(2);
+  void clearInt8Value() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get int16Value => $_getIZ(2);
@@ -673,7 +902,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasInt16Value() => $_has(2);
   @$pb.TagNumber(3)
-  void clearInt16Value() => clearField(3);
+  void clearInt16Value() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.int get int32Value => $_getIZ(3);
@@ -682,7 +911,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasInt32Value() => $_has(3);
   @$pb.TagNumber(4)
-  void clearInt32Value() => clearField(4);
+  void clearInt32Value() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $fixnum.Int64 get int64Value => $_getI64(4);
@@ -691,7 +920,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasInt64Value() => $_has(4);
   @$pb.TagNumber(5)
-  void clearInt64Value() => clearField(5);
+  void clearInt64Value() => $_clearField(5);
 
   @$pb.TagNumber(6)
   $core.int get uint8Value => $_getIZ(5);
@@ -700,7 +929,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasUint8Value() => $_has(5);
   @$pb.TagNumber(6)
-  void clearUint8Value() => clearField(6);
+  void clearUint8Value() => $_clearField(6);
 
   @$pb.TagNumber(7)
   $core.int get uint16Value => $_getIZ(6);
@@ -709,7 +938,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.bool hasUint16Value() => $_has(6);
   @$pb.TagNumber(7)
-  void clearUint16Value() => clearField(7);
+  void clearUint16Value() => $_clearField(7);
 
   @$pb.TagNumber(8)
   $core.int get uint32Value => $_getIZ(7);
@@ -718,7 +947,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.bool hasUint32Value() => $_has(7);
   @$pb.TagNumber(8)
-  void clearUint32Value() => clearField(8);
+  void clearUint32Value() => $_clearField(8);
 
   @$pb.TagNumber(9)
   $fixnum.Int64 get uint64Value => $_getI64(8);
@@ -727,7 +956,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.bool hasUint64Value() => $_has(8);
   @$pb.TagNumber(9)
-  void clearUint64Value() => clearField(9);
+  void clearUint64Value() => $_clearField(9);
 
   @$pb.TagNumber(10)
   $core.double get doubleValue => $_getN(9);
@@ -736,7 +965,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $core.bool hasDoubleValue() => $_has(9);
   @$pb.TagNumber(10)
-  void clearDoubleValue() => clearField(10);
+  void clearDoubleValue() => $_clearField(10);
 
   @$pb.TagNumber(11)
   $core.double get floatValue => $_getN(10);
@@ -745,7 +974,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   $core.bool hasFloatValue() => $_has(10);
   @$pb.TagNumber(11)
-  void clearFloatValue() => clearField(11);
+  void clearFloatValue() => $_clearField(11);
 
   @$pb.TagNumber(12)
   $core.bool get boolValue => $_getBF(11);
@@ -754,7 +983,7 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   $core.bool hasBoolValue() => $_has(11);
   @$pb.TagNumber(12)
-  void clearBoolValue() => clearField(12);
+  void clearBoolValue() => $_clearField(12);
 
   @$pb.TagNumber(13)
   $core.List<$core.int> get bytesValue => $_getN(12);
@@ -763,11 +992,28 @@ class Value extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   $core.bool hasBytesValue() => $_has(12);
   @$pb.TagNumber(13)
-  void clearBytesValue() => clearField(13);
+  void clearBytesValue() => $_clearField(13);
 }
 
+/// A query request against a collection.
 class QueryRequest extends $pb.GeneratedMessage {
-  factory QueryRequest() => create();
+  factory QueryRequest({
+    $core.String? collection,
+    Exp? expression,
+    $core.List<$core.int>? publicKey,
+  }) {
+    final $result = create();
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (expression != null) {
+      $result.expression = expression;
+    }
+    if (publicKey != null) {
+      $result.publicKey = publicKey;
+    }
+    return $result;
+  }
   QueryRequest._() : super();
   factory QueryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory QueryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -800,6 +1046,7 @@ class QueryRequest extends $pb.GeneratedMessage {
   static QueryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<QueryRequest>(create);
   static QueryRequest? _defaultInstance;
 
+  /// The collection to query.
   @$pb.TagNumber(1)
   $core.String get collection => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -807,19 +1054,21 @@ class QueryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasCollection() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCollection() => clearField(1);
+  void clearCollection() => $_clearField(1);
 
+  /// The query expression.
   @$pb.TagNumber(2)
   Exp get expression => $_getN(1);
   @$pb.TagNumber(2)
-  set expression(Exp v) { setField(2, v); }
+  set expression(Exp v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasExpression() => $_has(1);
   @$pb.TagNumber(2)
-  void clearExpression() => clearField(2);
+  void clearExpression() => $_clearField(2);
   @$pb.TagNumber(2)
   Exp ensureExpression() => $_ensure(1);
 
+  /// An optional public key, for use in encrypted queries
   @$pb.TagNumber(3)
   $core.List<$core.int> get publicKey => $_getN(2);
   @$pb.TagNumber(3)
@@ -827,7 +1076,7 @@ class QueryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasPublicKey() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPublicKey() => clearField(3);
+  void clearPublicKey() => $_clearField(3);
 }
 
 

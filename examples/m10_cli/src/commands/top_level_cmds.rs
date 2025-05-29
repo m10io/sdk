@@ -1,14 +1,14 @@
-use clap::{Parser, Subcommand};
+use clap::Subcommand;
 use m10_sdk::{sdk, Format};
 use serde::{Deserialize, Serialize};
 
 use super::*;
 use crate::context::Context;
 
-#[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
+#[derive(Clone, Subcommand, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Commands {
-    /// Authenticate
+    /// Authenticate with keycloak. For create and find operations on directory-entry
     #[command(alias = "a")]
     Auth(auth::Auth),
     /// Convert ids
@@ -21,7 +21,7 @@ pub(crate) enum Commands {
     #[command(alias = "c")]
     Create {
         #[command(subcommand)]
-        #[serde(flatten)]
+        #[serde(skip)] // Will be handled in the custom deserialize
         cmd: create::Create,
     },
     /// Delete an item
@@ -44,6 +44,9 @@ pub(crate) enum Commands {
         #[serde(flatten)]
         cmd: find::Find,
     },
+    /// Authenticate with FIS
+    #[command(alias = "fa")]
+    FisAuth(fis_auth::FisAuth),
     /// Get an item by id
     #[command(alias = "g")]
     Get {
@@ -58,7 +61,8 @@ pub(crate) enum Commands {
         cmd: invoke::Invoke,
     },
     /// Issue a token
-    #[command(alias = "it")]
+    #[cfg_attr(feature = "customers", command(alias = "it", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "it"))]
     Issue {
         #[command(subcommand)]
         cmd: token::Issue,
@@ -70,7 +74,8 @@ pub(crate) enum Commands {
         cmd: observe::Observe,
     },
     /// redeem a token
-    #[command(alias = "rt")]
+    #[cfg_attr(feature = "customers", command(alias = "rt", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "rt"))]
     Redeem {
         #[command(subcommand)]
         cmd: token::Redeem,
@@ -103,32 +108,99 @@ pub(crate) enum Commands {
         cmd: update::Update,
     },
     /// Verify a token
-    #[command(alias = "vt")]
+    #[cfg_attr(feature = "customers", command(alias = "vt", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "vt"))]
     Verify {
         #[command(subcommand)]
         cmd: token::Verify,
     },
-    /// Get data in csv format
-    Csv(CsvArgs),
 }
 
-#[derive(Clone, Parser, Debug, Serialize, Deserialize)]
-pub(crate) struct CsvArgs {
-    #[clap(subcommand)]
-    #[serde(flatten)]
-    cmd: csv::CsvSubcommands,
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+enum CommandsHelper {
+    Auth(auth::Auth),
+    FisAuth(fis_auth::FisAuth),
+    Convert {
+        cmd: convert::Convert,
+    },
+    Create {
+        create: create::Create,
+    },
+    Delete {
+        cmd: delete::Delete,
+    },
+    Endorse {
+        cmd: endorse::Endorse,
+    },
+    Find {
+        cmd: find::Find,
+    },
+    Get {
+        cmd: get::Get,
+    },
+    Invoke {
+        cmd: invoke::Invoke,
+    },
+    Issue {
+        cmd: token::Issue,
+    },
+    Observe {
+        cmd: observe::Observe,
+    },
+    Redeem {
+        cmd: token::Redeem,
+    },
+    Run {
+        file: String,
+        dry_run: bool,
+        cmd: batch::Run,
+    },
+    Show {
+        format: Format,
+        cmd: show::Show,
+    },
+    Update {
+        cmd: update::Update,
+    },
+    Verify {
+        cmd: token::Verify,
+    },
 }
 
-impl CsvArgs {
-    async fn run(&self, context: &Context) -> anyhow::Result<()> {
-        self.cmd.csv(context).await
+impl<'de> Deserialize<'de> for Commands {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let helper = CommandsHelper::deserialize(deserializer)?;
+        Ok(match helper {
+            CommandsHelper::Auth(cmd) => Commands::Auth(cmd),
+            CommandsHelper::FisAuth(cmd) => Commands::FisAuth(cmd),
+            CommandsHelper::Convert { cmd } => Commands::Convert { cmd },
+            CommandsHelper::Create { create } => Commands::Create { cmd: create },
+            CommandsHelper::Delete { cmd } => Commands::Delete { cmd },
+            CommandsHelper::Endorse { cmd } => Commands::Endorse { cmd },
+            CommandsHelper::Find { cmd } => Commands::Find { cmd },
+            CommandsHelper::Get { cmd } => Commands::Get { cmd },
+            CommandsHelper::Invoke { cmd } => Commands::Invoke { cmd },
+            CommandsHelper::Issue { cmd } => Commands::Issue { cmd },
+            CommandsHelper::Observe { cmd } => Commands::Observe { cmd },
+            CommandsHelper::Redeem { cmd } => Commands::Redeem { cmd },
+            CommandsHelper::Run { file, dry_run, cmd } => Commands::Run { file, dry_run, cmd },
+            CommandsHelper::Show { format, cmd } => Commands::Show { format, cmd },
+            CommandsHelper::Update { cmd } => Commands::Update { cmd },
+            CommandsHelper::Verify { cmd } => Commands::Verify { cmd },
+        })
     }
 }
 
 impl Commands {
     pub(crate) async fn run(self, context: &Context) -> anyhow::Result<()> {
-        match self {
+        let result = match self {
             Commands::Auth(cmd) => cmd.run(context).await,
+            Commands::FisAuth(cmd) => cmd.run().await,
             Commands::Convert { cmd } => cmd.convert(),
             Commands::Create { cmd } => cmd.run(context).await,
             Commands::Delete { cmd } => cmd.run(context).await,
@@ -143,8 +215,14 @@ impl Commands {
             Commands::Show { format, cmd } => cmd.run(format).await,
             Commands::Update { cmd } => cmd.run(context).await,
             Commands::Verify { cmd } => cmd.run(),
-            Commands::Csv(op) => op.run(context).await,
+        };
+
+        match &result {
+            Err(err) => log::debug!("Command failed: {:?}", err),
+            _ => {}
         }
+
+        result
     }
 
     pub(super) async fn document_operation(

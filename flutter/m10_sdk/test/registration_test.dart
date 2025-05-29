@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:m10_sdk/library.dart';
 import 'package:m10_sdk/m10_sdk.dart';
 import 'package:test/test.dart';
 import 'utilities/utility.dart';
@@ -32,12 +31,10 @@ void main() {
         owner: base64Encode(await userSdk.signer.publicKey()),
       );
 
-      final accountRef = AccountRefDoc.fromIds('$instrument.m10', accountId);
-
       await userSdk.updateUser(
         userId: userId,
         operator: operator,
-        accounts: [accountRef.model],
+        accounts: [accountId],
       );
 
       print('Get user');
@@ -51,19 +48,19 @@ void main() {
       print('Update account status');
 
       await bankAdmin.updateAccountStatus(
-          id: accountRef.accountId, operator: operator, frozen: false,);
+          id: accountId, operator: operator, frozen: false,);
 
       print('creating transfer');
 
       await bankAdmin.createTransfer(
         fromAccountId: issuanceAccount.id,
-        toAccountId: accountRef.accountId,
+        toAccountId: accountId,
         amount: 100,
         operator: operator,
       );
 
       await userSdk.listTransfers(
-        accountId: accountRef.accountId,
+        accountId: accountId,
         operator: operator,
       );
     }, timeout: Timeout(Duration(seconds: 60)),);

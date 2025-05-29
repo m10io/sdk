@@ -37,7 +37,7 @@ impl TryFrom<sdk::AccountSet> for AccountSet {
             accounts: set
                 .accounts
                 .into_iter()
-                .map(|a| AccountId::try_from_be_slice(&a.account_id))
+                .map(|account_id| AccountId::try_from_be_slice(&account_id))
                 .collect::<Result<_, AccountIdError>>()?,
             owner: PublicKey(set.owner),
         })

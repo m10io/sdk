@@ -79,8 +79,8 @@ impl TryFrom<BankAccountRef> for BankAccount {
         Ok(Self {
             id: AccountId::try_from(account.account_id.as_slice())?,
             account_type: BankAccountType::from(
-                sdk::bank_account_ref::BankAccountType::from_i32(account.account_type)
-                    .ok_or(M10Error::InvalidTransaction)?,
+                sdk::bank_account_ref::BankAccountType::try_from(account.account_type)
+                    .map_err(|_| M10Error::InvalidTransaction)?,
             ),
         })
     }

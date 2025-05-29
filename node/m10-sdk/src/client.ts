@@ -1,445 +1,709 @@
-import { m10 } from "../protobufs";
+import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
+import type { PartialMessage } from "@protobuf-ts/runtime";
+import type { RpcInterceptor, RpcOptions, ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 
-import type { TransferBuilder, TransferFilter } from "./builders/transfer";
-import type { CryptoSigner } from "./utils/signer";
-import type { AccountBuilder, AccountFilter, ActionBuilder, ActionsFilter, DocumentBuilder, PageBuilder } from "./builders";
-import { M10Error } from "./error";
-import type { DocumentId, TxId } from "./ids";
+import type {
+    FinalizedTransactions,
+    GroupTransactionsRequest,
+    ListAccountMetadataResponse,
+    ListTransactionsRequest,
+    RequestEnvelope,
+    TransactionMetrics,
+} from "./protobufs/sdk/api";
+import * as sdkApi from "./protobufs/sdk/api";
+import { M10QueryServiceClient, M10TxServiceClient } from "./protobufs/sdk/api.client";
+import { DocumentOperations, Operation } from "./protobufs/sdk/document";
+import type { AccountInfo,AccountMetadata,AccountSet } from "./protobufs/sdk/model/model";
+import type { Bank } from "./protobufs/sdk/model/model";
+import type { RoleBinding } from "./protobufs/sdk/rbac";
+import type { Role } from "./protobufs/sdk/rbac";
+import type {
+    Action } from "./protobufs/sdk/transaction/transaction";
+import * as sdkTransaction from "./protobufs/sdk/transaction/transaction";
+import {
+    CommitTransfer_TransferState,
+    SetBalanceLimit,
+    SetFreezeState,
+    SetInstrument,
+} from "./protobufs/sdk/transaction/transaction";
 import { AccountId } from "./ids";
-import { LedgerClient } from "./ledger_client";
-import type { ContextFilter, GroupingFilter } from "./types";
-import { ExpandedTransfer } from "./types";
-import { Account, AccountInfo, AccountMetadata, AccountSet, Action, Bank, Role, RoleBinding, Transaction, Transfer } from "./types";
-import { unwrap } from "./utils";
+import type { EnhancedTransfer, EnhancedTransferStep } from "./transfer_ext";
+import type { CryptoSigner } from "./utils";
+import { TransactionSigner } from "./utils";
 
 
 export class M10Client {
+    private ledgerUrl: string;
 
-    private client: LedgerClient;
-    private signer: CryptoSigner;
+    public txClient: M10TxServiceClient;
+    public queryClient: M10QueryServiceClient;
 
+    private signer?: CryptoSigner;
 
-    public constructor(ledgerUrl: string, signer: CryptoSigner, tls: boolean = true) {
-        this.client = new LedgerClient(ledgerUrl, tls);
+    public constructor(ledgerUrl: string, signer?: CryptoSigner, accessToken?: string) {
+        this.ledgerUrl = ledgerUrl;
+
+        const accessTokenInterceptor: RpcInterceptor = {
+            interceptUnary(next, method, input, options) {
+                if (!options.meta) {
+                    options.meta = {};
+                }
+
+                options.meta["Authorization"] = `Bearer ${accessToken}`;
+                return next(method, input, options);
+            },
+        };
+
+        this.txClient = M10Client.createServiceClient(this.ledgerUrl, accessToken ? [accessTokenInterceptor] : []);
+
+        this.queryClient = M10Client.createQueryClient(this.ledgerUrl, accessToken ? [accessTokenInterceptor] : []);
+
         this.signer = signer;
     }
 
+    public static createServiceClient(ledgerUrl: string, interceptors?: RpcInterceptor[]): M10TxServiceClient {
+        return new M10TxServiceClient(
+            new GrpcWebFetchTransport({
+                format: "binary",
+                baseUrl: ledgerUrl,
+                interceptors: interceptors,
+            }),
+        );
+    }
+
+    public static createQueryClient(ledgerUrl: string, interceptors?: RpcInterceptor[]): M10QueryServiceClient {
+        return new M10QueryServiceClient(
+            new GrpcWebFetchTransport({
+                format: "binary",
+                baseUrl: ledgerUrl,
+                interceptors: interceptors,
+            }),
+        );
+    }
+
     public getSigner(): CryptoSigner {
+        if (!this.signer) {
+            throw new TypeError("Signer not set");
+        }
+
         return this.signer;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async createAccount(builder: AccountBuilder, contextId?: Uint8Array): Promise<[ TxId, AccountId ]> {
+    public buildTransactionRequest(data: sdkTransaction.TransactionData, contextId?: Uint8Array): sdkTransaction.TransactionRequestPayload {
+        return sdkTransaction.TransactionRequestPayload.create({
+            data: data,
+            nonce: BigInt(TransactionSigner.generateNonce()),
+            timestamp: BigInt(TransactionSigner.getTimestamp()),
+            contextId: contextId,
+        });
+    }
 
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ createLedgerAccount: builder.toCreateLedgerAccount() }),
+    public async createTransaction(payload: sdkTransaction.TransactionRequestPayload): Promise<sdkTransaction.TransactionResponse> {
+        if (!this.signer) {
+            throw new TypeError("Signer not set");
+        }
+
+        const encodedPayload = sdkTransaction.TransactionRequestPayload.toBinary(
+            sdkTransaction.TransactionRequestPayload.create(payload),
+        );
+        const envelop = sdkApi.RequestEnvelope.create({
+            payload: encodedPayload,
+            signature: await this.signer.getSignature(new Uint8Array(encodedPayload.buffer)),
+        });
+        const { response: transactionResponse } = await this.txClient.createTransaction(envelop);
+
+        if (transactionResponse.error) {
+            throw transactionResponse.error;
+        }
+
+        return transactionResponse;
+    }
+
+    public async createAccount(opts: PartialMessage<sdkTransaction.CreateLedgerAccount>, contextId?: Uint8Array): Promise<[bigint, AccountId]> {
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "createLedgerAccount",
+                    createLedgerAccount: sdkTransaction.CreateLedgerAccount.create({
+                        parentId: opts.parentId ?? new Uint8Array(),
+                        frozen: opts.frozen,
+                        issuance: opts.issuance,
+                        ...(opts.instrument && { instrument: opts.instrument }),
+                        balanceLimit: opts.balanceLimit,
+                    }),
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
         return [
-            unwrap(transactionResponse.txId, M10Error.InvalidTransaction()),
-            AccountId.fromUint8Array(unwrap(transactionResponse.accountCreated, M10Error.InvalidTransaction())),
+            transactionResponse.txId,
+            AccountId.fromBytes(transactionResponse.accountCreated),
         ];
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async transfer(builder: TransferBuilder, contextId?: Uint8Array): Promise<TxId> {
-
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ transfer: builder.toCreateTransfer() }),
+    public async transfer(steps: PartialMessage<sdkTransaction.TransferStep>[], contextId?: Uint8Array): Promise<bigint> {
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "transfer",
+                    transfer: sdkTransaction.CreateTransfer.create({
+                        transferSteps: steps.map(el => sdkTransaction.TransferStep.create(el)),
+                    }),
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async initiateTransfer(builder: TransferBuilder, contextId?: Uint8Array): Promise<TxId> {
-
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ initiateTransfer: builder.toCreateTransfer() }),
+    public async initiateTransfer(steps: sdkTransaction.TransferStep[], contextId?: Uint8Array): Promise<bigint> {
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "initiateTransfer",
+                    initiateTransfer: sdkTransaction.CreateTransfer.create({
+                        transferSteps: steps,
+                    }),
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async commitTransfer(txId: TxId, accept: boolean, contextId?: Uint8Array): Promise<TxId> {
-
-        const payload = new m10.sdk.transaction.CommitTransfer({
+    public async commitTransfer(txId: bigint, accept: boolean, contextId?: Uint8Array): Promise<bigint> {
+        const payload = sdkTransaction.CommitTransfer.create({
             pendingTxId: txId,
             newState: (
                 accept
-                    ? m10.sdk.transaction.CommitTransfer.TransferState.ACCEPTED
-                    : m10.sdk.transaction.CommitTransfer.TransferState.REJECTED
+                    ? CommitTransfer_TransferState.ACCEPTED
+                    : CommitTransfer_TransferState.REJECTED
             ),
         });
 
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ commitTransfer: payload }),
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "commitTransfer",
+                    commitTransfer: payload,
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * Sets the [`Account`] [`frozen`] status.
-     * Frozen accounts cannot participate in transactions.
-     *
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async freezeAccount(accountId: AccountId, frozen: boolean, contextId?: Uint8Array): Promise<TxId> {
+    public async freezeAccount(accountId: AccountId, frozen: boolean, contextId?: Uint8Array): Promise<bigint> {
 
-        const payload = new m10.sdk.transaction.SetFreezeState({ accountId: accountId.toUint8Array(), frozen });
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ setFreezeState: payload }),
+        const payload = SetFreezeState.create({ accountId: accountId.bytes, frozen });
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "setFreezeState",
+                    setFreezeState: payload,
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async setAccountLimit(accountId: AccountId, limit: number, contextId?: Uint8Array): Promise<TxId> {
-
-        const payload = new m10.sdk.transaction.SetBalanceLimit({
-            accountId: accountId.toUint8Array(),
-            balanceLimit: limit,
+    public async setAccountLimit(accountId: AccountId, limit: number, contextId?: Uint8Array): Promise<bigint> {
+        const payload = SetBalanceLimit.create({
+            accountId: accountId.bytes,
+            balanceLimit: BigInt(limit),
         });
 
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ setBalanceLimit: payload }),
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "setBalanceLimit",
+                    setBalanceLimit: payload,
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
     public async setAccountInstrument(
         accountId: AccountId,
         code: string,
         decimals: number,
-        description?: Option<string>,
+        description?: string,
         contextId?: Uint8Array,
-    ): Promise<TxId> {
-
-        const payload = new m10.sdk.transaction.SetInstrument({
-            accountId: accountId.toUint8Array(),
+    ): Promise<bigint> {
+        const payload = SetInstrument.create({
+            accountId: accountId.bytes,
             code: code,
             decimalPlaces: decimals,
-            description: description,
+            description: description ?? "",
         });
 
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ setInstrument: payload }),
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    oneofKind: "setInstrument",
+                    setInstrument: payload,
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async action(builder: ActionBuilder, contextId?: Uint8Array): Promise<TxId> {
-
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ invokeAction: builder.toInvokeAction() }),
+    public async action(properties: PartialMessage<sdkTransaction.InvokeAction>, contextId?: Uint8Array): Promise<bigint> {
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    invokeAction: sdkTransaction.InvokeAction.create(properties),
+                    oneofKind: "invokeAction",
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    /**
-     * @throws  {M10Error.Transaction}          if response contains an error
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async documents(builder: DocumentBuilder, contextId?: Uint8Array): Promise<TxId> {
-
-        const request = this.client.transactionRequest(
-            new m10.sdk.transaction.TransactionData({ documentOperations: builder.toDocumentOperations() }),
+    public async documents(operations: Operation["operation"][], contextId?: Uint8Array): Promise<bigint> {
+        const request = this.buildTransactionRequest(
+            sdkTransaction.TransactionData.create({
+                data: {
+                    documentOperations: DocumentOperations.create({
+                        operations: operations.map((el) => Operation.create({
+                            operation: el,
+                        })),
+                    }),
+                    oneofKind: "documentOperations",
+                },
+            }),
             contextId,
         );
-        const transactionResponse = await this.client.createTransaction(this.signer, request);
+        const transactionResponse = await this.createTransaction(request);
 
-        return unwrap(transactionResponse.txId, M10Error.InvalidTransaction());
+        return transactionResponse.txId;
     }
 
-    // Accounts
+    public async getAccount(id: Uint8Array | string | AccountId): Promise<sdkTransaction.IndexedAccount> {
+        const request = sdkTransaction.GetAccountRequest.create({
+            id: id instanceof AccountId ? id.bytes : typeof id === "string" ? AccountId.fromHex(id).bytes : id,
+        });
+        const payload = sdkTransaction.GetAccountRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getAccount(id: AccountId): Promise<Account> {
-        const request = new m10.sdk.transaction.GetAccountRequest({ id: id.toUint8Array() });
-        const response = await this.client.getIndexedAccount(this.signer, request);
-        return Account.tryFrom(response);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getIndexedAccount(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getAccountInfo(id: AccountId): Promise<AccountInfo> {
-        const request = new m10.sdk.transaction.GetAccountRequest({ id: id.toUint8Array() });
-        const response = await this.client.getAccountInfo(this.signer, request);
-        return AccountInfo.tryFrom(response);
+    public async getAccountInfo(id: Uint8Array | string | AccountId): Promise<AccountInfo> {
+        const request = sdkTransaction.GetAccountRequest.create({
+            id: id instanceof AccountId ? id.bytes : typeof id === "string" ? AccountId.fromHex(id).bytes : id,
+        });
+        const payload = sdkTransaction.GetAccountRequest.toBinary(request);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+        const { response } = await this.queryClient.getAccountInfo(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async listAccounts(filter: PageBuilder): Promise<Account[]> {
-        const response = await this.client.listAccountMetadata(this.signer, filter.toListAccountMetadataRequest());
-        const accounts = unwrap(response.accounts, M10Error.InvalidTransaction());
-        const requests = accounts.map((account) => this.getAccount(
-            AccountId.fromUint8Array(unwrap(account.id, M10Error.InvalidTransaction())),
+    public async listAccounts(properties: PartialMessage<sdkApi.ListAccountMetadataRequest>): Promise<sdkTransaction.IndexedAccount[]> {
+        const response = await this.listAccountMetadata(properties);
+        const requests = response.accounts.map((account) => this.getAccount(
+            AccountId.fromBytes(account.id),
         ));
         return Promise.all(requests);
     }
 
-    public observeAccounts(filter: AccountFilter): [m10.sdk.M10QueryService, () => void] {
-        return this.client.observeAccounts(this.signer, filter.toObserveAccountsRequest());
+    public async observeAccounts(
+        properties: PartialMessage<sdkApi.ObserveAccountsRequest>,
+        options?: RpcOptions,
+    ): Promise<() => ServerStreamingCall<RequestEnvelope, FinalizedTransactions>> {
+        const request = sdkApi.ObserveAccountsRequest.create(properties);
+        const payload = sdkApi.ObserveAccountsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        return () => this.queryClient.observeAccounts(envelope, options);
     }
 
-    // Transfers
+    public async getTransfer(txId: bigint): Promise<sdkTransaction.FinalizedTransfer> {
+        const request = sdkTransaction.GetTransferRequest.create({ txId });
+        const payload = sdkTransaction.GetTransferRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any of the required fields are missing
-     */
-    public async getTransfer(txId: TxId): Promise<Transfer> {
-        const request = new m10.sdk.transaction.GetTransferRequest({ txId });
-        const response = await this.client.getTransfer(this.signer, request);
-        return Transfer.tryFrom(response);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getTransfer(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getEnhancedTransfer(txId: TxId): Promise<ExpandedTransfer> {
-        const request = new m10.sdk.transaction.GetTransferRequest({ txId });
-        const response = await this.client.getTransfer(this.signer, request);
-        const enchanced = await this.client.enhanceTransfer(this.signer, response);
-        return ExpandedTransfer.tryFrom(enchanced);
+    public async listTransfers(properties: PartialMessage<sdkTransaction.ListTransferRequest>): Promise<sdkTransaction.FinalizedTransfers> {
+        const request = sdkTransaction.ListTransferRequest.create(properties);
+        const payload = sdkTransaction.ListTransferRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.listTransfers(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async listTransfers(filter: TransferFilter): Promise<Transfer[]> {
-        const request = filter.toListTransferRequest();
-        const response = await this.client.listTransfers(this.signer, request);
-        return unwrap(response.transfers, M10Error.InvalidTransaction()).map(Transfer.tryFrom);
+    public async getEnhancedTransfers(properties: PartialMessage<sdkTransaction.ListTransferRequest>): Promise<EnhancedTransfer[]> {
+        const response = await this.listTransfers(properties);
+
+        const enhancedTransfersPromise = response.transfers.map((transfer) => this.enhanceTransfer(transfer));
+        const enhancedTransfers = await Promise.all(enhancedTransfersPromise);
+
+        return enhancedTransfers;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getEnhancedTransfers(filter: TransferFilter): Promise<ExpandedTransfer[]> {
-        const request = filter.toListTransferRequest();
-        const response = await this.client.listTransfers(this.signer, request);
-        const enchanced = await this.client.enhanceTransfers(
-            this.signer,
-            unwrap(response.transfers, M10Error.InvalidTransaction()),
+    public async enhanceTransfer(
+        transfer: sdkTransaction.FinalizedTransfer,
+    ): Promise<EnhancedTransfer> {
+
+        const enhancedTransferStepsPromise = (transfer.transferSteps || [])
+            .map((transferStep) => this.enhanceTransferStep(transferStep));
+
+        const enhancedTransferSteps = await Promise.all(enhancedTransferStepsPromise);
+
+        return {
+            transfer: sdkTransaction.FinalizedTransfer.create(transfer),
+            enhanced_steps: enhancedTransferSteps,
+        };
+    }
+
+    public async getEnhancedTransfer(txId: bigint): Promise<EnhancedTransfer> {
+        const response = await this.getTransfer(txId);
+
+
+        const enhancedTransferStepsPromise = (response.transferSteps || [])
+            .map((transferStep) => this.enhanceTransferStep(transferStep));
+
+        const enhancedTransferSteps = await Promise.all(enhancedTransferStepsPromise);
+
+        return {
+            transfer: sdkTransaction.FinalizedTransfer.create(response),
+            enhanced_steps: enhancedTransferSteps,
+        };
+    }
+
+    public async enhanceTransferStep(
+        transferStep: sdkTransaction.TransferStep,
+    ): Promise<EnhancedTransferStep> {
+
+        const fromPromise = this.getAccountInfo(transferStep.fromAccountId);
+        const toPromise = this.getAccountInfo(transferStep.toAccountId);
+
+        const [from, to] = await Promise.all([fromPromise, toPromise]);
+
+        const fromBankPromise = from.parentAccountId
+            ? await this.getAccountInfo(from.parentAccountId)
+            : undefined;
+
+        const toBankPromise = (
+            to.parentAccountId
+                ? await this.getAccountInfo(to.parentAccountId)
+                : undefined
         );
-        return enchanced.map(ExpandedTransfer.tryFrom);
+
+        const [fromBank, toBank] = await Promise.all([fromBankPromise, toBankPromise]);
+
+        return {
+            from,
+            to,
+            from_bank: fromBank,
+            to_bank: toBank,
+        };
     }
 
-    public observeTransfers(filter: AccountFilter): [m10.sdk.M10QueryService, () => void] {
-        return this.client.observeTransfers(this.signer, filter.toObserveAccountsRequest());
+    public async observeTransfers(
+        properties: PartialMessage<sdkApi.ObserveAccountsRequest>,
+        options?: RpcOptions,
+    ): Promise<() => ServerStreamingCall<RequestEnvelope, FinalizedTransactions>> {
+        const request = sdkApi.ObserveAccountsRequest.create(properties);
+        const payload = sdkApi.ObserveAccountsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        return () => this.queryClient.observeTransfers(envelope, options);
     }
 
-    // Actions
+    public async getAction(txId: bigint): Promise<Action> {
+        const request = sdkTransaction.GetActionRequest.create({ txId });
+        const payload = sdkTransaction.GetActionRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getAction(txId: TxId): Promise<Action> {
-        const request = new m10.sdk.transaction.GetActionRequest({ txId });
-        const response = await this.client.getAction(this.signer, request);
-        return Action.tryFrom(response);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getAction(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async listActions(filter: ActionsFilter): Promise<Action[]> {
-        const request = filter.toListActionsRequest();
-        const response = await this.client.listActions(this.signer, request);
-        return unwrap(response.actions, M10Error.InvalidTransaction()).map(Action.tryFrom);
+    public async listActions(properties: PartialMessage<sdkTransaction.ListActionsRequest>): Promise<sdkTransaction.Actions> {
+        const request = sdkTransaction.ListActionsRequest.create(properties);
+        const payload = sdkTransaction.ListActionsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await  this.queryClient.listActions(envelope);
+
+        return response;
     }
 
-    public observeActions(filter: AccountFilter): [m10.sdk.M10QueryService, () => void] {
-        return this.client.observeActions(this.signer, filter.toObserveActionsRequest());
+    public async observeActions(
+        properties: PartialMessage<sdkApi.ObserveActionsRequest>,
+        options?: RpcOptions,
+    ): Promise<() => ServerStreamingCall<RequestEnvelope, FinalizedTransactions>> {
+        const request = sdkApi.ObserveActionsRequest.create(properties);
+        const payload = sdkApi.ObserveActionsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        return () => this.queryClient.observeActions(envelope, options);
     }
 
-    // Metrics
+    public async observeMetrics(
+        properties: PartialMessage<sdkApi.ObserveAccountsRequest>,
+        options?: RpcOptions,
+    ): Promise<() => ServerStreamingCall<RequestEnvelope, TransactionMetrics>> {
+        const request = sdkApi.ObserveAccountsRequest.create(properties);
+        const payload = sdkApi.ObserveAccountsRequest.toBinary(request);
 
-    public observeMetrics(filter: AccountFilter): [m10.sdk.M10QueryService, () => void] {
-        return this.client.observeMetrics(this.signer, filter.toObserveAccountsRequest());
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        return () => this.queryClient.observeMetrics(envelope, options);
     }
 
-    // Transactions
+    public async listTransactions(properties: PartialMessage<ListTransactionsRequest>): Promise<FinalizedTransactions> {
+        const request = sdkApi.ListTransactionsRequest.create(properties);
+        const payload = sdkApi.ListTransactionsRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async listTransactions(filter: ContextFilter): Promise<Transaction[]> {
-        const request = filter.toListTransactionsRequest();
-        const response = await this.client.listTransactions(this.signer, request);
-        return unwrap(response.transactions, M10Error.InvalidTransaction()).map(Transaction.tryFrom);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.listTransactions(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async groupTransactions(filter: GroupingFilter): Promise<Transaction[][]> {
-        const request = filter.toGroupTransactionsRequest();
-        const response = await this.client.groupTransactions(this.signer, request);
-        const groups = unwrap(response.groups, M10Error.InvalidTransaction());
-        return groups.map((group) => unwrap(group.transactions, M10Error.InvalidTransaction()).map(Transaction.tryFrom));
+    public async groupTransactions(properties?: PartialMessage<GroupTransactionsRequest>): Promise<sdkApi.GroupedFinalizedTransactions> {
+        const request = sdkApi.GroupTransactionsRequest.create(properties);
+        const payload = sdkApi.GroupTransactionsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.groupTransactions(envelope);
+
+        return response;
     }
 
-    // Banks
+    public async getBank(documentId: Uint8Array): Promise<Bank> {
+        const payload = sdkApi.GetBankRequest.toBinary(
+            sdkApi.GetBankRequest.create({
+                id: documentId,
+            }),
+        );
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+        const { response } = await this.queryClient.getBank(envelope);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async getBank(id: DocumentId): Promise<Bank> {
-        const request = new m10.sdk.GetBankRequest({ id: id.toUint8Array() });
-        const response = await this.client.getBank(this.signer, request);
-        return Bank.tryFrom(response);
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async listBanks(builder: PageBuilder): Promise<Bank[]> {
-        const request = new m10.sdk.ListBanksRequest({ page: builder.toPage() });
-        const response = await this.client.listBanks(this.signer, request);
-        return unwrap(response.banks, M10Error.InvalidTransaction()).map(Bank.tryFrom);
+    public async listBanks(properties?: PartialMessage<sdkApi.ListBanksRequest>): Promise<sdkApi.ListBanksResponse> {
+        const request = sdkApi.ListBanksRequest.create(properties);
+        const payload = sdkApi.ListBanksRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.listBanks(envelope);
+
+        return response;
     }
 
-    // Roles
+    public async getRole(documentId: Uint8Array): Promise<Role> {
+        const payload = sdkApi.GetRoleRequest.toBinary(
+            sdkApi.GetRoleRequest.create({
+                id: documentId,
+            }),
+        );
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+        const { response } = await this.queryClient.getRole(envelope);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async getRole(id: DocumentId): Promise<Role> {
-        const request = new m10.sdk.GetRoleRequest({ id: id.toUint8Array() });
-        const response = await this.client.getRole(this.signer, request);
-        return Role.tryFrom(response);
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async listRoles(builder: PageBuilder): Promise<Role[]> {
-        const request = builder.toListRolesRequest();
-        const response = await this.client.listRoles(this.signer, request);
-        return unwrap(response.roles, M10Error.InvalidTransaction()).map(Role.tryFrom);
+    public async listRoles(properties: PartialMessage<sdkApi.ListRolesRequest>): Promise<sdkApi.ListRolesResponse> {
+        const payload = sdkApi.ListRolesRequest.toBinary(
+            sdkApi.ListRolesRequest.create(properties),
+        );
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+        const { response } = await this.queryClient.listRoles(envelope);
+
+        return response;
     }
 
-    // Role-bindings
+    public async getRoleBindings(documentId: Uint8Array): Promise<RoleBinding> {
+        const request = sdkApi.GetRoleBindingRequest.create({
+            id: documentId,
+        });
+        const payload = sdkApi.GetRoleBindingRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async getRoleBindings(id: DocumentId): Promise<RoleBinding> {
-        const request = new m10.sdk.GetRoleBindingRequest({ id: id.toUint8Array() });
-        const response = await this.client.getRoleBinding(this.signer, request);
-        return RoleBinding.tryFrom(response);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getRoleBinding(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     */
-    public async listRoleBindings(builder: PageBuilder): Promise<RoleBinding[]> {
-        const request = builder.toListRoleBindingsRequest();
-        const response = await this.client.listRoleBindings(this.signer, request);
-        return unwrap(response.roleBindings, M10Error.InvalidTransaction()).map(RoleBinding.tryFrom);
+    public async listRoleBindings(properties: PartialMessage<sdkApi.ListRoleBindingsRequest>): Promise<sdkApi.ListRoleBindingsResponse> {
+        const request = sdkApi.ListRoleBindingsRequest.create(properties);
+        const payload = sdkApi.ListRoleBindingsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.listRoleBindings(envelope);
+
+        return response;
     }
 
-    // AccountSets
+    public async getAccountSet(properties: PartialMessage<sdkApi.GetAccountSetRequest>): Promise<AccountSet> {
+        const request = sdkApi.GetAccountSetRequest.create(properties);
+        const payload = sdkApi.GetAccountSetRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getAccountSet(id: DocumentId): Promise<AccountSet> {
-        const request = new m10.sdk.GetAccountSetRequest({ id: id.toUint8Array() });
-        const response = await this.client.getAccountSet(this.signer, request);
-        return AccountSet.tryFrom(response);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getAccountSet(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async listAccountSets(builder: PageBuilder): Promise<AccountSet[]> {
-        const request = builder.toListAccountSetsRequest();
-        const response = await this.client.listAccountSets(this.signer, request);
-        return unwrap(response.accountSets, M10Error.InvalidTransaction()).map(AccountSet.tryFrom);
+    public async listAccountSets(properties: PartialMessage<sdkApi.ListAccountSetsRequest>): Promise<sdkApi.ListAccountSetsResponse> {
+        const request = sdkApi.ListAccountSetsRequest.create(properties);
+        const payload = sdkApi.ListAccountSetsRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.listAccountSets(envelope);
+
+        return response;
     }
 
-    // Account Metadata
+    public async getAccountMetadata(documentId: Uint8Array): Promise<AccountMetadata> {
+        const request = sdkTransaction.GetAccountRequest.create({ id: documentId });
+        const payload = sdkTransaction.GetAccountRequest.toBinary(request);
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async getAccountMetadata(id: DocumentId): Promise<AccountMetadata> {
-        const request = new m10.sdk.transaction.GetAccountRequest({ id: id.toUint8Array() });
-        const response = await this.client.getAccountMetadata(this.signer, request);
-        return AccountMetadata.tryFrom(response);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getAccountMetadata(envelope);
+
+        return response;
     }
 
-    /**
-     * @throws  {M10Error.InvalidTransaction}   if any part of the transaction is missing
-     * @throws  {M10Error.InvalidAccountId}     if invalid account id was used
-     */
-    public async listAccountMetadatas(builder: PageBuilder): Promise<AccountMetadata[]> {
-        const request = builder.toListAccountMetadataRequest();
-        const response = await this.client.listAccountMetadata(this.signer, request);
-        return unwrap(response.accounts, M10Error.InvalidTransaction()).map(AccountMetadata.tryFrom);
+    public async listAccountMetadata(properties: PartialMessage<sdkApi.ListAccountMetadataRequest>): Promise<ListAccountMetadataResponse> {
+        const request = sdkApi.ListAccountMetadataRequest.create(properties);
+        const payload = sdkApi.ListAccountMetadataRequest.toBinary(request);
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+        const { response } = await this.queryClient.listAccountMetadata(envelope);
+
+        return response;
+    }
+
+    public async getTransaction(
+        properties: PartialMessage<sdkApi.GetTransactionRequest>,
+    ): Promise<sdkApi.FinalizedTransaction> {
+        const request = sdkApi.GetTransactionRequest.create(properties);
+        const payload = sdkApi.GetTransactionRequest.toBinary(request);
+
+        const envelope = sdkApi.RequestEnvelope.create({
+            payload,
+            ...(this.signer && { signature: await this.signer.getSignature(new Uint8Array(payload.buffer)) }),
+        });
+
+        const { response } = await this.queryClient.getTransaction(envelope);
+
+        return response;
     }
 }

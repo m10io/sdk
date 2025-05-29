@@ -1,11 +1,12 @@
 use chrono::Utc;
+
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 use uuid::Uuid;
 
 use crate::{auth::AuthScope, error::Error};
 
-use super::{Asset, NextPageToken};
+use super::{Asset, NextPageToken, Signature};
 
 #[derive(sqlx::Type, Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[sqlx(rename_all = "snake_case")]
@@ -38,7 +39,6 @@ pub struct Contact {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relationship: Option<i64>,
 
-    #[serde(skip)]
     pub rbac_role: Uuid,
 
     pub account_set: Uuid,
@@ -73,6 +73,8 @@ pub struct CreateContactRequest {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assets: Option<Vec<String>>,
+
+    pub signatures: Vec<Signature>,
 }
 
 impl From<CreateContactRequest> for Contact {
@@ -231,12 +233,20 @@ impl Contact {
         Ok(query.fetch_all(executor).await?)
     }
 
+    pub async fn list_all(
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<Vec<Self>, Error> {
+        Ok(sqlx::query_as("SELECT * FROM contacts")
+            .fetch_all(executor)
+            .await?)
+    }
+
     pub fn get_asset(id: i64, instrument: &str) -> QueryAs<'_, Postgres, Asset, PgArguments> {
         sqlx::query_as(
             "SELECT a.*
                  FROM assets a, contacts c
                  WHERE
-                   c.id = $1 AND 
+                   c.id = $1 AND
                    a.account_id = c.account_id AND
                    a.instrument = $2",
         )
@@ -262,15 +272,15 @@ impl Contact {
     {
         match scope {
             AuthScope::Own(u) => Ok(sqlx::query_as(
-                "SELECT n.* FROM contacts, notification_preferences n 
-                WHERE id = $1 AND user_id = $2 
+                "SELECT n.* FROM contacts, notification_preferences n
+                WHERE id = $1 AND user_id = $2
                     AND retired_since IS NULL
                     AND n.contacts_id = id",
             )
             .bind(id)
             .bind(u)),
             AuthScope::Tenant(tenant) => Ok(sqlx::query_as(
-                "SELECT n.* FROM contacts, notification_preferences n 
+                "SELECT n.* FROM contacts, notification_preferences n
                 WHERE id = $1 AND tenant = $2 AND n.contacts_id = id",
             )
             .bind(id)
@@ -331,4 +341,10 @@ impl Contact {
         *self = customer;
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChangeContactPublicKeyRequest {
+    pub public_key: String,
+    pub signature: Signature,
 }

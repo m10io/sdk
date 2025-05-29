@@ -13,7 +13,7 @@ use sqlx::Acquire;
 use std::{collections::HashMap, convert::TryFrom, net::SocketAddr, path::Path, sync::Arc};
 use tokio::sync::OnceCell;
 use tonic::{
-    transport::{Channel, Endpoint},
+    transport::{Channel, ClientTlsConfig, Endpoint, Uri},
     Code, Request,
 };
 use uuid::Uuid;
@@ -23,6 +23,7 @@ use crate::{
     context::Context,
     error::{Error, ResultExt},
     models::Currency,
+    requiem::RequiemServiceConfig,
 };
 
 #[derive(Clone, Debug, Deserialize)]
@@ -42,6 +43,7 @@ pub struct Config {
     pub directory_addr: Endpoint,
     pub key_pair: Arc<m10_sdk::Ed25519>,
     pub prometheus_port: u16,
+    pub requiem: Option<RequiemServiceConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -96,15 +98,15 @@ impl CurrencyConfig {
         let mut txn = conn.begin().await?;
         sqlx::query("SELECT pg_advisory_xact_lock($1)")
             .bind(0xBE000C)
-            .execute(&mut txn)
+            .execute(&mut *txn)
             .await?;
-        let mut currency = Currency::get(&self.code, &mut txn).await?;
+        let mut currency = Currency::get(&self.code, &mut *txn).await?;
         if currency.bank_id.is_some() {
             txn.rollback().await?;
             return Ok(currency);
         }
 
-        let mut rtgs = RtgsServiceClient::new(self.rtgs_addr.connect_lazy()?);
+        let mut rtgs = RtgsServiceClient::new(self.rtgs_addr.connect_lazy());
         let mut accounts = vec![BankAccountType::Drm as i32];
         if self.cbdc_config.is_some() {
             accounts.push(BankAccountType::Cbdc as i32);
@@ -131,7 +133,7 @@ impl CurrencyConfig {
                 }
             };
         }
-        currency.update(&mut txn).await?;
+        currency.update(&mut *txn).await?;
         txn.commit().await?;
         Ok(currency)
     }
@@ -143,7 +145,7 @@ impl CurrencyConfig {
         self.reserve_config
             .reserve_account_id
             .get_or_try_init(|| async {
-                let mut rtgs = RtgsServiceClient::new(self.rtgs_addr.connect_lazy()?);
+                let mut rtgs = RtgsServiceClient::new(self.rtgs_addr.connect_lazy());
 
                 let account_req = AccountRequest {
                     institute: context.config.bank_name.clone(),
@@ -343,21 +345,33 @@ pub struct EmulatorHoldingAccount {
 
 impl Config {
     pub fn new() -> Result<Self, ConfigError> {
-        let mut config = config::Config::default();
-        let config_files = &[
-            "/etc/m10/config.toml",
-            "/etc/m10/config-patch.toml",
-            "/root/.config/m10/config.toml",
-            "./config.toml",
-        ];
-        for config_file in config_files {
-            config.merge(config::File::from(Path::new(config_file)).required(false))?;
-        }
-        config.merge(
-            config::Environment::with_prefix("M10")
-                .separator("__")
-                .ignore_empty(true),
-        )?;
-        config.try_into()
+        let config = config::Config::builder()
+            .add_source(config::File::from(Path::new("/etc/m10/config.toml")).required(false))
+            .add_source(config::File::from(Path::new("/etc/m10/config-patch.toml")).required(false))
+            .add_source(
+                config::File::from(Path::new("/root/.config/m10/config.toml")).required(false),
+            )
+            .add_source(config::File::from(Path::new("./config.toml")).required(false))
+            .add_source(
+                config::Environment::with_prefix("APP")
+                    .prefix_separator("_")
+                    .separator("__")
+                    .ignore_empty(true),
+            )
+            .build()?;
+
+        config.try_deserialize()
     }
+}
+
+pub fn make_endpoint(endpoint: Uri) -> Result<Endpoint, Error> {
+    let secure = endpoint.scheme_str() == Some("https");
+    let endpoint = Channel::builder(endpoint);
+
+    if secure {
+        let tls_config = ClientTlsConfig::with_enabled_roots(Default::default());
+        return Ok(endpoint.tls_config(tls_config)?);
+    }
+
+    Ok(endpoint)
 }

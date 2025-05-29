@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/api.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -19,8 +19,19 @@ import 'model/model.pb.dart' as $2;
 import 'rbac.pb.dart' as $4;
 import 'transaction/transaction.pb.dart' as $1;
 
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+/// / A batch of transactions to be created.
 class BulkTransactions extends $pb.GeneratedMessage {
-  factory BulkTransactions() => create();
+  factory BulkTransactions({
+    $core.Iterable<RequestEnvelope>? transactions,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    return $result;
+  }
   BulkTransactions._() : super();
   factory BulkTransactions.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory BulkTransactions.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -51,12 +62,22 @@ class BulkTransactions extends $pb.GeneratedMessage {
   static BulkTransactions getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BulkTransactions>(create);
   static BulkTransactions? _defaultInstance;
 
+  /// / List of transaction requests.
   @$pb.TagNumber(1)
-  $core.List<RequestEnvelope> get transactions => $_getList(0);
+  $pb.PbList<RequestEnvelope> get transactions => $_getList(0);
 }
 
+/// / Responses for a bulk transaction creation request.
 class BulkTransactionsResponse extends $pb.GeneratedMessage {
-  factory BulkTransactionsResponse() => create();
+  factory BulkTransactionsResponse({
+    $core.Iterable<$1.TransactionResponse>? responses,
+  }) {
+    final $result = create();
+    if (responses != null) {
+      $result.responses.addAll(responses);
+    }
+    return $result;
+  }
   BulkTransactionsResponse._() : super();
   factory BulkTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory BulkTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -87,12 +108,26 @@ class BulkTransactionsResponse extends $pb.GeneratedMessage {
   static BulkTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BulkTransactionsResponse>(create);
   static BulkTransactionsResponse? _defaultInstance;
 
+  /// / List of transaction responses.
   @$pb.TagNumber(1)
-  $core.List<$1.TransactionResponse> get responses => $_getList(0);
+  $pb.PbList<$1.TransactionResponse> get responses => $_getList(0);
 }
 
+/// Wraps a payload with a signature for authentication and authorization.
 class RequestEnvelope extends $pb.GeneratedMessage {
-  factory RequestEnvelope() => create();
+  factory RequestEnvelope({
+    $core.List<$core.int>? payload,
+    $1.Signature? signature,
+  }) {
+    final $result = create();
+    if (payload != null) {
+      $result.payload = payload;
+    }
+    if (signature != null) {
+      $result.signature = signature;
+    }
+    return $result;
+  }
   RequestEnvelope._() : super();
   factory RequestEnvelope.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory RequestEnvelope.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -124,6 +159,7 @@ class RequestEnvelope extends $pb.GeneratedMessage {
   static RequestEnvelope getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RequestEnvelope>(create);
   static RequestEnvelope? _defaultInstance;
 
+  /// / Payload data.
   @$pb.TagNumber(2)
   $core.List<$core.int> get payload => $_getN(0);
   @$pb.TagNumber(2)
@@ -131,22 +167,36 @@ class RequestEnvelope extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasPayload() => $_has(0);
   @$pb.TagNumber(2)
-  void clearPayload() => clearField(2);
+  void clearPayload() => $_clearField(2);
 
+  /// / Signature for the payload.
   @$pb.TagNumber(3)
   $1.Signature get signature => $_getN(1);
   @$pb.TagNumber(3)
-  set signature($1.Signature v) { setField(3, v); }
+  set signature($1.Signature v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasSignature() => $_has(1);
   @$pb.TagNumber(3)
-  void clearSignature() => clearField(3);
+  void clearSignature() => $_clearField(3);
   @$pb.TagNumber(3)
   $1.Signature ensureSignature() => $_ensure(1);
 }
 
+/// A page of results for paginated queries.
 class Page extends $pb.GeneratedMessage {
-  factory Page() => create();
+  factory Page({
+    $core.int? limit,
+    $core.List<$core.int>? lastId,
+  }) {
+    final $result = create();
+    if (limit != null) {
+      $result.limit = limit;
+    }
+    if (lastId != null) {
+      $result.lastId = lastId;
+    }
+    return $result;
+  }
   Page._() : super();
   factory Page.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Page.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -178,6 +228,7 @@ class Page extends $pb.GeneratedMessage {
   static Page getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Page>(create);
   static Page? _defaultInstance;
 
+  /// / Limit of results per page.
   @$pb.TagNumber(1)
   $core.int get limit => $_getIZ(0);
   @$pb.TagNumber(1)
@@ -185,8 +236,9 @@ class Page extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasLimit() => $_has(0);
   @$pb.TagNumber(1)
-  void clearLimit() => clearField(1);
+  void clearLimit() => $_clearField(1);
 
+  /// / Last ID from previous page.
   @$pb.TagNumber(2)
   $core.List<$core.int> get lastId => $_getN(1);
   @$pb.TagNumber(2)
@@ -194,11 +246,20 @@ class Page extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasLastId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLastId() => clearField(2);
+  void clearLastId() => $_clearField(2);
 }
 
+/// Retrieve a specific AccountSet.
 class GetAccountSetRequest extends $pb.GeneratedMessage {
-  factory GetAccountSetRequest() => create();
+  factory GetAccountSetRequest({
+    $core.List<$core.int>? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
   GetAccountSetRequest._() : super();
   factory GetAccountSetRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetAccountSetRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -229,6 +290,7 @@ class GetAccountSetRequest extends $pb.GeneratedMessage {
   static GetAccountSetRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAccountSetRequest>(create);
   static GetAccountSetRequest? _defaultInstance;
 
+  /// / ID of the AccountSet.
   @$pb.TagNumber(1)
   $core.List<$core.int> get id => $_getN(0);
   @$pb.TagNumber(1)
@@ -236,7 +298,7 @@ class GetAccountSetRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 enum ListAccountSetsRequest_Filter {
@@ -245,8 +307,25 @@ enum ListAccountSetsRequest_Filter {
   notSet
 }
 
+/// ListAccountSetsRequest is the request message for listing account sets.
 class ListAccountSetsRequest extends $pb.GeneratedMessage {
-  factory ListAccountSetsRequest() => create();
+  factory ListAccountSetsRequest({
+    $core.List<$core.int>? owner,
+    $core.String? name,
+    Page? page,
+  }) {
+    final $result = create();
+    if (owner != null) {
+      $result.owner = owner;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (page != null) {
+      $result.page = page;
+    }
+    return $result;
+  }
   ListAccountSetsRequest._() : super();
   factory ListAccountSetsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListAccountSetsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -286,8 +365,9 @@ class ListAccountSetsRequest extends $pb.GeneratedMessage {
   static ListAccountSetsRequest? _defaultInstance;
 
   ListAccountSetsRequest_Filter whichFilter() => _ListAccountSetsRequest_FilterByTag[$_whichOneof(0)]!;
-  void clearFilter() => clearField($_whichOneof(0));
+  void clearFilter() => $_clearField($_whichOneof(0));
 
+  /// / Filter by owner.
   @$pb.TagNumber(1)
   $core.List<$core.int> get owner => $_getN(0);
   @$pb.TagNumber(1)
@@ -295,8 +375,9 @@ class ListAccountSetsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasOwner() => $_has(0);
   @$pb.TagNumber(1)
-  void clearOwner() => clearField(1);
+  void clearOwner() => $_clearField(1);
 
+  /// / Filter by name.
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -304,22 +385,36 @@ class ListAccountSetsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
-  void clearName() => clearField(2);
+  void clearName() => $_clearField(2);
 
+  /// / Pagination options.
   @$pb.TagNumber(4)
   Page get page => $_getN(2);
   @$pb.TagNumber(4)
-  set page(Page v) { setField(4, v); }
+  set page(Page v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasPage() => $_has(2);
   @$pb.TagNumber(4)
-  void clearPage() => clearField(4);
+  void clearPage() => $_clearField(4);
   @$pb.TagNumber(4)
   Page ensurePage() => $_ensure(2);
 }
 
+/// The response message for listing account sets.
 class ListAccountSetsResponse extends $pb.GeneratedMessage {
-  factory ListAccountSetsResponse() => create();
+  factory ListAccountSetsResponse({
+    $core.Iterable<$2.AccountSet>? accountSets,
+    ListAccountSetsRequest? nextRequest,
+  }) {
+    final $result = create();
+    if (accountSets != null) {
+      $result.accountSets.addAll(accountSets);
+    }
+    if (nextRequest != null) {
+      $result.nextRequest = nextRequest;
+    }
+    return $result;
+  }
   ListAccountSetsResponse._() : super();
   factory ListAccountSetsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListAccountSetsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -351,17 +446,19 @@ class ListAccountSetsResponse extends $pb.GeneratedMessage {
   static ListAccountSetsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListAccountSetsResponse>(create);
   static ListAccountSetsResponse? _defaultInstance;
 
+  /// / List of account sets.
   @$pb.TagNumber(1)
-  $core.List<$2.AccountSet> get accountSets => $_getList(0);
+  $pb.PbList<$2.AccountSet> get accountSets => $_getList(0);
 
+  /// / Request for next page of results.
   @$pb.TagNumber(2)
   ListAccountSetsRequest get nextRequest => $_getN(1);
   @$pb.TagNumber(2)
-  set nextRequest(ListAccountSetsRequest v) { setField(2, v); }
+  set nextRequest(ListAccountSetsRequest v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasNextRequest() => $_has(1);
   @$pb.TagNumber(2)
-  void clearNextRequest() => clearField(2);
+  void clearNextRequest() => $_clearField(2);
   @$pb.TagNumber(2)
   ListAccountSetsRequest ensureNextRequest() => $_ensure(1);
 }
@@ -372,8 +469,25 @@ enum ListAccountMetadataRequest_Filter {
   notSet
 }
 
+/// The request message for listing account metadata.
 class ListAccountMetadataRequest extends $pb.GeneratedMessage {
-  factory ListAccountMetadataRequest() => create();
+  factory ListAccountMetadataRequest({
+    $core.List<$core.int>? owner,
+    $core.String? name,
+    Page? page,
+  }) {
+    final $result = create();
+    if (owner != null) {
+      $result.owner = owner;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (page != null) {
+      $result.page = page;
+    }
+    return $result;
+  }
   ListAccountMetadataRequest._() : super();
   factory ListAccountMetadataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListAccountMetadataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -413,8 +527,9 @@ class ListAccountMetadataRequest extends $pb.GeneratedMessage {
   static ListAccountMetadataRequest? _defaultInstance;
 
   ListAccountMetadataRequest_Filter whichFilter() => _ListAccountMetadataRequest_FilterByTag[$_whichOneof(0)]!;
-  void clearFilter() => clearField($_whichOneof(0));
+  void clearFilter() => $_clearField($_whichOneof(0));
 
+  /// / Filter by owner.
   @$pb.TagNumber(1)
   $core.List<$core.int> get owner => $_getN(0);
   @$pb.TagNumber(1)
@@ -422,8 +537,9 @@ class ListAccountMetadataRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasOwner() => $_has(0);
   @$pb.TagNumber(1)
-  void clearOwner() => clearField(1);
+  void clearOwner() => $_clearField(1);
 
+  /// / Filter by name.
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -431,22 +547,36 @@ class ListAccountMetadataRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
-  void clearName() => clearField(2);
+  void clearName() => $_clearField(2);
 
+  /// / Pagination options.
   @$pb.TagNumber(4)
   Page get page => $_getN(2);
   @$pb.TagNumber(4)
-  set page(Page v) { setField(4, v); }
+  set page(Page v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasPage() => $_has(2);
   @$pb.TagNumber(4)
-  void clearPage() => clearField(4);
+  void clearPage() => $_clearField(4);
   @$pb.TagNumber(4)
   Page ensurePage() => $_ensure(2);
 }
 
+/// The response message for listing account metadata.
 class ListAccountMetadataResponse extends $pb.GeneratedMessage {
-  factory ListAccountMetadataResponse() => create();
+  factory ListAccountMetadataResponse({
+    $core.Iterable<$2.AccountMetadata>? accounts,
+    ListAccountMetadataRequest? nextRequest,
+  }) {
+    final $result = create();
+    if (accounts != null) {
+      $result.accounts.addAll(accounts);
+    }
+    if (nextRequest != null) {
+      $result.nextRequest = nextRequest;
+    }
+    return $result;
+  }
   ListAccountMetadataResponse._() : super();
   factory ListAccountMetadataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListAccountMetadataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -478,23 +608,34 @@ class ListAccountMetadataResponse extends $pb.GeneratedMessage {
   static ListAccountMetadataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListAccountMetadataResponse>(create);
   static ListAccountMetadataResponse? _defaultInstance;
 
+  /// / List of account metadata.
   @$pb.TagNumber(1)
-  $core.List<$2.AccountMetadata> get accounts => $_getList(0);
+  $pb.PbList<$2.AccountMetadata> get accounts => $_getList(0);
 
+  /// / Request for the next page.
   @$pb.TagNumber(2)
   ListAccountMetadataRequest get nextRequest => $_getN(1);
   @$pb.TagNumber(2)
-  set nextRequest(ListAccountMetadataRequest v) { setField(2, v); }
+  set nextRequest(ListAccountMetadataRequest v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasNextRequest() => $_has(1);
   @$pb.TagNumber(2)
-  void clearNextRequest() => clearField(2);
+  void clearNextRequest() => $_clearField(2);
   @$pb.TagNumber(2)
   ListAccountMetadataRequest ensureNextRequest() => $_ensure(1);
 }
 
+/// The request message for retrieving a specific role binding.
 class GetRoleBindingRequest extends $pb.GeneratedMessage {
-  factory GetRoleBindingRequest() => create();
+  factory GetRoleBindingRequest({
+    $core.List<$core.int>? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
   GetRoleBindingRequest._() : super();
   factory GetRoleBindingRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetRoleBindingRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -525,6 +666,7 @@ class GetRoleBindingRequest extends $pb.GeneratedMessage {
   static GetRoleBindingRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetRoleBindingRequest>(create);
   static GetRoleBindingRequest? _defaultInstance;
 
+  /// / ID of the role binding.
   @$pb.TagNumber(1)
   $core.List<$core.int> get id => $_getN(0);
   @$pb.TagNumber(1)
@@ -532,7 +674,7 @@ class GetRoleBindingRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 enum ListRoleBindingsRequest_Filter {
@@ -540,8 +682,21 @@ enum ListRoleBindingsRequest_Filter {
   notSet
 }
 
+/// The request message for listing role bindings.
 class ListRoleBindingsRequest extends $pb.GeneratedMessage {
-  factory ListRoleBindingsRequest() => create();
+  factory ListRoleBindingsRequest({
+    $core.String? name,
+    Page? page,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (page != null) {
+      $result.page = page;
+    }
+    return $result;
+  }
   ListRoleBindingsRequest._() : super();
   factory ListRoleBindingsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListRoleBindingsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -579,8 +734,9 @@ class ListRoleBindingsRequest extends $pb.GeneratedMessage {
   static ListRoleBindingsRequest? _defaultInstance;
 
   ListRoleBindingsRequest_Filter whichFilter() => _ListRoleBindingsRequest_FilterByTag[$_whichOneof(0)]!;
-  void clearFilter() => clearField($_whichOneof(0));
+  void clearFilter() => $_clearField($_whichOneof(0));
 
+  /// / Filter by name.
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -588,22 +744,36 @@ class ListRoleBindingsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
-  void clearName() => clearField(1);
+  void clearName() => $_clearField(1);
 
+  /// / Pagination options.
   @$pb.TagNumber(4)
   Page get page => $_getN(1);
   @$pb.TagNumber(4)
-  set page(Page v) { setField(4, v); }
+  set page(Page v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasPage() => $_has(1);
   @$pb.TagNumber(4)
-  void clearPage() => clearField(4);
+  void clearPage() => $_clearField(4);
   @$pb.TagNumber(4)
   Page ensurePage() => $_ensure(1);
 }
 
+/// The response message for listing role bindings.
 class ListRoleBindingsResponse extends $pb.GeneratedMessage {
-  factory ListRoleBindingsResponse() => create();
+  factory ListRoleBindingsResponse({
+    $core.Iterable<$4.RoleBinding>? roleBindings,
+    ListRoleBindingsRequest? nextRequest,
+  }) {
+    final $result = create();
+    if (roleBindings != null) {
+      $result.roleBindings.addAll(roleBindings);
+    }
+    if (nextRequest != null) {
+      $result.nextRequest = nextRequest;
+    }
+    return $result;
+  }
   ListRoleBindingsResponse._() : super();
   factory ListRoleBindingsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListRoleBindingsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -635,23 +805,34 @@ class ListRoleBindingsResponse extends $pb.GeneratedMessage {
   static ListRoleBindingsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRoleBindingsResponse>(create);
   static ListRoleBindingsResponse? _defaultInstance;
 
+  /// / List of role bindings.
   @$pb.TagNumber(1)
-  $core.List<$4.RoleBinding> get roleBindings => $_getList(0);
+  $pb.PbList<$4.RoleBinding> get roleBindings => $_getList(0);
 
+  /// / Request for next page of results.
   @$pb.TagNumber(2)
   ListRoleBindingsRequest get nextRequest => $_getN(1);
   @$pb.TagNumber(2)
-  set nextRequest(ListRoleBindingsRequest v) { setField(2, v); }
+  set nextRequest(ListRoleBindingsRequest v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasNextRequest() => $_has(1);
   @$pb.TagNumber(2)
-  void clearNextRequest() => clearField(2);
+  void clearNextRequest() => $_clearField(2);
   @$pb.TagNumber(2)
   ListRoleBindingsRequest ensureNextRequest() => $_ensure(1);
 }
 
+/// The request message for retrieving a specific role.
 class GetRoleRequest extends $pb.GeneratedMessage {
-  factory GetRoleRequest() => create();
+  factory GetRoleRequest({
+    $core.List<$core.int>? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
   GetRoleRequest._() : super();
   factory GetRoleRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetRoleRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -682,6 +863,7 @@ class GetRoleRequest extends $pb.GeneratedMessage {
   static GetRoleRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetRoleRequest>(create);
   static GetRoleRequest? _defaultInstance;
 
+  /// / ID of the role.
   @$pb.TagNumber(1)
   $core.List<$core.int> get id => $_getN(0);
   @$pb.TagNumber(1)
@@ -689,7 +871,7 @@ class GetRoleRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 enum ListRolesRequest_Filter {
@@ -697,8 +879,21 @@ enum ListRolesRequest_Filter {
   notSet
 }
 
+/// The request message for listing roles.
 class ListRolesRequest extends $pb.GeneratedMessage {
-  factory ListRolesRequest() => create();
+  factory ListRolesRequest({
+    $core.String? name,
+    Page? page,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (page != null) {
+      $result.page = page;
+    }
+    return $result;
+  }
   ListRolesRequest._() : super();
   factory ListRolesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListRolesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -736,8 +931,9 @@ class ListRolesRequest extends $pb.GeneratedMessage {
   static ListRolesRequest? _defaultInstance;
 
   ListRolesRequest_Filter whichFilter() => _ListRolesRequest_FilterByTag[$_whichOneof(0)]!;
-  void clearFilter() => clearField($_whichOneof(0));
+  void clearFilter() => $_clearField($_whichOneof(0));
 
+  /// / Filter by name.
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -745,22 +941,36 @@ class ListRolesRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
-  void clearName() => clearField(1);
+  void clearName() => $_clearField(1);
 
+  /// / Pagination options.
   @$pb.TagNumber(4)
   Page get page => $_getN(1);
   @$pb.TagNumber(4)
-  set page(Page v) { setField(4, v); }
+  set page(Page v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasPage() => $_has(1);
   @$pb.TagNumber(4)
-  void clearPage() => clearField(4);
+  void clearPage() => $_clearField(4);
   @$pb.TagNumber(4)
   Page ensurePage() => $_ensure(1);
 }
 
+/// The response message for listing roles.
 class ListRolesResponse extends $pb.GeneratedMessage {
-  factory ListRolesResponse() => create();
+  factory ListRolesResponse({
+    $core.Iterable<$4.Role>? roles,
+    ListRolesRequest? nextRequest,
+  }) {
+    final $result = create();
+    if (roles != null) {
+      $result.roles.addAll(roles);
+    }
+    if (nextRequest != null) {
+      $result.nextRequest = nextRequest;
+    }
+    return $result;
+  }
   ListRolesResponse._() : super();
   factory ListRolesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListRolesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -792,23 +1002,34 @@ class ListRolesResponse extends $pb.GeneratedMessage {
   static ListRolesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRolesResponse>(create);
   static ListRolesResponse? _defaultInstance;
 
+  /// / List of roles.
   @$pb.TagNumber(1)
-  $core.List<$4.Role> get roles => $_getList(0);
+  $pb.PbList<$4.Role> get roles => $_getList(0);
 
+  /// / Request for next page of results.
   @$pb.TagNumber(2)
   ListRolesRequest get nextRequest => $_getN(1);
   @$pb.TagNumber(2)
-  set nextRequest(ListRolesRequest v) { setField(2, v); }
+  set nextRequest(ListRolesRequest v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasNextRequest() => $_has(1);
   @$pb.TagNumber(2)
-  void clearNextRequest() => clearField(2);
+  void clearNextRequest() => $_clearField(2);
   @$pb.TagNumber(2)
   ListRolesRequest ensureNextRequest() => $_ensure(1);
 }
 
+/// The request message for retrieving a specific transaction.
 class GetTransactionRequest extends $pb.GeneratedMessage {
-  factory GetTransactionRequest() => create();
+  factory GetTransactionRequest({
+    $fixnum.Int64? txId,
+  }) {
+    final $result = create();
+    if (txId != null) {
+      $result.txId = txId;
+    }
+    return $result;
+  }
   GetTransactionRequest._() : super();
   factory GetTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -839,6 +1060,7 @@ class GetTransactionRequest extends $pb.GeneratedMessage {
   static GetTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTransactionRequest>(create);
   static GetTransactionRequest? _defaultInstance;
 
+  /// / ID of the transaction.
   @$pb.TagNumber(1)
   $fixnum.Int64 get txId => $_getI64(0);
   @$pb.TagNumber(1)
@@ -846,11 +1068,32 @@ class GetTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxId() => clearField(1);
+  void clearTxId() => $_clearField(1);
 }
 
+/// The request message for listing transactions.
 class ListTransactionsRequest extends $pb.GeneratedMessage {
-  factory ListTransactionsRequest() => create();
+  factory ListTransactionsRequest({
+    $core.List<$core.int>? contextId,
+    $fixnum.Int64? limit,
+    $fixnum.Int64? minTxId,
+    $fixnum.Int64? maxTxId,
+  }) {
+    final $result = create();
+    if (contextId != null) {
+      $result.contextId = contextId;
+    }
+    if (limit != null) {
+      $result.limit = limit;
+    }
+    if (minTxId != null) {
+      $result.minTxId = minTxId;
+    }
+    if (maxTxId != null) {
+      $result.maxTxId = maxTxId;
+    }
+    return $result;
+  }
   ListTransactionsRequest._() : super();
   factory ListTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -884,6 +1127,7 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   static ListTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListTransactionsRequest>(create);
   static ListTransactionsRequest? _defaultInstance;
 
+  /// / Context ID to filter by.
   @$pb.TagNumber(1)
   $core.List<$core.int> get contextId => $_getN(0);
   @$pb.TagNumber(1)
@@ -891,8 +1135,9 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasContextId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearContextId() => clearField(1);
+  void clearContextId() => $_clearField(1);
 
+  /// / Maximum number of transactions to return.
   @$pb.TagNumber(3)
   $fixnum.Int64 get limit => $_getI64(1);
   @$pb.TagNumber(3)
@@ -900,8 +1145,9 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasLimit() => $_has(1);
   @$pb.TagNumber(3)
-  void clearLimit() => clearField(3);
+  void clearLimit() => $_clearField(3);
 
+  /// / Minimum transaction ID.
   @$pb.TagNumber(4)
   $fixnum.Int64 get minTxId => $_getI64(2);
   @$pb.TagNumber(4)
@@ -909,8 +1155,9 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasMinTxId() => $_has(2);
   @$pb.TagNumber(4)
-  void clearMinTxId() => clearField(4);
+  void clearMinTxId() => $_clearField(4);
 
+  /// / Maximum transaction ID.
   @$pb.TagNumber(5)
   $fixnum.Int64 get maxTxId => $_getI64(3);
   @$pb.TagNumber(5)
@@ -918,11 +1165,32 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasMaxTxId() => $_has(3);
   @$pb.TagNumber(5)
-  void clearMaxTxId() => clearField(5);
+  void clearMaxTxId() => $_clearField(5);
 }
 
+/// The request message for grouping transactions by context ID.
 class GroupTransactionsRequest extends $pb.GeneratedMessage {
-  factory GroupTransactionsRequest() => create();
+  factory GroupTransactionsRequest({
+    $core.List<$core.int>? accountId,
+    $fixnum.Int64? limitGroups,
+    $fixnum.Int64? minTxId,
+    $fixnum.Int64? maxTxId,
+  }) {
+    final $result = create();
+    if (accountId != null) {
+      $result.accountId = accountId;
+    }
+    if (limitGroups != null) {
+      $result.limitGroups = limitGroups;
+    }
+    if (minTxId != null) {
+      $result.minTxId = minTxId;
+    }
+    if (maxTxId != null) {
+      $result.maxTxId = maxTxId;
+    }
+    return $result;
+  }
   GroupTransactionsRequest._() : super();
   factory GroupTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GroupTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -956,6 +1224,7 @@ class GroupTransactionsRequest extends $pb.GeneratedMessage {
   static GroupTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GroupTransactionsRequest>(create);
   static GroupTransactionsRequest? _defaultInstance;
 
+  /// / Account ID to filter by.
   @$pb.TagNumber(1)
   $core.List<$core.int> get accountId => $_getN(0);
   @$pb.TagNumber(1)
@@ -963,8 +1232,9 @@ class GroupTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasAccountId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearAccountId() => clearField(1);
+  void clearAccountId() => $_clearField(1);
 
+  /// / Maximum number of groups to return.
   @$pb.TagNumber(2)
   $fixnum.Int64 get limitGroups => $_getI64(1);
   @$pb.TagNumber(2)
@@ -972,8 +1242,9 @@ class GroupTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasLimitGroups() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLimitGroups() => clearField(2);
+  void clearLimitGroups() => $_clearField(2);
 
+  /// / Minimum transaction ID.
   @$pb.TagNumber(3)
   $fixnum.Int64 get minTxId => $_getI64(2);
   @$pb.TagNumber(3)
@@ -981,8 +1252,9 @@ class GroupTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasMinTxId() => $_has(2);
   @$pb.TagNumber(3)
-  void clearMinTxId() => clearField(3);
+  void clearMinTxId() => $_clearField(3);
 
+  /// / Maximum transaction ID.
   @$pb.TagNumber(4)
   $fixnum.Int64 get maxTxId => $_getI64(3);
   @$pb.TagNumber(4)
@@ -990,11 +1262,24 @@ class GroupTransactionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasMaxTxId() => $_has(3);
   @$pb.TagNumber(4)
-  void clearMaxTxId() => clearField(4);
+  void clearMaxTxId() => $_clearField(4);
 }
 
+/// The request message for observing account changes.
 class ObserveAccountsRequest extends $pb.GeneratedMessage {
-  factory ObserveAccountsRequest() => create();
+  factory ObserveAccountsRequest({
+    TxId? startingFrom,
+    $core.Iterable<$core.List<$core.int>>? involvedAccounts,
+  }) {
+    final $result = create();
+    if (startingFrom != null) {
+      $result.startingFrom = startingFrom;
+    }
+    if (involvedAccounts != null) {
+      $result.involvedAccounts.addAll(involvedAccounts);
+    }
+    return $result;
+  }
   ObserveAccountsRequest._() : super();
   factory ObserveAccountsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ObserveAccountsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1026,23 +1311,42 @@ class ObserveAccountsRequest extends $pb.GeneratedMessage {
   static ObserveAccountsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ObserveAccountsRequest>(create);
   static ObserveAccountsRequest? _defaultInstance;
 
+  /// / Starting transaction ID for observation.
   @$pb.TagNumber(1)
   TxId get startingFrom => $_getN(0);
   @$pb.TagNumber(1)
-  set startingFrom(TxId v) { setField(1, v); }
+  set startingFrom(TxId v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasStartingFrom() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStartingFrom() => clearField(1);
+  void clearStartingFrom() => $_clearField(1);
   @$pb.TagNumber(1)
   TxId ensureStartingFrom() => $_ensure(0);
 
+  /// / Account IDs to observe.
   @$pb.TagNumber(2)
-  $core.List<$core.List<$core.int>> get involvedAccounts => $_getList(1);
+  $pb.PbList<$core.List<$core.int>> get involvedAccounts => $_getList(1);
 }
 
+/// ObserveResourcesRequest is the request message for observing resource changes.
 class ObserveResourcesRequest extends $pb.GeneratedMessage {
-  factory ObserveResourcesRequest() => create();
+  factory ObserveResourcesRequest({
+    $7.Exp? expression,
+    $core.String? collection,
+    TxId? startingFrom,
+  }) {
+    final $result = create();
+    if (expression != null) {
+      $result.expression = expression;
+    }
+    if (collection != null) {
+      $result.collection = collection;
+    }
+    if (startingFrom != null) {
+      $result.startingFrom = startingFrom;
+    }
+    return $result;
+  }
   ObserveResourcesRequest._() : super();
   factory ObserveResourcesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ObserveResourcesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1075,17 +1379,19 @@ class ObserveResourcesRequest extends $pb.GeneratedMessage {
   static ObserveResourcesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ObserveResourcesRequest>(create);
   static ObserveResourcesRequest? _defaultInstance;
 
+  /// / Expression to filter resources.
   @$pb.TagNumber(1)
   $7.Exp get expression => $_getN(0);
   @$pb.TagNumber(1)
-  set expression($7.Exp v) { setField(1, v); }
+  set expression($7.Exp v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasExpression() => $_has(0);
   @$pb.TagNumber(1)
-  void clearExpression() => clearField(1);
+  void clearExpression() => $_clearField(1);
   @$pb.TagNumber(1)
   $7.Exp ensureExpression() => $_ensure(0);
 
+  /// / Collection to observe.
   @$pb.TagNumber(2)
   $core.String get collection => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -1093,22 +1399,32 @@ class ObserveResourcesRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasCollection() => $_has(1);
   @$pb.TagNumber(2)
-  void clearCollection() => clearField(2);
+  void clearCollection() => $_clearField(2);
 
+  /// / Starting transaction ID for observation.
   @$pb.TagNumber(3)
   TxId get startingFrom => $_getN(2);
   @$pb.TagNumber(3)
-  set startingFrom(TxId v) { setField(3, v); }
+  set startingFrom(TxId v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasStartingFrom() => $_has(2);
   @$pb.TagNumber(3)
-  void clearStartingFrom() => clearField(3);
+  void clearStartingFrom() => $_clearField(3);
   @$pb.TagNumber(3)
   TxId ensureStartingFrom() => $_ensure(2);
 }
 
+/// TxId represents a transaction ID.
 class TxId extends $pb.GeneratedMessage {
-  factory TxId() => create();
+  factory TxId({
+    $fixnum.Int64? txId,
+  }) {
+    final $result = create();
+    if (txId != null) {
+      $result.txId = txId;
+    }
+    return $result;
+  }
   TxId._() : super();
   factory TxId.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory TxId.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1139,6 +1455,7 @@ class TxId extends $pb.GeneratedMessage {
   static TxId getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TxId>(create);
   static TxId? _defaultInstance;
 
+  /// / ID of the transaction.
   @$pb.TagNumber(1)
   $fixnum.Int64 get txId => $_getI64(0);
   @$pb.TagNumber(1)
@@ -1146,11 +1463,28 @@ class TxId extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxId() => clearField(1);
+  void clearTxId() => $_clearField(1);
 }
 
+/// Request message to observe actions.
 class ObserveActionsRequest extends $pb.GeneratedMessage {
-  factory ObserveActionsRequest() => create();
+  factory ObserveActionsRequest({
+    TxId? startingFrom,
+    $core.String? name,
+    $core.Iterable<$core.List<$core.int>>? involvesAccounts,
+  }) {
+    final $result = create();
+    if (startingFrom != null) {
+      $result.startingFrom = startingFrom;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (involvesAccounts != null) {
+      $result.involvesAccounts.addAll(involvesAccounts);
+    }
+    return $result;
+  }
   ObserveActionsRequest._() : super();
   factory ObserveActionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ObserveActionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1183,17 +1517,19 @@ class ObserveActionsRequest extends $pb.GeneratedMessage {
   static ObserveActionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ObserveActionsRequest>(create);
   static ObserveActionsRequest? _defaultInstance;
 
+  /// / Starting transaction ID for observation.
   @$pb.TagNumber(1)
   TxId get startingFrom => $_getN(0);
   @$pb.TagNumber(1)
-  set startingFrom(TxId v) { setField(1, v); }
+  set startingFrom(TxId v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasStartingFrom() => $_has(0);
   @$pb.TagNumber(1)
-  void clearStartingFrom() => clearField(1);
+  void clearStartingFrom() => $_clearField(1);
   @$pb.TagNumber(1)
   TxId ensureStartingFrom() => $_ensure(0);
 
+  /// / Name of the action to observe.
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -1201,14 +1537,28 @@ class ObserveActionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
-  void clearName() => clearField(2);
+  void clearName() => $_clearField(2);
 
+  /// / Account IDs involved in the action.
   @$pb.TagNumber(3)
-  $core.List<$core.List<$core.int>> get involvesAccounts => $_getList(2);
+  $pb.PbList<$core.List<$core.int>> get involvesAccounts => $_getList(2);
 }
 
+/// A finalized transaction.
 class FinalizedTransaction extends $pb.GeneratedMessage {
-  factory FinalizedTransaction() => create();
+  factory FinalizedTransaction({
+    $1.TransactionRequestPayload? request,
+    $1.TransactionResponse? response,
+  }) {
+    final $result = create();
+    if (request != null) {
+      $result.request = request;
+    }
+    if (response != null) {
+      $result.response = response;
+    }
+    return $result;
+  }
   FinalizedTransaction._() : super();
   factory FinalizedTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory FinalizedTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1239,31 +1589,42 @@ class FinalizedTransaction extends $pb.GeneratedMessage {
   static FinalizedTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FinalizedTransaction>(create);
   static FinalizedTransaction? _defaultInstance;
 
+  /// / Transaction request.
   @$pb.TagNumber(1)
   $1.TransactionRequestPayload get request => $_getN(0);
   @$pb.TagNumber(1)
-  set request($1.TransactionRequestPayload v) { setField(1, v); }
+  set request($1.TransactionRequestPayload v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasRequest() => $_has(0);
   @$pb.TagNumber(1)
-  void clearRequest() => clearField(1);
+  void clearRequest() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.TransactionRequestPayload ensureRequest() => $_ensure(0);
 
+  /// / Transaction response.
   @$pb.TagNumber(2)
   $1.TransactionResponse get response => $_getN(1);
   @$pb.TagNumber(2)
-  set response($1.TransactionResponse v) { setField(2, v); }
+  set response($1.TransactionResponse v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasResponse() => $_has(1);
   @$pb.TagNumber(2)
-  void clearResponse() => clearField(2);
+  void clearResponse() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.TransactionResponse ensureResponse() => $_ensure(1);
 }
 
+/// A list of finalized transactions.
 class FinalizedTransactions extends $pb.GeneratedMessage {
-  factory FinalizedTransactions() => create();
+  factory FinalizedTransactions({
+    $core.Iterable<FinalizedTransaction>? transactions,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    return $result;
+  }
   FinalizedTransactions._() : super();
   factory FinalizedTransactions.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory FinalizedTransactions.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1293,12 +1654,22 @@ class FinalizedTransactions extends $pb.GeneratedMessage {
   static FinalizedTransactions getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FinalizedTransactions>(create);
   static FinalizedTransactions? _defaultInstance;
 
+  /// / List of finalized transactions.
   @$pb.TagNumber(1)
-  $core.List<FinalizedTransaction> get transactions => $_getList(0);
+  $pb.PbList<FinalizedTransaction> get transactions => $_getList(0);
 }
 
+/// A list of grouped finalized transactions.
 class GroupedFinalizedTransactions extends $pb.GeneratedMessage {
-  factory GroupedFinalizedTransactions() => create();
+  factory GroupedFinalizedTransactions({
+    $core.Iterable<FinalizedTransactions>? groups,
+  }) {
+    final $result = create();
+    if (groups != null) {
+      $result.groups.addAll(groups);
+    }
+    return $result;
+  }
   GroupedFinalizedTransactions._() : super();
   factory GroupedFinalizedTransactions.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GroupedFinalizedTransactions.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1328,12 +1699,22 @@ class GroupedFinalizedTransactions extends $pb.GeneratedMessage {
   static GroupedFinalizedTransactions getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GroupedFinalizedTransactions>(create);
   static GroupedFinalizedTransactions? _defaultInstance;
 
+  /// / List of grouped transactions.
   @$pb.TagNumber(1)
-  $core.List<FinalizedTransactions> get groups => $_getList(0);
+  $pb.PbList<FinalizedTransactions> get groups => $_getList(0);
 }
 
+/// Information about the blockchain.
 class ChainInfo extends $pb.GeneratedMessage {
-  factory ChainInfo() => create();
+  factory ChainInfo({
+    $fixnum.Int64? blockHeight,
+  }) {
+    final $result = create();
+    if (blockHeight != null) {
+      $result.blockHeight = blockHeight;
+    }
+    return $result;
+  }
   ChainInfo._() : super();
   factory ChainInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ChainInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1364,6 +1745,7 @@ class ChainInfo extends $pb.GeneratedMessage {
   static ChainInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ChainInfo>(create);
   static ChainInfo? _defaultInstance;
 
+  /// / Current block height.
   @$pb.TagNumber(1)
   $fixnum.Int64 get blockHeight => $_getI64(0);
   @$pb.TagNumber(1)
@@ -1371,11 +1753,32 @@ class ChainInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasBlockHeight() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockHeight() => clearField(1);
+  void clearBlockHeight() => $_clearField(1);
 }
 
+/// / Transaction metrics.
 class TransactionMetrics extends $pb.GeneratedMessage {
-  factory TransactionMetrics() => create();
+  factory TransactionMetrics({
+    $fixnum.Int64? transferVolume,
+    $fixnum.Int64? transferCount,
+    $fixnum.Int64? transferErrors,
+    $fixnum.Int64? accountsCreated,
+  }) {
+    final $result = create();
+    if (transferVolume != null) {
+      $result.transferVolume = transferVolume;
+    }
+    if (transferCount != null) {
+      $result.transferCount = transferCount;
+    }
+    if (transferErrors != null) {
+      $result.transferErrors = transferErrors;
+    }
+    if (accountsCreated != null) {
+      $result.accountsCreated = accountsCreated;
+    }
+    return $result;
+  }
   TransactionMetrics._() : super();
   factory TransactionMetrics.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory TransactionMetrics.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1409,6 +1812,7 @@ class TransactionMetrics extends $pb.GeneratedMessage {
   static TransactionMetrics getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionMetrics>(create);
   static TransactionMetrics? _defaultInstance;
 
+  /// / Total transfer volume.
   @$pb.TagNumber(1)
   $fixnum.Int64 get transferVolume => $_getI64(0);
   @$pb.TagNumber(1)
@@ -1416,8 +1820,9 @@ class TransactionMetrics extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTransferVolume() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTransferVolume() => clearField(1);
+  void clearTransferVolume() => $_clearField(1);
 
+  /// / Number of transfers.
   @$pb.TagNumber(2)
   $fixnum.Int64 get transferCount => $_getI64(1);
   @$pb.TagNumber(2)
@@ -1425,8 +1830,9 @@ class TransactionMetrics extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasTransferCount() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTransferCount() => clearField(2);
+  void clearTransferCount() => $_clearField(2);
 
+  /// / Number of transfer errors.
   @$pb.TagNumber(3)
   $fixnum.Int64 get transferErrors => $_getI64(2);
   @$pb.TagNumber(3)
@@ -1434,8 +1840,9 @@ class TransactionMetrics extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasTransferErrors() => $_has(2);
   @$pb.TagNumber(3)
-  void clearTransferErrors() => clearField(3);
+  void clearTransferErrors() => $_clearField(3);
 
+  /// / Number of accounts created.
   @$pb.TagNumber(4)
   $fixnum.Int64 get accountsCreated => $_getI64(3);
   @$pb.TagNumber(4)
@@ -1443,11 +1850,20 @@ class TransactionMetrics extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasAccountsCreated() => $_has(3);
   @$pb.TagNumber(4)
-  void clearAccountsCreated() => clearField(4);
+  void clearAccountsCreated() => $_clearField(4);
 }
 
+/// / Request list of banks.
 class ListBanksRequest extends $pb.GeneratedMessage {
-  factory ListBanksRequest() => create();
+  factory ListBanksRequest({
+    Page? page,
+  }) {
+    final $result = create();
+    if (page != null) {
+      $result.page = page;
+    }
+    return $result;
+  }
   ListBanksRequest._() : super();
   factory ListBanksRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListBanksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1478,20 +1894,30 @@ class ListBanksRequest extends $pb.GeneratedMessage {
   static ListBanksRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBanksRequest>(create);
   static ListBanksRequest? _defaultInstance;
 
+  /// / Pagination options.
   @$pb.TagNumber(1)
   Page get page => $_getN(0);
   @$pb.TagNumber(1)
-  set page(Page v) { setField(1, v); }
+  set page(Page v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasPage() => $_has(0);
   @$pb.TagNumber(1)
-  void clearPage() => clearField(1);
+  void clearPage() => $_clearField(1);
   @$pb.TagNumber(1)
   Page ensurePage() => $_ensure(0);
 }
 
+/// / Receive list of banks.
 class ListBanksResponse extends $pb.GeneratedMessage {
-  factory ListBanksResponse() => create();
+  factory ListBanksResponse({
+    $core.Iterable<$2.Bank>? banks,
+  }) {
+    final $result = create();
+    if (banks != null) {
+      $result.banks.addAll(banks);
+    }
+    return $result;
+  }
   ListBanksResponse._() : super();
   factory ListBanksResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListBanksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1522,12 +1948,22 @@ class ListBanksResponse extends $pb.GeneratedMessage {
   static ListBanksResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBanksResponse>(create);
   static ListBanksResponse? _defaultInstance;
 
+  /// / List of banks.
   @$pb.TagNumber(1)
-  $core.List<$2.Bank> get banks => $_getList(0);
+  $pb.PbList<$2.Bank> get banks => $_getList(0);
 }
 
+/// Retrieve a specific bank.
 class GetBankRequest extends $pb.GeneratedMessage {
-  factory GetBankRequest() => create();
+  factory GetBankRequest({
+    $core.List<$core.int>? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
   GetBankRequest._() : super();
   factory GetBankRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetBankRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1558,6 +1994,7 @@ class GetBankRequest extends $pb.GeneratedMessage {
   static GetBankRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBankRequest>(create);
   static GetBankRequest? _defaultInstance;
 
+  /// / ID of the bank to retrieve.
   @$pb.TagNumber(1)
   $core.List<$core.int> get id => $_getN(0);
   @$pb.TagNumber(1)
@@ -1565,11 +2002,20 @@ class GetBankRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
+/// / Offline key.
 class OfflineKey extends $pb.GeneratedMessage {
-  factory OfflineKey() => create();
+  factory OfflineKey({
+    $core.List<$core.int>? offlinePk,
+  }) {
+    final $result = create();
+    if (offlinePk != null) {
+      $result.offlinePk = offlinePk;
+    }
+    return $result;
+  }
   OfflineKey._() : super();
   factory OfflineKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory OfflineKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -1600,6 +2046,7 @@ class OfflineKey extends $pb.GeneratedMessage {
   static OfflineKey getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<OfflineKey>(create);
   static OfflineKey? _defaultInstance;
 
+  /// The offline public key.
   @$pb.TagNumber(1)
   $core.List<$core.int> get offlinePk => $_getN(0);
   @$pb.TagNumber(1)
@@ -1607,7 +2054,7 @@ class OfflineKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasOfflinePk() => $_has(0);
   @$pb.TagNumber(1)
-  void clearOfflinePk() => clearField(1);
+  void clearOfflinePk() => $_clearField(1);
 }
 
 

@@ -1,4 +1,4 @@
-use m10_sdk::sdk;
+use m10_sdk::{account::AccountId, sdk};
 use std::convert::TryFrom;
 use uuid::Uuid;
 
@@ -8,7 +8,7 @@ pub struct AccountSet {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub owner: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub accounts: Vec<sdk::AccountRef>,
+    pub accounts: Vec<AccountId>,
 }
 
 impl TryFrom<sdk::AccountSet> for AccountSet {
@@ -24,7 +24,12 @@ impl TryFrom<sdk::AccountSet> for AccountSet {
         Ok(AccountSet {
             id: Uuid::from_slice(&id).unwrap_or_default(),
             owner: base64::encode(owner),
-            accounts,
+            accounts: accounts
+                .into_iter()
+                .map(|account_id| AccountId::try_from_be_slice(&account_id))
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .collect(),
         })
     }
 }

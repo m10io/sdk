@@ -1,6 +1,6 @@
+use actix_web::http::StatusCode;
 use actix_web::ResponseError;
 use eyre::eyre;
-use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
@@ -131,6 +131,14 @@ impl Error {
         }
         .into()
     }
+
+    pub fn validations(errors: Vec<ValidationError>) -> Error {
+        ErrorKind::BadRequest { errors }.into()
+    }
+
+    pub fn kind(&self) -> ErrorKind {
+        self.kind.clone()
+    }
 }
 
 impl From<ErrorKind> for Error {
@@ -224,7 +232,7 @@ impl ErrorResponse {
 }
 
 impl ResponseError for Error {
-    fn status_code(&self) -> hyper::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match &self.kind {
             ErrorKind::BadRequest { .. } => StatusCode::BAD_REQUEST,
             ErrorKind::Internal | ErrorKind::Upstream => StatusCode::INTERNAL_SERVER_ERROR,

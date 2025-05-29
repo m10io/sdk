@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use m10_sdk::{
     contract::{FinalizedContractExt, TransferInfo},
     prost::Message,
@@ -31,7 +31,7 @@ pub struct ContractEndorsement {
 #[derive(Serialize, Debug)]
 pub struct Endorsement {
     #[serde(flatten)]
-    endorsment: Option<ContractEndorsement>,
+    endorsement: Option<ContractEndorsement>,
 }
 
 impl TryFrom<sdk::Endorsement> for Endorsement {
@@ -43,11 +43,11 @@ impl TryFrom<sdk::Endorsement> for Endorsement {
             signature,
         } = other;
         Ok(Endorsement {
-            endorsment: signature.map(|sig| ContractEndorsement {
+            endorsement: signature.map(|sig| ContractEndorsement {
                 ledger_id,
                 public_key: sig.public_key,
                 signature: sig.signature,
-                algorithm: match Algorithm::from_i32(sig.algorithm).unwrap() {
+                algorithm: match Algorithm::try_from(sig.algorithm).unwrap() {
                     Algorithm::Ed25519 => "Ed25519",
                     Algorithm::P256Sha256Asn1 => "P256",
                 }
@@ -65,7 +65,7 @@ pub(crate) async fn show_contract(path: &str, formatter: Format) -> anyhow::Resu
     let transfer_requests = sdk::CreateLedgerTransfers::decode(contract.transactions.as_slice())?;
     let content = ContractContent {
         id: hex::encode(id).to_uppercase(),
-        valid_until: NaiveDateTime::from_timestamp_opt(
+        valid_until: DateTime::from_timestamp(
             (transfer_requests.valid_until / 1_000_000) as i64,
             ((transfer_requests.valid_until % 1_000_000) * 1000) as u32,
         )
@@ -79,9 +79,12 @@ pub(crate) async fn show_contract(path: &str, formatter: Format) -> anyhow::Resu
             .collect::<anyhow::Result<_>>()?,
     };
     let content_str = match formatter {
-        Format::Yaml => serde_yaml::to_string(&content)?,
+        Format::Yaml => serde_yml::to_string(&content)?,
         Format::Json => serde_json::to_string_pretty(&content)?,
         Format::Raw => format!("{:#?}", content),
+        Format::Csv => {
+            return Err(anyhow::anyhow!("csv not supported on contracts"));
+        }
     };
     println!("{}", content_str);
 

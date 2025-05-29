@@ -16,9 +16,9 @@ final testUsername = 'ops+e2etest@m10.io';
 final testPassword = 'n@R*88JxsccRpuw';
 
 final _directoryHost =
-    Platform.environment['DIRECTORY_HOST'] ?? 'develop.m10.net';
+    Platform.environment['DIRECTORY_HOST'] ?? 'app.dev.m10.net';
 final _ledgerHost =
-    Platform.environment['LEDGER_API_HOST'] ?? 'develop.m10.net';
+    Platform.environment['LEDGER_API_HOST'] ?? 'app.dev.m10.net';
 final _disableTls = Platform.environment['DISABLE_TLS'] == 'true';
 final operator = 'm10';
 final instrument = Platform.environment['CURRENCY'] ?? 'ttt';
@@ -34,6 +34,9 @@ void printLedgerInfo() {
   print('Ledger host: $_ledgerHost');
   print('Disable TLS: $_disableTls');
   print('Instrument: $instrument');
+  final ledgerStr =
+      _ledgers.map((l) => 'operator: ${l.operator}, url: ${l.url}').join(';');
+  print('Ledgers: $ledgerStr');
 }
 
 class UsernamePasswordAuth implements TokenProvider {
@@ -56,7 +59,7 @@ class UsernamePasswordAuth implements TokenProvider {
           'username': username,
           'password': password,
           'audience': 'https://api.m10.net',
-          'scope': 'offline_access openid'
+          'scope': 'offline_access openid',
         },
       );
       _accessToken = response.data['access_token'] as String;

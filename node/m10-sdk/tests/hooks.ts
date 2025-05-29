@@ -1,15 +1,11 @@
 import { assert } from "chai";
 import type { Context } from "mocha";
 
-import { m10 } from "../protobufs";
-import { AccountBuilder, DocumentBuilder, PageBuilder } from "../src";
-import { M10Client } from "../src/client";
-import { Collection, DocumentUpdate } from "../src/collections";
-import { M10Error } from "../src/error";
-import type { AccountId } from "../src/ids";
-import { DocumentId } from "../src/ids";
-import { arrayIsNotEmpty, CryptoSigner, unwrap } from "../src/utils";
-
+import { CryptoSigner, M10Client, AccountId, Collection, getFISAccessToken, ResourceId } from "../src";
+import { AccountMetadata, AccountSet } from "../src/protobufs/sdk/model/model";
+import { RoleBinding } from "../src/protobufs/sdk/rbac";
+import { Operation_InsertDocument, Operation_UpdateDocument, Value } from "../src/protobufs/sdk/document";
+import { FieldMask } from "../src/protobufs/google/protobuf/field_mask";
 
 export type InjectableContext = Readonly<{ context?: TestSuiteContext }>;
 
@@ -23,51 +19,65 @@ export interface TestSuiteContext {
 // TestContext will be used by all the test
 export type TestContext = Mocha.Context & Context & InjectableContext;
 
-
-
 // Too many async calls to finish under default timeout
 const INCREASED_TEST_TIMEOUT: number = 6000;
 
 export const mochaHooks = (): Mocha.RootHookObject => {
     return {
-        beforeAll: async function(this: TestContext) {
+        beforeAll: async function(done) {
             this.timeout(INCREASED_TEST_TIMEOUT);
 
             const BANK_ADMIN_KEY = "MC4CAQAwBQYDK2VwBCIEIIrikV/M3erX0lqmQgVXDRU1yFLStge7RyyvXv+kDesK";
             const BANK_NAME = "NodeTB TTT";
             const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
 
+
+
+            const fisAccessToken = await getFISAccessToken(
+                process.env.FIS_OAUTH_URL || "https://api.m10.net",
+                process.env.FIS_CLIENT_ID || "m10-sdk-test",
+                process.env.FIS_CLIENT_SECRET || "m10-sdk-test",
+            );
+
             // -------------------------------------------------------------------------
             // Get bank admin account
             // -------------------------------------------------------------------------
 
-            const bankAdminSigner = CryptoSigner.getSignerFromPkcs8V1(BANK_ADMIN_KEY);
-            const bankAdminClient = new M10Client(LEDGER_URL, bankAdminSigner);
+            const bankAdminSigner = await CryptoSigner.fromPkcs8Pem(BANK_ADMIN_KEY);
+            const bankAdminClient = new M10Client(LEDGER_URL, bankAdminSigner, fisAccessToken.accessToken);
 
-            const accountMetadatas = await bankAdminClient.listAccountMetadatas(
-                PageBuilder.byOwner(bankAdminSigner.getPublicKey()),
-            );
+            const accountMetadatas = await bankAdminClient.listAccountMetadata({
+                filter: {
+                    oneofKind: "owner",
+                    owner: bankAdminSigner.getPublicKey().toUint8Array(),
+                },
+            });
 
-            const parentAccount = accountMetadatas.find((account) => account.publicName === BANK_NAME);
-            const parentAccountId = unwrap(parentAccount?.id, M10Error.Other("parentAccountId is None"));
+            const parentAccount = accountMetadatas.accounts.find((account) => account.publicName === BANK_NAME);
+            const parentAccountId = parentAccount?.id;
+            if (!parentAccountId) {
+                throw new TypeError(`Parent account not found for ${BANK_NAME}`);
+            }
 
             // -------------------------------------------------------------------------
             // Create user "alice"
             // -------------------------------------------------------------------------
 
-            const aliceSigner = CryptoSigner.generateKeyPair();
-            const aliceId = new DocumentId("account-set");
+            const aliceSigner = await CryptoSigner.generateKeyPair();
+            const aliceAccountSetId = ResourceId.generate().bytes;
 
-            const aliceCreationTxId = await bankAdminClient.documents(
-                new DocumentBuilder()
-                    .insert(
-                        Collection.AccountSet,
-                        new m10.sdk.model.AccountSet({
+            const aliceCreationTxId = await bankAdminClient.documents([{
+                oneofKind: "insertDocument",
+                insertDocument: Operation_InsertDocument.create({
+                    collection: Collection.AccountSet,
+                    document: AccountSet.toBinary(
+                        AccountSet.create({
                             owner: aliceSigner.getPublicKey().toUint8Array(),
-                            id: aliceId.toUint8Array(),
+                            id: aliceAccountSetId,
                         }),
                     ),
-            );
+                }),
+            }]);
 
             assert.isNotEmpty(aliceCreationTxId);
 
@@ -75,19 +85,21 @@ export const mochaHooks = (): Mocha.RootHookObject => {
             // Create user "bob"
             // -------------------------------------------------------------------------
 
-            const bobSigner = CryptoSigner.generateKeyPair();
-            const bobId = new DocumentId("account-set");
+            const bobSigner = await CryptoSigner.generateKeyPair();
+            const bobAccountSetId = ResourceId.generate().bytes;
 
-            const bobCreationTxId = await bankAdminClient.documents(
-                new DocumentBuilder()
-                    .insert(
-                        Collection.AccountSet,
-                        new m10.sdk.model.AccountSet({
+            const bobCreationTxId = await bankAdminClient.documents([{
+                oneofKind: "insertDocument",
+                insertDocument: Operation_InsertDocument.create({
+                    collection: Collection.AccountSet,
+                    document: AccountSet.toBinary(
+                        AccountSet.create({
                             owner: bobSigner.getPublicKey().toUint8Array(),
-                            id: bobId.toUint8Array(),
+                            id: bobAccountSetId,
                         }),
                     ),
-            );
+                }),
+            }]);
 
             assert.isNotEmpty(bobCreationTxId);
 
@@ -95,53 +107,70 @@ export const mochaHooks = (): Mocha.RootHookObject => {
             // Setup role bindings (necessary for users, so they can create accounts)
             // -------------------------------------------------------------------------
 
-            const roleBindings = await bankAdminClient.listRoleBindings(PageBuilder.byName("node-test-customer"));
+            const { roleBindings } = await bankAdminClient.listRoleBindings({
+                filter: {
+                    oneofKind: "name",
+                    name: "node-test-customer",
+                },
+            });
 
             assert.isNotEmpty(roleBindings);
 
-            const roleBindingId = unwrap(roleBindings[0].id?.toString(), M10Error.Other("roleBinding.id is None"));
-            const roleBindingSubjects = unwrap(roleBindings[0].subjects, M10Error.Other("roleBinding.subjects is None"));
+            const roleBindingId = roleBindings[0].id?.toString();
+            const roleBindingSubjects = roleBindings[0].subjects;
 
             const subjects = [aliceSigner.getPublicKey(), bobSigner.getPublicKey()]
-                .filter((publicKey) => !roleBindingSubjects.includes(publicKey));
+                .filter((publicKey) => !roleBindingSubjects.includes(publicKey.toUint8Array()));
 
-            if (arrayIsNotEmpty(subjects)) {
-                await bankAdminClient.documents(
-                    new DocumentBuilder()
-                        .update(
-                            new DocumentUpdate(
-                                Collection.RoleBinding,
-                                new m10.sdk.RoleBinding({
-                                    id: new DocumentId("role-binding", roleBindingId).toUint8Array(),
-                                    subjects: subjects.map((pk) => pk.toUint8Array()),
-                                }),
-                                ["subjects"],
-                            ),
-                        ),
-                );
+            if (subjects?.length) {
+                const document = RoleBinding.create({
+                    id: ResourceId.fromString(roleBindingId).bytes,
+                    subjects: subjects.map((pk) => pk.toUint8Array()),
+                });
+                await bankAdminClient.documents([{
+                    oneofKind: "updateDocument",
+                    updateDocument: Operation_UpdateDocument.create({
+                        collection: Collection.RoleBinding,
+                        primaryKey: Value.create({
+                            value: {
+                                oneofKind: "bytesValue",
+                                bytesValue: document.id,
+                            },
+                        }),
+                        document: RoleBinding.toBinary(document),
+                        fieldMask: FieldMask.create({ paths: ["subjects"] }),
+                        mergeRepeated: false,
+                    }),
+                }]);
             }
 
             // -------------------------------------------------------------------------
             // Create accounts
             // -------------------------------------------------------------------------
 
-            const bobsClient = new M10Client(LEDGER_URL, bobSigner);
+            const bobsClient = new M10Client(LEDGER_URL, bobSigner, fisAccessToken.accessToken);
 
-            const [,bobsAccountId] = await bobsClient.createAccount(new AccountBuilder(parentAccountId));
+            const [, bobsAccountId] = await bobsClient.createAccount({
+                parentId: parentAccountId,
+                frozen: false,
+                issuance: true,
+            });
 
             const bobAccountMetadataName = `Bob ${Date.now()}`;
-            await bobsClient.documents(
-                new DocumentBuilder()
-                    .insert(
-                        Collection.AccountMetadata,
-                        new m10.sdk.model.AccountMetadata({
-                            id: bobsAccountId.toUint8Array(),
+            await bobsClient.documents([{
+                oneofKind: "insertDocument",
+                insertDocument: Operation_InsertDocument.create({
+                    collection: Collection.AccountMetadata,
+                    document: AccountMetadata.toBinary(
+                        AccountMetadata.create({
+                            id: bobsAccountId.bytes,
                             name: bobAccountMetadataName,
                             publicName: bobAccountMetadataName,
                             owner: bobSigner.getPublicKey().toUint8Array(),
                         }),
                     ),
-            );
+                }),
+            }]);
 
             assert.isNotEmpty(bobsAccountId);
 
@@ -153,12 +182,37 @@ export const mochaHooks = (): Mocha.RootHookObject => {
                 context: {
                     bankAdminSigner,
                     client: bankAdminClient,
-                    parentAccountId: parentAccountId,
+                    parentAccountId: AccountId.fromBytes(parentAccountId),
                     bobsAccountId: bobsAccountId,
                 },
             };
 
             Object.assign(this, injectableContext);
+
+            done();
         },
     };
+};
+
+export const parseUnits = (value: string | number | bigint, decimalPlaces: number | string): bigint => {
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+
+    const decimalPlacesBigInt = BigInt(decimalPlaces);
+    const valueBigInt = BigInt(value);
+    if (valueBigInt < 0n) {
+        throw new TypeError("Value must be a positive number");
+    }
+
+    if (decimalPlacesBigInt < 0n) {
+        throw new TypeError("Decimal places must be a positive number");
+    }
+
+    return valueBigInt * (10n ** decimalPlacesBigInt) ** 2n; // FIXME: remove double **2
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+};
+
+export const sleep = (ms: number): Promise<void> => {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 };

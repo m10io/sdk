@@ -4,86 +4,121 @@ import "sdk/transaction/transaction.proto";
 
 package m10.sdk.metadata;
 
+// Attachment represents a file or object linked to a transaction.
 message Attachment {
+  // ID of the attached object.
   string object_id = 1;
+  // Type of the attachment.
   AttachmentType type = 2;
+
+  // Enumerates the possible types of attachments.
   enum AttachmentType {
-    OBJECT = 0;
-    IMAGE = 1;
+    OBJECT = 0;  // Generic object attachment.
+    IMAGE = 1;   // Image attachment.
   }
 }
 
+// Memo contains a plaintext message associated with a transaction.
 message Memo {
+  // The plaintext message.
   string plaintext = 1;
 }
 
+// Fee is a placeholder for future fee-related metadata.  Currently unused.
 message Fee {}
 
+// Metadata for a withdraw (redeem) transaction.
 message Withdraw {
+  // The bank account the withdrawal is to.
   string bank_account_id = 1;
 }
 
+// Metadata for a deposit (issue) transaction.
 message Deposit {
+  // The bank account the deposit is from.
   string bank_account_id = 1;
 }
 
+// Contract represents metadata for a smart contract.
 message Contract {
-  // A set of Ledger transactions to be processed. Should be deserialized as `CreateLedgerTransfers`.
+  // Ledger transactions to be processed, serialized as `CreateLedgerTransfers`.
   bytes transactions = 1;
-
-  // Endorsement of the remote request by an authorized party, e.g. ledger/fx-service/...
-  // Note: This can be signed by multiple parties to agree on a contract
+  // Endorsements of the contract by authorized parties.  Can be signed by multiple parties.
   repeated Endorsement endorsements = 2;
 }
 
+// Approval of a contract by a ledger.
 message Endorsement {
+  // The ID of the endorsing ledger.
   string ledger_id = 1;
+  // The signature of the endorsement.
   m10.sdk.transaction.Signature signature = 2;
 }
 
+// Metadata for a payment request.
 message PaymentRequest {
+  // The transfer details of a payment request.
   m10.sdk.transaction.CreateTransfer transfer = 1;
-  enum PaymentRequestStatus {
-    PENDING = 0;
-    DECLINED = 1;
-    CANCELED = 2;
-    IN_PROGRESS = 3;
-  }
+  // The current status of the payment request.
   PaymentRequestStatus status = 2;
+
+  // Enumerates the possible statuses of a payment request.
+  enum PaymentRequestStatus {
+    PENDING = 0;      // The request is pending
+    DECLINED = 1;      // The request has been declined
+    CANCELED = 2;      // The request has been canceled
+    IN_PROGRESS = 3;   // The request is currently being processed
+  }
 }
 
-// A request for quoted FX transfer of `base` <-> `target`
-// Note: Amount should be provided exclusively for either `base` or `target`
+// QuoteRequest represents a request for a foreign exchange quote.
+// Amount should be provided exclusively for either `base` or `target`.
 message QuoteRequest {
+  // The base currency and amount for the quote.
   AccountCurrency base = 1;
+  // The target currency for the quote.
   AccountCurrency target = 2;
+  // An optional memo associated with the quote request.
   string memo = 3;
 }
 
+// AccountCurrency represents a currency and amount associated with a specific account.
 message AccountCurrency {
+  // The operator of the account.
   string operator = 1;
+  // The currency code (e.g., USD, EUR).
   string currency = 2;
-  // M10 ledger account ID
+  // The ledger account ID.
   bytes account_id = 3;
+  // The amount of the currency.
   uint64 amount = 4;
 }
 
+// QuoteEvent represents an event related to a foreign exchange quote.
 message QuoteEvent {
+  // The specific event, either a request or a proposal.
   oneof event {
-    QuoteRequest request = 1;
-    Contract proposal = 2;
+    QuoteRequest request = 1;   // A quote request event.
+    Contract proposal = 2;     // A quote proposal event.
   }
 }
 
+// SelfTransfer represents a transfer between accounts owned by the same user.
 message SelfTransfer {
+  // The source account.
   string from_account_name = 1;
+  // The destination account.
   string to_account_name = 2;
 }
 
+// Metadata for a rebalance transfer.
 message RebalanceTransfer {}
 
+// Metadata for a token withdrawal.
 message TokenWithdraw {}
 
+// Metadata for an offline transfer.
 message OfflineTransfer {
+  // Input value for the offline transfer.
   uint64 input = 1;
 }

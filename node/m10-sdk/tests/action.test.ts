@@ -2,86 +2,136 @@
 import { assert, expect } from "chai";
 import { TextDecoder, TextEncoder } from "util";
 
-import { ActionBuilder, ActionsFilter } from "../src";
-import { M10Error } from "../src/error";
-import { isSome, unwrap } from "../src/utils";
+import { AccountId } from "../src";
 
-import type { TestContext } from "./hooks";
+import { Target } from "../src/protobufs/sdk/transaction/transaction";
+import type { TestCaseInstances } from "./config";
+import { initTestCaseInstances, createCurrencyAccounts } from "./config";
 
 describe("action", () => {
+    let testCaseInstances: TestCaseInstances;
 
-    let targetedTxId: Option<LongNumber>;
-    let broadcastTxId: Option<LongNumber>;
+    it("init", async () => {
+        testCaseInstances = await initTestCaseInstances();
+    });
+
+    let accountIds: Record<string, AccountId> = {};
+    it("create USD/EUR/TOKEN currency accounts", async () => {
+        const currencyAccounts = await createCurrencyAccounts(testCaseInstances);
+        accountIds = currencyAccounts.accountIds;
+    }).timeout(10_000);
+
+    const targetedTxIds: Record<string, bigint> = {};
+    const broadcastTxIds: Record<string, bigint> = {};
 
     const actionName = "my.action";
 
     describe("transaction", () => {
 
-        it("should send an action to a specific account", async function(this: TestContext) {
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+        it("should send an action to a specific account", async function() {
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                const to = Object.values(accountIds).find((id) => id.hex !== accountId.hex);
+                if (!to) {
+                    throw new Error("No other account found");
+                }
 
-            targetedTxId = await context.client.action(
-                ActionBuilder
-                    .forAccount(actionName, context.parentAccountId, context.bobsAccountId)
-                    .payload(new TextEncoder().encode("my_data")),
-            );
+                targetedTxIds[accountId.hex] = await testCaseInstances.accountClient.action({
+                    name: actionName,
+                    payload: new TextEncoder().encode("my_data"),
+                    fromAccount: accountId.bytes,
+                    target: Target.create({
+                        target: {
+                            oneofKind: "accountId",
+                            accountId: to.bytes,
+                        },
+                    }),
+                });
 
-            assert.isOk(isSome(targetedTxId));
+                assert.isOk(targetedTxIds[accountId.hex]);
+            }));
         });
 
-        it("should broadcast an action to all accounts", async function(this: TestContext) {
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+        it("should broadcast an action to all accounts", async function() {
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                broadcastTxIds[accountId.hex] = await testCaseInstances.accountClient.action({
+                    name: actionName,
+                    fromAccount: accountId.bytes,
+                    target: Target.create(),
+                    payload: new TextEncoder().encode("my_data"),
+                });
 
-            broadcastTxId = await context.client.action(
-                ActionBuilder
-                    .forAll(actionName, context.parentAccountId)
-                    .payload(new TextEncoder().encode("my_data")),
-            );
-
-            assert.isOk(isSome(broadcastTxId));
+                assert.isOk(broadcastTxIds[accountId.hex]);
+            }));
         });
     });
 
     describe("query", () => {
+        it("should get a targeted action by id", async function() {
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                const targetedAccountId = Object.values(accountIds).find((id) => id.hex !== accountId.hex);
 
-        it("should get a targeted action by id", async function(this: TestContext) {
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+                if (!targetedAccountId) {
+                    throw new Error("No other account found");
+                }
 
-            const action = await context.client.getAction(unwrap(targetedTxId, M10Error.Other("targetedTxId is None")));
+                const action = await testCaseInstances.accountClient.getAction(targetedTxIds[targetedAccountId.hex]);
 
-            expect(action.target.accountId).deep.equal(context.bobsAccountId);
-            expect(action.name).to.equal(actionName);
-            expect(action.txId).deep.equal(targetedTxId);
-            const payload = new TextDecoder().decode(action.payload);
-            expect(payload).to.equal("my_data");
+                const responseTargetedAccountId = action.target?.target?.oneofKind === "accountId" ? action.target?.target?.accountId : undefined;
+
+                if (!responseTargetedAccountId) {
+                    throw new Error("Targeted account ID is not present");
+                }
+
+                expect(AccountId.fromBytes(responseTargetedAccountId).hex).deep.equal(accountId.hex);
+                expect(action.name).to.equal(actionName);
+                expect(action.txId).deep.equal(targetedTxIds[targetedAccountId.hex]);
+                const payload = new TextDecoder().decode(action.payload);
+                expect(payload).to.equal("my_data");
+            }));
         });
 
-        it("should get a broadcast action by id", async function(this: TestContext) {
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+        it("should get a broadcast action by id", async function() {
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                const action = await testCaseInstances.accountClient.getAction(broadcastTxIds[accountId.hex]);
 
-            const action = await context.client.getAction(unwrap(broadcastTxId, M10Error.Other("targetedTxId is None")));
+                const targetedAccountId = action.target?.target?.oneofKind === "accountId" ? action.target?.target?.accountId : undefined;
 
-            expect(action.target.accountId).to.not.exist;
-            expect(action.name).to.equal(actionName);
-            expect(action.txId).deep.equal(broadcastTxId);
-            const payload = new TextDecoder().decode(action.payload);
-            expect(payload).to.equal("my_data");
+                expect(targetedAccountId).to.not.exist;
+                expect(action.name).to.equal(actionName);
+                expect(action.txId).deep.equal(broadcastTxIds[accountId.hex]);
+                const payload = new TextDecoder().decode(action.payload);
+                expect(payload).to.equal("my_data");
+            }));
         });
 
-        it("should get a list of actions", async function(this: TestContext) {
-            const context = unwrap(this.context, M10Error.Other("TestSuiteContext is None"));
+        it("should get a list of actions", async function() {
             const limit = 2;
 
-            const actions = await context.client.listActions(
-                ActionsFilter.byAccount(actionName, context.parentAccountId)
-                    .limit(limit)
-                    .min(1),
-            );
+            await Promise.all(Object.values(accountIds).map(async (accountId) => {
+                const actionsResponse = await testCaseInstances.accountClient.listActions({
+                    name: actionName,
+                    filter: {
+                        oneofKind: "accountId",
+                        accountId: accountId.bytes,
+                    },
+                    limit: BigInt(limit),
+                    minTxId: 1n,
+                });
+                const actions = actionsResponse.actions;
+                const targetedAccountId = Object.values(accountIds).find((id) => id.hex !== accountId.hex);
+                if (!targetedAccountId) {
+                    throw new Error("No other account found");
+                }
 
-            expect(actions).to.be.instanceOf(Array);
-            expect(actions?.length).to.equal(2);
-            expect(actions[1]?.txId).deep.equal(targetedTxId);
-            expect(actions[0]?.txId).deep.equal(broadcastTxId);
+                const allActionIds = [
+                    ...Object.values(targetedTxIds),
+                    ...Object.values(broadcastTxIds),
+                ];
+
+                expect(actions).to.be.instanceOf(Array);
+                expect(actions?.length).to.equal(2);
+                expect(actions.some(el => allActionIds.includes(el.txId))).to.be.true;
+            }));
         });
     });
 });

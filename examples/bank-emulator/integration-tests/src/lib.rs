@@ -9,8 +9,6 @@ mod documents;
 #[cfg(test)]
 mod fees;
 #[cfg(test)]
-mod keys;
-#[cfg(test)]
 mod notification_preferences;
 #[cfg(test)]
 mod transfer_methods;
@@ -31,13 +29,9 @@ fn ledger_addr() -> String {
 fn ledger_client(
     key_pair: m10_sdk::Ed25519,
 ) -> Box<dyn m10_sdk::M10CoreClient<Signer = m10_sdk::Ed25519> + Send + Sync> {
-    Box::new(
-        m10_sdk::GrpcClient::new(
-            tonic::transport::Channel::from_shared(ledger_addr()).unwrap(),
-            Some(std::sync::Arc::new(key_pair)),
-        )
-        .unwrap(),
-    )
+    let uri: tonic::transport::Uri = ledger_addr().parse().unwrap();
+    let endpoint = m10_bank_emulator::config::make_endpoint(uri).unwrap();
+    Box::new(m10_sdk::GrpcClient::new(endpoint, Some(std::sync::Arc::new(key_pair))).unwrap())
 }
 
 #[cfg(test)]

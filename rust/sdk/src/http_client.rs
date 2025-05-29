@@ -458,10 +458,10 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
     }
     // Account Metadata
 
-    async fn get_account_metadata(&self, id: AccountId) -> M10Result<AccountMetadata> {
+    async fn get_account_metadata(&self, id: Vec<u8>) -> M10Result<AccountMetadata> {
         let req = self
             .signer()?
-            .sign_request(sdk::GetAccountRequest { id: id.to_vec() })
+            .sign_request(sdk::GetAccountRequest { id })
             .await?;
         let mut msg = self
             .get_with_request("account-metadata", req.into())

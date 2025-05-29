@@ -1,4 +1,4 @@
-use clap::Args;
+use clap::{ArgAction, Args};
 use m10_sdk::{
     account::AccountId, contract::FinalizedContractExt, prost::Message, sdk, StepBuilder,
     TransferBuilder, WithContext,
@@ -25,7 +25,8 @@ pub(crate) struct CreateTransferArgs {
     #[arg(long)]
     contract: Option<String>,
     /// If set account will rebalanced to the given amount
-    #[arg(short, long)]
+    #[arg(short, long, action = ArgAction::SetTrue)]
+    #[cfg_attr(feature = "customers", arg(hide = true))]
     rebalance: bool,
     /// If set the transfer will only be initiated but not committed
     #[arg(short, long)]

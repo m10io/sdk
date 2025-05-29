@@ -84,61 +84,9 @@ pub mod sdk {
     pub use transaction::*;
 
     use core::{fmt, str};
-    use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
     pub use crate::Collection;
     use crate::{sdk, Pack};
-
-    impl str::FromStr for AccountRef {
-        type Err = AccountRefParseError;
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let mut s = s.split('/');
-            let ledger_id = s.next().ok_or(AccountRefParseError())?.to_string();
-            let account_id = s.next().ok_or(AccountRefParseError())?;
-            let account_id = hex::decode(account_id).map_err(|_| AccountRefParseError())?;
-            Ok(Self {
-                ledger_id,
-                account_id,
-            })
-        }
-    }
-
-    impl Serialize for AccountRef {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            serializer.collect_str(self)
-        }
-    }
-
-    impl<'de> Deserialize<'de> for AccountRef {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            let s = String::deserialize(deserializer)?;
-            s.parse().map_err(de::Error::custom)
-        }
-    }
-
-    impl fmt::Display for AccountRef {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}/{}", self.ledger_id, hex::encode(&self.account_id))
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct AccountRefParseError();
-
-    impl fmt::Display for AccountRefParseError {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.write_str("failed to parse account ref")
-        }
-    }
-
-    impl std::error::Error for AccountRefParseError {}
 
     impl Eq for RedeemableToken {}
 
@@ -353,10 +301,13 @@ pub mod sdk {
                 public_key,
                 algorithm,
             } = self;
-            let key = match signature::Algorithm::from_i32(*algorithm).ok_or(TransactionError {
+
+            let alg = signature::Algorithm::try_from(*algorithm).map_err(|_| TransactionError {
                 code: transaction_error::Code::BadRequest.into(),
                 message: "Unsupported Algorithm".to_owned(),
-            })? {
+            })?;
+
+            let key = match alg {
                 signature::Algorithm::P256Sha256Asn1 => ring::signature::UnparsedPublicKey::new(
                     &ring::signature::ECDSA_P256_SHA256_ASN1,
                     public_key,
@@ -365,11 +316,13 @@ pub mod sdk {
                     ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key)
                 }
             };
+
             key.verify(message, signature)
                 .map_err(|_| TransactionError {
                     code: transaction_error::Code::InvalidSignature.into(),
                     message: String::new(),
                 })?;
+
             Ok(())
         }
     }

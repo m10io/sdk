@@ -2,11 +2,13 @@ mod document_id;
 
 #[cfg(feature = "account")]
 pub mod account;
+#[cfg(feature = "block_explorer")]
+pub mod block_explorer;
 #[cfg(feature = "collections")]
 mod collections;
 #[cfg(feature = "contract")]
 pub mod contract;
-#[cfg(feature = "client")]
+#[cfg(any(feature = "client", feature = "collections"))]
 pub mod error;
 #[cfg(feature = "client")]
 mod grpc_client;
@@ -35,6 +37,9 @@ mod types;
 
 #[cfg(feature = "client")]
 pub mod ws;
+
+#[cfg(feature = "client")]
+pub mod oauth_interceptor;
 
 #[cfg(feature = "collections")]
 pub use collections::DocumentUpdate;
@@ -77,5 +82,11 @@ pub use http_client::HttpClient;
 #[cfg(feature = "client")]
 pub use m10_core_client::*;
 
+#[cfg(feature = "client")]
+pub use oauth_interceptor::*;
+
 #[cfg(feature = "service")]
 pub use transaction_ext::TransactionExt;
+
+#[cfg(feature = "format")]
+pub use collections::ResourceId;

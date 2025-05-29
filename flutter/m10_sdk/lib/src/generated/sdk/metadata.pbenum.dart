@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/metadata.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -13,6 +13,7 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+/// Enumerates the possible types of attachments.
 class Attachment_AttachmentType extends $pb.ProtobufEnum {
   static const Attachment_AttachmentType OBJECT = Attachment_AttachmentType._(0, _omitEnumNames ? '' : 'OBJECT');
   static const Attachment_AttachmentType IMAGE = Attachment_AttachmentType._(1, _omitEnumNames ? '' : 'IMAGE');
@@ -25,9 +26,10 @@ class Attachment_AttachmentType extends $pb.ProtobufEnum {
   static final $core.Map<$core.int, Attachment_AttachmentType> _byValue = $pb.ProtobufEnum.initByValue(values);
   static Attachment_AttachmentType? valueOf($core.int value) => _byValue[value];
 
-  const Attachment_AttachmentType._($core.int v, $core.String n) : super(v, n);
+  const Attachment_AttachmentType._(super.v, super.n);
 }
 
+/// Enumerates the possible statuses of a payment request.
 class PaymentRequest_PaymentRequestStatus extends $pb.ProtobufEnum {
   static const PaymentRequest_PaymentRequestStatus PENDING = PaymentRequest_PaymentRequestStatus._(0, _omitEnumNames ? '' : 'PENDING');
   static const PaymentRequest_PaymentRequestStatus DECLINED = PaymentRequest_PaymentRequestStatus._(1, _omitEnumNames ? '' : 'DECLINED');
@@ -44,7 +46,7 @@ class PaymentRequest_PaymentRequestStatus extends $pb.ProtobufEnum {
   static final $core.Map<$core.int, PaymentRequest_PaymentRequestStatus> _byValue = $pb.ProtobufEnum.initByValue(values);
   static PaymentRequest_PaymentRequestStatus? valueOf($core.int value) => _byValue[value];
 
-  const PaymentRequest_PaymentRequestStatus._($core.int v, $core.String n) : super(v, n);
+  const PaymentRequest_PaymentRequestStatus._(super.v, super.n);
 }
 
 

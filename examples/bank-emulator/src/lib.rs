@@ -8,6 +8,7 @@ pub mod error;
 mod liquidity;
 pub mod logging;
 pub mod models;
-mod rbac;
+pub mod rbac;
+pub mod requiem;
 pub mod signer;
 mod utils;

@@ -30,7 +30,8 @@ impl Config {
             config.merge(config::File::from(Path::new(config_file)).required(false))?;
         }
         config.merge(
-            config::Environment::with_prefix("M10")
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
                 .separator("__")
                 .ignore_empty(true),
         )?;

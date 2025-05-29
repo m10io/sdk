@@ -67,16 +67,16 @@ impl BankAccount {
         let mut txn = conn.begin().await?;
         sqlx::query("SELECT pg_advisory_xact_lock($1)")
             .bind(range)
-            .execute(&mut txn)
+            .execute(&mut *txn)
             .await?;
         // TODO(mw): simplify
         let query = sqlx::query_scalar("SELECT new_account($1, $2, $3);")
             .bind(range)
             .bind(display_name)
             .bind(currency.to_uppercase());
-        let id: i64 = query.fetch_one(&mut txn).await?;
+        let id: i64 = query.fetch_one(&mut *txn).await?;
         let query = sqlx::query_as("SELECT * FROM bank_accounts WHERE id = $1").bind(id);
-        let account: Self = query.fetch_one(&mut txn).await?;
+        let account: Self = query.fetch_one(&mut *txn).await?;
         txn.commit().await?;
         Ok(account)
     }

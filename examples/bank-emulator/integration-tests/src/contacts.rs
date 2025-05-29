@@ -1,6 +1,8 @@
 use super::base_url;
 use super::utils::*;
 use m10_bank_emulator::models::*;
+
+use m10_sdk::Signer;
 use reqwest::Body;
 use serde_json::json;
 use serde_json::Value;
@@ -270,21 +272,27 @@ async fn contacts_sandbox_routes() {
 async fn contacts_crud() {
     let jwt = default_user_jwt().await;
     let client = reqwest::Client::default();
-    delete_contact(&client, &jwt).await;
+
+    let key_pair = key_pair();
+    let signature = key_pair.sign_payload(key_pair.public_key()).await.unwrap();
 
     let req = CreateContactRequest {
         tenant: "m10-test".into(),
         contact_data: serde_json::to_value(json!({
-            "name": "default",
+            "name": "default-customer",
             "email": "omega-default-user@m10test.io",
         }))
         .unwrap(),
         contact_type: Some(ContactType::Individual),
+        signatures: vec![Signature::from(signature)],
         ..Default::default()
     };
 
     // create default customer
     println!("create default customer");
+
+    delete_contact(&client, &jwt).await;
+
     let contact = client
         .post(format!("{}/api/v1/contacts", base_url()))
         .bearer_auth(&jwt)
@@ -378,24 +386,6 @@ async fn contacts_account() {
         .assert_json::<Account>()
         .await;
     assert_eq!(account.id, 19, "get account by owner");
-}
-
-#[tokio::test]
-#[ignore]
-async fn contacts_key() {
-    let jwt = prepopulated_user_jwt().await;
-    let client = reqwest::Client::default();
-
-    // add key
-    client
-        .put(format!("{}/api/v1/contacts/19/key", base_url()))
-        .bearer_auth(&jwt)
-        .body(Body::from(""))
-        .send()
-        .await
-        .unwrap()
-        .assert_success()
-        .await;
 }
 
 #[tokio::test]

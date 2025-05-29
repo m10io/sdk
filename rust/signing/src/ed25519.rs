@@ -1,4 +1,4 @@
-use crate::{Signer, SigningError};
+use crate::{internal_error, Signer, SigningError};
 use core::convert::TryFrom;
 use core::str::FromStr;
 use m10_protos::sdk::signature::Algorithm;
@@ -22,14 +22,15 @@ impl Ed25519 {
     /// Generates an ED25519 key-pair, and if the path is passed writes it to disk as a PKCS8 document
     pub fn new_key_pair(path: Option<&str>) -> Result<Self, SigningError> {
         let rng = rand::SystemRandom::new();
-        let pkcs8_bytes =
-            Ed25519KeyPair::generate_pkcs8(&rng).map_err(|_| SigningError::Internal)?;
+        let pkcs8_bytes = Ed25519KeyPair::generate_pkcs8(&rng)
+            .map_err(|e| internal_error(e, "Ed25519::new_key_pair: generate_pkcs8"))?;
         if let Some(p) = path {
             let mut key_file = File::create(p)?;
             key_file.write_all(pkcs8_bytes.as_ref())?;
         }
         Ok(Self {
-            key_pair: Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?,
+            key_pair: Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())
+                .map_err(|e| internal_error(e, "Ed25519::new_key_pair: from_pkcs8"))?,
         })
     }
 
@@ -44,15 +45,17 @@ impl Ed25519 {
     /// Generates a new key-pair, and returns both the key-pair and a PKCS8 document containing the key-pair
     pub fn new_key_pair_exportable() -> Result<(Vec<u8>, Self), SigningError> {
         let rng = rand::SystemRandom::new();
-        let pkcs8_bytes =
-            Ed25519KeyPair::generate_pkcs8(&rng).map_err(|_| SigningError::Internal)?;
-        let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
+        let pkcs8_bytes = Ed25519KeyPair::generate_pkcs8(&rng)
+            .map_err(|e| internal_error(e, "Ed25519::new_key_pair_exportable: generate_pkcs8"))?;
+        let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())
+            .map_err(|e| internal_error(e, "Ed25519::new_key_pair_exportable: from_pkcs8"))?;
         Ok((pkcs8_bytes.as_ref().to_vec(), Self { key_pair }))
     }
 
     /// Returns a new [`Ed25519`] key-pair from a PKCS8 document
     pub fn from_pkcs8(bytes: &[u8]) -> Result<Self, SigningError> {
-        let key_pair = Ed25519KeyPair::from_pkcs8(bytes)?;
+        let key_pair = Ed25519KeyPair::from_pkcs8(bytes)
+            .map_err(|e| internal_error(e, "Ed25519::from_pkcs8"))?;
         Ok(Self { key_pair })
     }
 }
@@ -90,5 +93,25 @@ impl TryFrom<String> for Ed25519 {
     type Error = SigningError;
     fn try_from(key_pair: String) -> Result<Self, Self::Error> {
         key_pair.parse()
+    }
+}
+
+impl Ed25519 {
+    /// Parses Ed25519 key-pair from base64-encoded 64-byte raw key (32-byte private + 32-byte public)
+    pub fn from_keypair(b64: &str) -> Result<Self, SigningError> {
+        let bytes = base64::decode(b64).map_err(|_| {
+            SigningError::KeyInvalid("Failed to decode base64-encoded key".to_string())
+        })?;
+        if bytes.len() != 64 {
+            return Err(SigningError::KeyInvalid(
+                "Invalid key length, expected 64 bytes".to_string(),
+            ));
+        }
+        let secret = &bytes[..32];
+        let public = &bytes[32..];
+
+        let key_pair = Ed25519KeyPair::from_seed_and_public_key(secret, public)
+            .map_err(|_| SigningError::KeyInvalid("Invalid key".to_string()))?;
+        Ok(Self { key_pair })
     }
 }

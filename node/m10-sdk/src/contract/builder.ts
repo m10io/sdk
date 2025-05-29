@@ -1,5 +1,6 @@
-import { m10 } from "../../protobufs";
-import { convertMemoToAny, isSome, TransactionSigner } from "../utils";
+import { Contract, Memo } from "../protobufs/sdk/metadata";
+import { type CreateLedgerTransfer,CreateLedgerTransfers } from "../protobufs/sdk/transaction/transaction";
+import { convertMemoToAny, TransactionSigner } from "../utils";
 
 import { FinalizedContractExt } from "./contract_ext";
 
@@ -14,7 +15,7 @@ import { FinalizedContractExt } from "./contract_ext";
  */
 export class ContractBuilder {
 
-    public transfers: m10.sdk.transaction.ICreateLedgerTransfer[];
+    public transfers: CreateLedgerTransfer[];
     /**
      * Timeout of the contract in milliseconds
      */
@@ -40,21 +41,21 @@ export class ContractBuilder {
         fromAccountId: Uint8Array,
         toAccountId: Uint8Array,
         amount: number,
-        memo: Option<string>,
+        memo?: string,
     ): ContractBuilder {
 
         this.transfers.push({
             ledgerId: ledgerId,
-            nonce: TransactionSigner.generateNonce(),
+            nonce: BigInt(TransactionSigner.generateNonce()),
             transfer: {
                 transferSteps: [{
                     fromAccountId: fromAccountId,
                     toAccountId: toAccountId,
-                    amount: amount,
+                    amount: BigInt(amount),
                     metadata: (
-                        isSome(memo)
-                            ? [convertMemoToAny(new m10.sdk.metadata.Memo({ plaintext: memo }))]
-                            : null
+                        memo
+                            ? [convertMemoToAny(Memo.create({ plaintext: memo }))]
+                            : []
                     ),
                 }],
             },
@@ -69,11 +70,9 @@ export class ContractBuilder {
     public build(): FinalizedContractExt {
 
         const validUntil = TransactionSigner.getTimestamp(this.validFor);
-        const transferReqs = m10.sdk.transaction.CreateLedgerTransfers
-            .encode({ transfers: this.transfers, validUntil })
-            .finish();
+        const transferReqs = CreateLedgerTransfers.toBinary({ transfers: this.transfers, validUntil: BigInt(validUntil) });
 
-        const contract = new m10.sdk.metadata.Contract({
+        const contract = Contract.create({
             transactions: transferReqs,
             endorsements: [],
         });

@@ -11,16 +11,16 @@ pub(crate) struct CreateAccountMetadataArgs {
     #[arg(short = 'e', long)]
     #[serde(default)]
     pub(super) if_not_exists: bool,
-    /// Set an account id
+    /// Set an account-metada id. Use uuid
     #[arg(short, long)]
     pub(super) id: Option<Uuid>,
-    /// Set owner of the account record
+    /// Set owner of the account-metadata record
     #[arg(short, long)]
     owner: Option<PublicKey>,
-    /// Set an account name
+    /// Set an account-metadata name
     #[arg(short, long)]
     name: Option<String>,
-    /// Set a name to be shown in transfers as sender
+    /// Set a name to be shown in transfers as Sender
     #[arg(long, alias = "pn")]
     public_name: Option<String>,
     /// Set profile image url

@@ -7,16 +7,35 @@ use serde::Deserialize;
 pub(crate) struct Config {
     #[serde(default)]
     pub(crate) addr: Option<String>,
-    #[serde(default)]
     pub(crate) key: Option<String>,
     #[serde(default)]
     pub(crate) profile: HashMap<String, Profile>,
+    #[serde(default)]
+    pub vault_addr: Option<String>,
+    #[serde(default)]
+    pub vault_token: Option<String>,
+    #[serde(default)]
+    pub vault_key_name: Option<String>,
+    #[serde(default)]
+    pub vault_mount: Option<String>,
+    #[serde(default)]
+    pub vault_namespace: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Profile {
     pub(crate) key: String,
     pub(crate) addr: Option<String>,
+    #[serde(default)]
+    pub vault_addr: Option<String>,
+    #[serde(default)]
+    pub vault_token: Option<String>,
+    #[serde(default)]
+    pub vault_key_name: Option<String>,
+    #[serde(default)]
+    pub vault_mount: Option<String>,
+    #[serde(default)]
+    pub vault_namespace: Option<String>,
 }
 
 impl Config {

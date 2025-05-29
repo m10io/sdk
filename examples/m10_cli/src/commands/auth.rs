@@ -1,8 +1,11 @@
 use std::time::Instant;
 
-use bytes::Buf;
+use bytes::{Buf, Bytes};
 use clap::Args;
-use hyper::{Body, Client, Method};
+use http_body_util::{BodyExt, Full};
+use hyper::Method;
+use hyper_util::client::legacy::Client;
+use hyper_util::rt::TokioExecutor;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_reader, json, to_vec, Value};
 use tokio::time::{sleep, Duration};
@@ -33,8 +36,15 @@ impl Auth {
             password,
             stdout,
         } = self;
-        let client =
-            Client::builder().build::<_, Body>(hyper_rustls::HttpsConnector::with_native_roots());
+
+        let connector = hyper_rustls::HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .unwrap()
+            .https_only()
+            .enable_http1()
+            .build();
+        let client: Client<_, Full<Bytes>> = Client::builder(TokioExecutor::new()).build(connector);
+
         let response = if let Some(username) = username {
             let oauth_token_body = json!({
                 "client_id": "directory",
@@ -48,7 +58,7 @@ impl Auth {
                 .uri(format!("{}oauth/token", context.addr()?))
                 .method(Method::POST)
                 .header(hyper::header::CONTENT_TYPE, "application/json")
-                .body(Body::from(to_vec(&oauth_token_body)?))?;
+                .body(Full::from(to_vec(&oauth_token_body)?))?;
             client.request(request).await?
         } else {
             let device_code_body = json!({
@@ -60,12 +70,12 @@ impl Auth {
                 .uri(format!("{}oauth/device/code", context.addr()?))
                 .method(Method::POST)
                 .header(hyper::header::CONTENT_TYPE, "application/json")
-                .body(Body::from(to_vec(&device_code_body)?))?;
+                .body(Full::from(to_vec(&device_code_body)?))?;
             let device_flow_time = Instant::now();
             let response = client.request(request).await?;
 
             let status = response.status();
-            let response = hyper::body::aggregate(response).await?;
+            let response = response.into_body().collect().await?.to_bytes();
             let response = from_reader::<_, Value>(response.reader())?;
             if !status.is_success() {
                 anyhow::bail!(response);
@@ -84,7 +94,7 @@ impl Auth {
                     .uri(format!("{}oauth/token", context.addr()?))
                     .method(Method::POST)
                     .header(hyper::header::CONTENT_TYPE, "application/json")
-                    .body(Body::from(to_vec(&oauth_token_body)?))?;
+                    .body(Full::from(to_vec(&oauth_token_body)?))?;
                 let response = client.request(request).await?;
                 if response.status().is_success() || device_flow_time.elapsed() > expires_in {
                     break response;
@@ -93,7 +103,7 @@ impl Auth {
             }
         };
         let status = response.status();
-        let response = hyper::body::aggregate(response).await?;
+        let response = response.into_body().collect().await?.to_bytes();
         let response = from_reader::<_, Value>(response.reader())?;
         if !status.is_success() {
             anyhow::bail!(response);

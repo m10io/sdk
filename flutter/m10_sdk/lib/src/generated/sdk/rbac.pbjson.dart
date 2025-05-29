@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: sdk/rbac.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -71,6 +71,7 @@ const Rule$json = {
     {'1': 'collection', '3': 2, '4': 1, '5': 9, '10': 'collection'},
     {'1': 'instance_keys', '3': 3, '4': 3, '5': 11, '6': '.m10.sdk.Value', '10': 'instanceKeys'},
     {'1': 'verbs', '3': 4, '4': 3, '5': 14, '6': '.m10.sdk.Rule.Verb', '10': 'verbs'},
+    {'1': 'excluded_instance_keys', '3': 5, '4': 3, '5': 11, '6': '.m10.sdk.Value', '10': 'excludedInstanceKeys'},
   ],
   '4': [Rule_Verb$json],
 };
@@ -93,7 +94,8 @@ const Rule_Verb$json = {
 final $typed_data.Uint8List ruleDescriptor = $convert.base64Decode(
     'CgRSdWxlEh4KCmNvbGxlY3Rpb24YAiABKAlSCmNvbGxlY3Rpb24SMwoNaW5zdGFuY2Vfa2V5cx'
     'gDIAMoCzIOLm0xMC5zZGsuVmFsdWVSDGluc3RhbmNlS2V5cxIoCgV2ZXJicxgEIAMoDjISLm0x'
-    'MC5zZGsuUnVsZS5WZXJiUgV2ZXJicyJcCgRWZXJiEggKBFJFQUQQABIKCgZDUkVBVEUQARIKCg'
-    'ZVUERBVEUQAhIKCgZERUxFVEUQAxIMCghUUkFOU0FDVBAEEgwKCElOSVRJQVRFEAUSCgoGQ09N'
-    'TUlUEAY=');
+    'MC5zZGsuUnVsZS5WZXJiUgV2ZXJicxJEChZleGNsdWRlZF9pbnN0YW5jZV9rZXlzGAUgAygLMg'
+    '4ubTEwLnNkay5WYWx1ZVIUZXhjbHVkZWRJbnN0YW5jZUtleXMiXAoEVmVyYhIICgRSRUFEEAAS'
+    'CgoGQ1JFQVRFEAESCgoGVVBEQVRFEAISCgoGREVMRVRFEAMSDAoIVFJBTlNBQ1QQBBIMCghJTk'
+    'lUSUFURRAFEgoKBkNPTU1JVBAG');
 

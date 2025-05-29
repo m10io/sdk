@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::str::FromStr;
 
 use crate::error::Error;
 use crate::models::{AssetType, TransferChain};
@@ -21,22 +22,18 @@ use uuid::Uuid;
 const ALIAS_DEFAULT_OPERATOR: &str = "m10";
 
 pub(crate) async fn submit_transaction(
-    data: impl Into<Data> + Send,
+    data: impl Into<Data> + Send + Clone,
     context_id: Vec<u8>,
     context: &Context,
 ) -> Result<sdk::TransactionResponse, Error> {
-    let signed_request = context
-        .ledger
-        .signed_transaction(data.into(), context_id.clone())
-        .await?;
     retry(
         || {
-            let signed_request = signed_request.clone();
+            let ledger = context.ledger.clone();
+            let context_id = context_id.clone();
+            let data = data.clone();
             async move {
-                context
-                    .ledger
-                    .create_transaction(signed_request.into())
-                    .await
+                let req = ledger.signed_transaction(data.into(), context_id).await?;
+                ledger.create_transaction(req.into()).await
             }
         },
         3,
@@ -80,13 +77,7 @@ pub(crate) async fn create_account_set(
     let payload = sdk::Operation::insert(sdk::AccountSet {
         id: account_set_id.as_bytes().to_vec(),
         owner: context.ledger.signer()?.public_key().to_vec(),
-        accounts: ledger_accounts
-            .into_iter()
-            .map(|account_id| sdk::AccountRef {
-                account_id,
-                ledger_id: ALIAS_DEFAULT_OPERATOR.to_string(),
-            })
-            .collect(),
+        accounts: ledger_accounts,
     });
     submit_transaction(payload, vec![], context).await?;
     Ok(account_set_id)

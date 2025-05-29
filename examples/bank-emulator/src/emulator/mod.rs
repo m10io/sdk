@@ -69,10 +69,10 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_into(account.id, fund as i64, "start balance", None, &mut txn)
+            .deposit_into(account.id, fund as i64, "start balance", None, &mut *txn)
             .await?;
         self.holding_account
-            .settle_deposit(txn_id, &mut txn)
+            .settle_deposit(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         let account = BankAccount::find_by_id(account.id)
@@ -104,7 +104,7 @@ impl Bank for BankEmulator {
         let account_id = BankAccount::try_id_from(account_ref)?;
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
-        let contact = BankContact::new(account_id, contact_type.into(), data, &mut txn).await?;
+        let contact = BankContact::new(account_id, contact_type.into(), data, &mut *txn).await?;
         txn.commit().await?;
         Ok(contact.into())
     }
@@ -118,11 +118,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut contact = BankContact::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank contact"))?;
         contact.data = Some(data);
-        contact.update_data(&mut txn).await?;
+        contact.update_data(&mut *txn).await?;
         txn.commit().await?;
         Ok(contact)
     }
@@ -132,11 +132,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut contact = BankContact::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank contact"))?;
         contact.contact_status = BankContactStatus::Retired;
-        contact.update_status(&mut txn).await?;
+        contact.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(contact)
     }
@@ -146,11 +146,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut contact = BankContact::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank contact"))?;
         contact.contact_status = BankContactStatus::Approved;
-        contact.update_status(&mut txn).await?;
+        contact.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(contact)
     }
@@ -160,11 +160,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut contact = BankContact::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank contact"))?;
         contact.contact_status = BankContactStatus::Frozen;
-        contact.update_status(&mut txn).await?;
+        contact.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(contact)
     }
@@ -174,11 +174,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut contact = BankContact::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank contact"))?;
         contact.contact_status = BankContactStatus::Approved;
-        contact.update_status(&mut txn).await?;
+        contact.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(contact)
     }
@@ -188,11 +188,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut contact = BankContact::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank contact"))?;
         contact.contact_status = BankContactStatus::Denied;
-        contact.update_status(&mut txn).await?;
+        contact.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(contact)
     }
@@ -231,11 +231,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut account = BankAccount::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank account"))?;
         account.account_status = BankAccountStatus::Open;
-        account.update_status(&mut txn).await?;
+        account.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(account)
     }
@@ -245,11 +245,11 @@ impl Bank for BankEmulator {
         let mut conn = self.db_pool.get().await?;
         let mut txn = conn.begin().await?;
         let mut account = BankAccount::find_by_id(id)
-            .fetch_optional(&mut txn)
+            .fetch_optional(&mut *txn)
             .await?
             .ok_or_else(|| Error::not_found("Bank account"))?;
         account.account_status = BankAccountStatus::PendingClosure;
-        account.update_status(&mut txn).await?;
+        account.update_status(&mut *txn).await?;
         txn.commit().await?;
         Ok(account)
     }
@@ -260,7 +260,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_for_contact(contact_id, amount.try_into()?, &mut txn)
+            .deposit_for_contact(contact_id, amount.try_into()?, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -273,7 +273,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .withdraw_for_contact(contact_id, amount.try_into()?, &mut txn)
+            .withdraw_for_contact(contact_id, amount.try_into()?, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -291,7 +291,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_into(account_id, amount.try_into()?, reference, None, &mut txn)
+            .deposit_into(account_id, amount.try_into()?, reference, None, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -304,7 +304,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .withdraw_from(account_id, amount.try_into()?, "SBW", None, &mut txn)
+            .withdraw_from(account_id, amount.try_into()?, "SBW", None, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -321,7 +321,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_into(account_id, amount.try_into()?, reference, None, &mut txn)
+            .deposit_into(account_id, amount.try_into()?, reference, None, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -338,7 +338,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .withdraw_from(account_id, amount.try_into()?, reference, None, &mut txn)
+            .withdraw_from(account_id, amount.try_into()?, reference, None, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -367,10 +367,10 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_for_contact(contact_id, amount.try_into()?, &mut txn)
+            .deposit_for_contact(contact_id, amount.try_into()?, &mut *txn)
             .await?;
         self.holding_account
-            .settle_deposit(txn_id, &mut txn)
+            .settle_deposit(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -388,10 +388,10 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let txn_id = self
             .holding_account
-            .deposit_into(account_id, amount.try_into()?, reference, None, &mut txn)
+            .deposit_into(account_id, amount.try_into()?, reference, None, &mut *txn)
             .await?;
         self.holding_account
-            .settle_deposit(txn_id, &mut txn)
+            .settle_deposit(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -403,7 +403,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let amount = self
             .holding_account
-            .settle_deposit(txn_id, &mut txn)
+            .settle_deposit(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -415,7 +415,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let amount = self
             .holding_account
-            .settle_withdraw(txn_id, &mut txn)
+            .settle_withdraw(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -427,7 +427,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let amount = self
             .holding_account
-            .reverse_deposit(txn_id, &mut txn)
+            .reverse_deposit(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
@@ -439,7 +439,7 @@ impl Bank for BankEmulator {
         let mut txn = conn.begin().await?;
         let amount = self
             .holding_account
-            .reverse_withdraw(txn_id, &mut txn)
+            .reverse_withdraw(txn_id, &mut *txn)
             .await?;
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;

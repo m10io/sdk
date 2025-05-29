@@ -40,7 +40,7 @@ impl DirEntry {
         let channel = context.channel()?;
         let access_token = std::fs::read_to_string(m10_config_path().join("access.token"))?;
         let access_token = format!("Bearer {}", access_token.trim());
-        let access_token = MetadataValue::from_str(access_token.as_str())?;
+        let access_token = MetadataValue::try_from(access_token.as_str())?;
         let mut client =
             DirectoryServiceClient::with_interceptor(channel, move |mut req: tonic::Request<()>| {
                 req.metadata_mut()
@@ -104,7 +104,7 @@ impl TryFrom<Alias> for PrettyAlias {
             operator,
             ..
         } = other;
-        let alias_type = AliasType::from_i32(alias_type).unwrap_or_default();
+        let alias_type = AliasType::try_from(alias_type).unwrap_or_default();
         Ok(PrettyAlias {
             _handle: handle,
             _alias_type: alias_type,

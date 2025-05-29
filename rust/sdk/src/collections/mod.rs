@@ -14,7 +14,7 @@ pub mod resource_id;
 pub mod role_bindings;
 pub mod roles;
 
-pub use resource_id::ResourceId;
+pub use resource_id::*;
 
 /// A struct for building a document update operation
 ///

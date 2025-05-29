@@ -2,13 +2,16 @@ use std::{fmt::Debug, fs::File, io::Read};
 
 use clap::{Subcommand, ValueEnum};
 use m10_sdk::{
-    account::AccountId, error::M10Error, prost::Message, sdk, Collection, DocumentBuilder, Pack,
-    PublicKey, Signer, WithContext,
+    account::AccountId, error::M10Error, prost::Message, sdk, DocumentBuilder, Pack, PublicKey,
+    Signer, WithContext,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{context::Context, utils};
+use crate::{
+    context::{Context, Provider},
+    utils,
+};
 
 use super::convert::BinFormat;
 
@@ -39,17 +42,21 @@ impl From<Algorithm> for sdk::signature::Algorithm {
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Create {
+    /// Create a new account on the ledger
+    #[command(alias = "la")]
+    Account(ledger_accounts::CreateLedgerAccountArgs),
     /// Create a new account metadata record on the ledger
     #[command(alias = "a")]
-    Account(accounts::CreateAccountMetadataArgs),
-    /// Create a new account set record on the ledger
+    AccountMetadata(accounts::CreateAccountMetadataArgs),
+    /// Create a new AccountSet record on the ledger
     #[command(alias = "as")]
     AccountSet(account_sets::CreateAccountSetArgs),
     /// Create a new bank metadata record on the ledger
     #[command(alias = "b")]
     Bank(banks::CreateBankArgs),
     /// Create a new collection on the ledger
-    #[command(alias = "c")]
+    #[cfg_attr(feature = "customers", command(alias = "c", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "c"))]
     CollectionMetadata {
         /// Set name of collection
         #[arg(short, long)]
@@ -58,7 +65,7 @@ pub(crate) enum Create {
         #[arg(short, long)]
         descriptor: String,
     },
-    /// Create a directory entry
+    /// Create a directory entry (first requires keycloak auth. See `m10 auth`)
     #[command(alias = "d")]
     DirectoryEntry {
         #[command(subcommand)]
@@ -91,11 +98,9 @@ pub(crate) enum Create {
         #[arg(short, long, value_enum)]
         algorithm: Algorithm,
     },
-    /// Create a new account on the ledger
-    #[command(alias = "la")]
-    LedgerAccount(ledger_accounts::CreateLedgerAccountArgs),
     /// Create a offline token from an account
-    #[command(alias = "ot")]
+    #[cfg_attr(feature = "customers", command(alias = "ot", hide = true))]
+    #[cfg_attr(feature = "internal", command(alias = "ot"))]
     OfflineToken {
         #[arg(short, long)]
         account: AccountId,
@@ -123,7 +128,10 @@ pub(crate) enum Create {
 impl Create {
     pub(crate) async fn run(self, context: &Context) -> anyhow::Result<()> {
         match self {
-            Create::Account(args) => store_create::<_, sdk::AccountMetadata>(args, context).await,
+            Create::Account(args) => args.create(context).await,
+            Create::AccountMetadata(args) => {
+                store_create::<_, sdk::AccountMetadata>(args, context).await
+            }
             Create::AccountSet(args) => store_create::<_, sdk::AccountSet>(args, context).await,
             Create::Bank(args) => store_create::<_, sdk::Bank>(args, context).await,
             Create::CollectionMetadata { name, descriptor } => {
@@ -135,8 +143,15 @@ impl Create {
                 file_path,
                 format,
                 algorithm,
-            } => create_key_pair(file_path, format, algorithm.into()),
-            Create::LedgerAccount(args) => args.create(context).await,
+            } => {
+                if context.provider() == Provider::Vault {
+                    let pubkey = context.signer().public_key();
+                    format.print_bytes(pubkey, vec![BinFormat::Uuid])?;
+                    Ok(())
+                } else {
+                    create_key_pair(file_path, format, algorithm.into())
+                }
+            }
             Create::OfflineToken { account, value } => {
                 create_offline_token(account, value, context).await
             }
@@ -158,7 +173,7 @@ impl Create {
             Create::CollectionMetadata { name, descriptor } => {
                 Ok(sdk::Operation::new_collection(name, descriptor, vec![]))
             }
-            Create::Account(args) => {
+            Create::AccountMetadata(args) => {
                 create_operation::<_, sdk::AccountMetadata>(args, context).await
             }
             Create::AccountSet(args) => create_operation::<_, sdk::AccountSet>(args, context).await,
@@ -181,7 +196,7 @@ where
     O: BuildFromArgs<Document = D> + Debug,
     D: Message + Pack + 'static,
 {
-    let default_owner = context.signing_key()?.public_key().to_vec();
+    let default_owner = context.signer().public_key().to_vec();
 
     let document = args.build_from_options(PublicKey(default_owner))?;
     let id = document.id().to_vec();
@@ -195,11 +210,7 @@ where
     match response {
         Ok(_) => {
             eprintln!("Created {} resource:", D::COLLECTION);
-            if D::COLLECTION == Collection::AccountMetadata {
-                println!("{}", AccountId::try_from_be_slice(&id)?);
-            } else {
-                println!("{}", Uuid::from_slice(&id).unwrap());
-            }
+            println!("{}", hex::encode(id));
             Ok(())
         }
         Err(M10Error::Transaction(err))
@@ -224,7 +235,7 @@ where
     O: BuildFromArgs<Document = D>,
     D: Message + Pack + 'static,
 {
-    let default_owner = context.signing_key()?.public_key().to_vec();
+    let default_owner = context.signer().public_key().to_vec();
     let document = args.build_from_options(PublicKey(default_owner))?;
     Ok(sdk::Operation::insert(document))
 }

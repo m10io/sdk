@@ -10,11 +10,11 @@ use aws_sigv4::{
 
 use std::time::SystemTime;
 
-use sqlx_core::connection::Connection;
-use sqlx_core::postgres::{PgConnectOptions, PgConnection};
+use sqlx::postgres::{PgConnectOptions, PgConnection};
+use sqlx::Connection;
 
 pub use bb8;
-pub use sqlx_core::error::Error;
+pub use sqlx::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct RdsManager {
@@ -55,7 +55,12 @@ impl bb8::ManageConnection for RdsManager {
         let username = percent_encoding::percent_decode_str(url.username())
             .decode_utf8()
             .map_err(|err| Error::Configuration(err.into()))?;
-        if host.ends_with("rds.amazonaws.com") {
+
+        // If RDS and IAM credentials are available, exchange IAM credentials for auth token
+        if host.ends_with("rds.amazonaws.com")
+            && std::env::var("AWS_ACCESS_KEY_ID").is_ok()
+            && std::env::var("AWS_SECRET_ACCESS_KEY").is_ok()
+        {
             // If RDS, exchange IAM credentials for auth token
             let region = host.split('.').nth_back(3).expect("region").to_string();
 
@@ -70,10 +75,7 @@ impl bb8::ManageConnection for RdsManager {
         }
     }
 
-    async fn is_valid(
-        &self,
-        conn: &mut bb8::PooledConnection<'_, Self>,
-    ) -> Result<(), Self::Error> {
+    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
         conn.ping().await?;
         Ok(())
     }

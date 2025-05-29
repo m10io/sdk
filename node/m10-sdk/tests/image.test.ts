@@ -1,26 +1,24 @@
 import { assert } from "chai";
 import fs from "fs";
 
-import { DirectoryClient } from "../src/directory";
-import { ImageClient } from "../src/image";
-import { TokenProvider } from "../src/utils/auth";
+import {
+    DirectoryClient,
+    getBaseAccessToken,
+    ImageClient,
+} from "../src";
+import { TEST_USERNAME, TEST_PASSWORD, LEDGER_URL } from "./config";
 
-const LEDGER_URL = process.env.LEDGER_URL || "develop.m10.net";
-const INCREASED_TEST_TIMEOUT: number = 5000;
-
-const TEST_USERNAME = "ops+e2etest@m10.io";
-const TEST_PASSWORD = "n@R*88JxsccRpuw";
+const INCREASED_TEST_TIMEOUT: number = 10000;
 
 describe("images", () => {
 
     describe("query", () => {
-
         it("gets and puts an image", async () => {
             const TEST_IMAGE_BUFFER = fs.readFileSync("tests/assets/images/test-image.png");
 
-            const tokenProvider = new TokenProvider(TEST_USERNAME, TEST_PASSWORD, LEDGER_URL);
+            const accessToken = await getBaseAccessToken(LEDGER_URL.replace("grpc-", ""), TEST_USERNAME, TEST_PASSWORD);
 
-            const directoryClient = new DirectoryClient(LEDGER_URL, tokenProvider, true);
+            const directoryClient = new DirectoryClient(LEDGER_URL, accessToken);
 
             const createImageRequest = await directoryClient.createImageUrl("image/png");
 

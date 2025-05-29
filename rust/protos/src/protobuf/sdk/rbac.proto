@@ -4,40 +4,63 @@ import "sdk/document.proto";
 
 package m10.sdk;
 
+// RoleBinding represents the binding of a Role to a set of subjects.
 message RoleBinding {
+  // Unique identifier (uuid) for the RoleBinding.
   bytes id = 1;
+  // Human-readable name for the RoleBinding.
   string name = 2;
+  // Reference to the Role being bound. This is expected to be the Role's ID.
   bytes role = 3;
+  // List of subjects (public keys) this role binding applies to.
   repeated bytes subjects = 4;
+  // List of expressions that further refine the scope of the role binding.
   repeated Expression expressions = 5;
+  // If true, this RoleBinding applies universally, regardless of expressions or subjects.
   bool is_universal = 6;
+  // ID (public key) of the owner of this RoleBinding.
   bytes owner = 7;
 }
 
+// Expression represents a conditional expression that refines the scope of a RoleBinding.
 message Expression {
+  // The collection the expression applies to.
   string collection = 1;
+  // The actual expression string. The syntax and semantics of this string are context-dependent.
   string expression = 2;
 }
 
+// Role defines a set of permissions.
 message Role {
+  // Unique identifier for the Role.
   bytes id = 1;
+  // ID (public key) of the owner of this Role.
   bytes owner = 2;
+  // Human-readable name for the Role.
   string name = 3;
+  // List of rules that define the permissions granted by this role.
   repeated Rule rules = 4;
 }
 
+// Rule specifies permissions on a particular collection.
 message Rule {
+  // The collection this rule applies to.
   string collection = 2;
-  repeated Value instance_keys = 3;
+  // Optional list of instance keys. If provided, the rule only applies to these specific instances within the collection.
+  repeated Value instance_keys = 3;  // Assumes a Value message is defined elsewhere.
+  // List of verbs allowed for this rule.
   repeated Verb verbs = 4;
+  // Exclusion: If present, these instance keys are explicitly NOT allowed
+  repeated Value excluded_instance_keys = 5;
 
+  // Verb defines the actions a subject can perform on a resource.
   enum Verb {
-    READ = 0;
-    CREATE = 1;
-    UPDATE = 2;
-    DELETE = 3;
-    TRANSACT = 4;
-    INITIATE = 5;
-    COMMIT = 6;
+    READ = 0;      // Read access
+    CREATE = 1;     // Create access
+    UPDATE = 2;     // Update access
+    DELETE = 3;     // Delete access
+    TRANSACT = 4;   // Transaction access
+    INITIATE = 5;   // Initiate transaction
+    COMMIT = 6;    // Commit transaction
   }
 }

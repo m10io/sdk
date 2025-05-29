@@ -11,16 +11,16 @@ use super::accounts::CreateAccountMetadataArgs;
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
 #[clap(group = ArgGroup::new("instrument").requires_all(&["code", "decimals"]).multiple(true))]
 pub(crate) struct CreateLedgerAccountArgs {
-    /// Check for existing account with this id
+    /// Check for existing ledger account with this id
     #[arg(long)]
     id: Option<AccountId>,
     /// Set owner of the account record
     #[arg(short, long)]
     pub(super) owner: Option<PublicKey>,
-    /// Set an account name
+    /// Set a name for the ledger account
     #[arg(long)]
     pub(super) name: Option<String>,
-    /// Set a name to be shown in transfers as sender
+    /// Set a name to be shown in transfers as Sender
     #[arg(long, alias = "pn")]
     pub(super) public_name: Option<String>,
     /// Set profile image url
@@ -37,13 +37,13 @@ pub(crate) struct CreateLedgerAccountArgs {
     #[arg(short, long)]
     #[serde(default)]
     issuance: bool,
-    /// Currency code
+    /// Asset code (e.g. USD, or EUR)
     #[arg(long, aliases = ["currency", "symbol", "cs", "cc"], group = "instrument")]
     code: Option<String>,
     /// Number of relevant currency decimals
     #[arg(short, long, group = "instrument")]
     decimals: Option<u32>,
-    /// Currency description
+    /// Asset description
     #[arg(long, alias = "desc", group = "instrument")]
     description: Option<String>,
     /// Holding balance limit

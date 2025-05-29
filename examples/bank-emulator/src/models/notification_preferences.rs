@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::error::BoxDynError;
 use sqlx::{
     encode::IsNull,
     postgres::{PgArgumentBuffer, PgArguments, PgTypeInfo, PgValueRef},
@@ -83,11 +84,11 @@ impl Encode<'_, Postgres> for NotificationToggles
 where
     i32: for<'a> Encode<'a, Postgres>,
 {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, BoxDynError> {
         let value: i32 = self.into();
         buf.extend(value.to_be_bytes());
 
-        IsNull::No
+        Ok(IsNull::No)
     }
 }
 
@@ -163,6 +164,7 @@ impl From<CreateNotificationPreferencesRequest> for NotificationPreferences {
         }
     }
 }
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdateNotificationPreferencesRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -186,10 +188,10 @@ impl NotificationPreferences {
                 "SELECT n.*
                 FROM
                     notification_preferences n
-                INNER JOIN assets a ON asset_id = a.id    
+                INNER JOIN assets a ON asset_id = a.id
                 WHERE
                     ($1::VARCHAR IS NULL OR device_token = $1::VARCHAR) AND
-                    ($2 IS NULL OR (a.instrument = $2 AND asset_id = a.id )) AND 
+                    ($2 IS NULL OR (a.instrument = $2 AND asset_id = a.id )) AND
                     EXISTS (
                         SELECT
                             1
@@ -209,7 +211,7 @@ impl NotificationPreferences {
                 INNER JOIN assets a ON asset_id = a.id
                 WHERE
                     ($1::VARCHAR IS NULL OR device_token = $1::VARCHAR) AND
-                    ($2 IS NULL OR (a.instrument = $2 AND asset_id = a.id )) AND 
+                    ($2 IS NULL OR (a.instrument = $2 AND asset_id = a.id )) AND
                     tenant = $3",
             )
             .bind(device_token)
@@ -229,7 +231,7 @@ impl NotificationPreferences {
                 FROM
                     notification_preferences
                 WHERE
-                    id = $1 AND 
+                    id = $1 AND
                     EXISTS (
                         SELECT
                             1
@@ -246,7 +248,7 @@ impl NotificationPreferences {
                 FROM
                     notification_preferences
                 WHERE
-                    id = $1 AND 
+                    id = $1 AND
                     tenant = $2",
             )
             .bind(id)
@@ -276,7 +278,7 @@ impl NotificationPreferences {
                     WHERE
                         a.id = $4 AND c.id = $3 AND a.linked_account = c.account_id
                 )
-            ON CONFLICT ON CONSTRAINT notification_preferences_device_token_asset_id_key DO UPDATE 
+            ON CONFLICT ON CONSTRAINT notification_preferences_device_token_asset_id_key DO UPDATE
                 SET notification_toggles = $2, updated_at = CURRENT_TIMESTAMP
             RETURNING *;",
         )
@@ -296,7 +298,7 @@ impl NotificationPreferences {
         let query = sqlx::query(
             "UPDATE
                     notification_preferences
-                 SET 
+                 SET
                     notification_toggles = $2,
                     device_token = $3,
                     updated_at = $4

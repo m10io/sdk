@@ -8,6 +8,7 @@ mod pretty_print;
 mod public_key;
 mod role;
 mod role_binding;
+mod signature;
 mod transaction;
 mod transfer;
 
@@ -19,6 +20,7 @@ pub use bank::*;
 pub use public_key::*;
 pub use role::*;
 pub use role_binding::*;
+pub use signature::*;
 pub use transaction::*;
 pub use transfer::*;
 

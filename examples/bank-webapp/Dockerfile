@@ -1,15 +1,32 @@
-FROM node:18.17-bookworm
-LABEL maintainer "M10 Networks, Inc."
+FROM node:18-slim
+LABEL maintainer="M10 Networks, Inc."
 
-EXPOSE 3000
+# Set the Node environment to production for security and performance
+ENV NODE_ENV=production
+
+# Create a non-root user and group
+RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
 
 WORKDIR /app
 
-COPY ./services/bank-webapp/package.json package.json
-COPY ./services/bank-webapp/yarn.lock yarn.lock
+# Copy only package.json and yarn.lock first to leverage Docker build cache
+COPY ./services/bank-webapp/package.json ./services/bank-webapp/yarn.lock ./
 
-RUN yarn
+# Install only production dependencies
+RUN yarn install --frozen-lockfile --production --prefer-offline --no-progress && \
+    yarn cache clean
 
-COPY ./services/bank-webapp .
+# Copy the rest of the application code
+COPY ./services/bank-webapp/ .
 
-CMD yarn start -p 3000
+# Ensure correct ownership
+RUN chown -R appuser:appgroup /app
+
+# Switch to the non-root user
+USER appuser
+
+# Expose the application port
+EXPOSE 3000
+
+# Run the application
+CMD ["yarn", "start", "-p", "3000"]

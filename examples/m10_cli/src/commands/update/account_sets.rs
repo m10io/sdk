@@ -1,5 +1,5 @@
 use clap::Args;
-use m10_sdk::{sdk, DocumentUpdate};
+use m10_sdk::{account::AccountId, sdk, DocumentUpdate};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -9,7 +9,7 @@ pub(crate) struct UpdateAccountSetArgs {
     pub(super) id: Uuid,
     /// Add accounts
     #[arg(short, long)]
-    accounts: Option<Vec<sdk::AccountRef>>,
+    accounts: Option<Vec<AccountId>>,
     /// Update owner field
     #[arg(short, long)]
     owner: Option<String>,

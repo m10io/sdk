@@ -21,9 +21,14 @@ pub(crate) struct CreateRoleArgs {
     /// Set owner of the role record
     #[arg(short, long)]
     owner: Option<PublicKey>,
-    /// Set rule (1..N)
-    #[arg(short, long, required = true)]
-    rules: Vec<RuleArgs>,
+    /// Set rule.
+    #[arg(
+        short,
+        long,
+        required = true,
+        long_help = "Rules include --collections (-c), --verbs (-v) and optionally, --instances (-i). Default collections include ledger-accounts (aka “account”), account-metadata, roles and role-bindings. Available verbs include Read, Create, Update, Delete, Transact, Initiate, and Commit. Instances take the argument of account-metadata ID in uuid format. An option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*"
+    )]
+    rule: Vec<RuleArgs>,
 }
 
 impl super::BuildFromArgs for CreateRoleArgs {
@@ -31,7 +36,7 @@ impl super::BuildFromArgs for CreateRoleArgs {
     fn build_from_options(self, default_owner: PublicKey) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
         let owner = self.owner.unwrap_or(default_owner).0;
-        let rules = self.rules.iter().map(|r| r.to_rbac_rule()).collect();
+        let rules = self.rule.iter().map(|r| r.to_rbac_rule()).collect();
         Ok(sdk::Role {
             id: id.into(),
             owner: owner.into(),

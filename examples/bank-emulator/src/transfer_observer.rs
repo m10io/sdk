@@ -9,6 +9,7 @@ use sqlx::Acquire;
 use tracing::{debug, info};
 
 use crate::{
+    config::make_endpoint,
     context::Context,
     models::{LedgerTransfer, TransferHandler},
 };
@@ -74,13 +75,11 @@ impl TransferObserver {
         let req = AccountFilter::default()
             .involves(account_id.as_slice().try_into()?)
             .starting_from(u64::from(last_tx_id) + 1);
+        let endpoint = make_endpoint(context.config.ledger_addr.uri().clone())?
+            .http2_keep_alive_interval(std::time::Duration::from_secs(30))
+            .keep_alive_while_idle(true);
         let observer = GrpcClient::connect(
-            context
-                .config
-                .ledger_addr
-                .clone()
-                .http2_keep_alive_interval(std::time::Duration::from_secs(30))
-                .keep_alive_while_idle(true),
+            endpoint,
             Some(std::sync::Arc::new(crate::signer::ProxySigner::new(
                 &context.config,
             ))),
@@ -116,7 +115,7 @@ impl TransferObserver {
 
                     {
                         let mut txn = conn.begin().await?;
-                        transfer.insert(&mut txn).await?;
+                        transfer.insert(&mut *txn).await?;
                         txn.commit().await?;
                     }
 

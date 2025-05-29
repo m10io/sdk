@@ -22,7 +22,7 @@ abstract class _Document<T> {
 }
 
 class AccountMetadataDoc extends _Document<AccountMetadata> {
-  AccountMetadataDoc(AccountMetadata model) : super(model);
+  AccountMetadataDoc(super.model);
 
   factory AccountMetadataDoc.fromModel(
     AccountMetadata model,
@@ -57,19 +57,19 @@ class AccountMetadataDoc extends _Document<AccountMetadata> {
 }
 
 class AccountSetDoc extends _Document<AccountSet> {
-  AccountSetDoc(AccountSet model) : super(model);
+  AccountSetDoc(super.model);
 
   String get id => Uuid.unparse(_model.id);
   String get owner => base64.encode(_model.owner);
-  List<AccountRefDoc> get accounts =>
-      _model.accounts.map(AccountRefDoc.new).toList();
+  List<String> get accounts =>
+      _model.accounts.map((bytes) => hex.encode(bytes)).toList();
 
   @override
   String toString() => 'AccountSet $id $owner accounts=$accounts';
 }
 
 class RuleDoc extends _Document<Rule> {
-  RuleDoc(Rule model) : super(model);
+  RuleDoc(super.model);
 
   factory RuleDoc.fromStrings(
     String collection,
@@ -104,7 +104,7 @@ class RuleDoc extends _Document<Rule> {
 }
 
 class RoleDoc extends _Document<Role> {
-  RoleDoc(Role model) : super(model);
+  RoleDoc(super.model);
 
   String get id => Uuid.unparse(_model.id);
   String get name => _model.name;
@@ -113,7 +113,7 @@ class RoleDoc extends _Document<Role> {
 }
 
 class RoleBindingDoc extends _Document<RoleBinding> {
-  RoleBindingDoc(RoleBinding model) : super(model);
+  RoleBindingDoc(super.model);
 
   String get id => Uuid.unparse(_model.id);
   String get name => _model.name;
@@ -124,7 +124,7 @@ class RoleBindingDoc extends _Document<RoleBinding> {
 }
 
 class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
-  TransferDoc(FinalizedTransfer model, this.operator) : super(model);
+  TransferDoc(super.model, this.operator);
 
   factory TransferDoc.fromJson(Map<String, dynamic> json) {
     final model = FinalizedTransfer.fromJson(json['model'] as String);
@@ -158,7 +158,7 @@ class TransferDoc extends _Document<FinalizedTransfer> with EquatableMixin {
 }
 
 class TransferStepDoc extends _Document<TransferStep> {
-  TransferStepDoc(TransferStep model) : super(model);
+  TransferStepDoc(super.model);
   TransferStepDoc.fromFields({
     required String fromAccountId,
     required String toAccountId,
@@ -179,7 +179,7 @@ class TransferStepDoc extends _Document<TransferStep> {
 }
 
 class TransferRequestDoc extends _Document<CreateTransfer> {
-  TransferRequestDoc(CreateTransfer model) : super(model);
+  TransferRequestDoc(super.model);
   List<TransferStepDoc> get steps =>
       _model.transferSteps.map(TransferStepDoc.new).toList();
 }
@@ -227,8 +227,8 @@ class EnhancedTransferStepDoc extends _Document<TransferStep>
 
   final AccountInfo _from;
   final AccountInfo _to;
-  AccountInfo? _fromBank;
-  AccountInfo? _toBank;
+  final AccountInfo? _fromBank;
+  final AccountInfo? _toBank;
 
   AccountInfo get fromAccountInfo => _from;
   AccountInfo get toAccountInfo => _to;
@@ -257,7 +257,7 @@ class EnhancedTransferStepDoc extends _Document<TransferStep>
 }
 
 class ActionDoc extends _Document<Action> {
-  ActionDoc(Action model) : super(model);
+  ActionDoc(super.model);
 
   int get id => _model.txId.toInt();
   String get name => _model.name;
@@ -272,7 +272,7 @@ class ActionDoc extends _Document<Action> {
 enum RequestStatus { pending, completed, canceled, declined, inProgress }
 
 class InvokeActionDoc extends _Document<InvokeAction> {
-  InvokeActionDoc(InvokeAction model) : super(model);
+  InvokeActionDoc(super.model);
 
   String get name => _model.name;
   List<int> get payload => _model.payload;
@@ -306,7 +306,7 @@ class PaymentRequestDoc {
     final requestTxs = transactions
         .where((t) => t.error == null)
         .map(RequestDoc.from)
-        .whereNotNull()
+        .nonNulls
         .toList()
       // Sort by txId
       ..sort((left, right) => left.txId.compareTo(right.txId));
@@ -327,13 +327,13 @@ class PaymentRequestDoc {
     // Check if there's a matching transfer
     final transfers = transactions
         .where((t) => t.error == null && t.txId > invokedRequest.txId)
-        .whereNotNull();
+        .nonNulls;
 
     final requestValue = invokedRequest.amount;
 
     // Check if single or multi-phase transfer is complete
     final isComplete =
-        transfers.map((t) => t.commitTransfer ?? t.transfer).whereNotNull().any(
+        transfers.map((t) => t.commitTransfer ?? t.transfer).nonNulls.any(
               (transfer) => transfer.steps
                   .where((step) => !step.metadata.isFee)
                   .any((step) => step.amount == requestValue),
@@ -437,7 +437,7 @@ class TransactionResponseDoc {
 }
 
 class TransactionDoc extends _Document<FinalizedTransaction> {
-  TransactionDoc(FinalizedTransaction model) : super(model);
+  TransactionDoc(super.model);
 
   int get txId => _model.response.txId.toInt();
   DateTime get timestamp => DateTime.fromMicrosecondsSinceEpoch(
@@ -498,7 +498,7 @@ class TransactionDoc extends _Document<FinalizedTransaction> {
 }
 
 class AccountFrozenDoc extends _Document<SetFreezeState> {
-  AccountFrozenDoc(SetFreezeState model) : super(model);
+  AccountFrozenDoc(super.model);
 
   String get accountId => hex.encode(_model.accountId);
   bool get isFrozen => _model.frozen;
@@ -578,7 +578,7 @@ extension ContractExt on Contract {
 }
 
 class TransferResultDoc extends _Document<FinalizedTransaction> {
-  TransferResultDoc(FinalizedTransaction model) : super(model);
+  TransferResultDoc(super.model);
 
   factory TransferResultDoc.fromModel(FinalizedTransaction model) =>
       TransferResultDoc(model);
@@ -619,7 +619,7 @@ class TransferInfo {
 }
 
 class ResourceResultDoc extends _Document<FinalizedTransaction> {
-  ResourceResultDoc(FinalizedTransaction model) : super(model);
+  ResourceResultDoc(super.model);
 
   factory ResourceResultDoc.fromModel(FinalizedTransaction model) =>
       ResourceResultDoc(model);
@@ -635,49 +635,8 @@ class ResourceResultDoc extends _Document<FinalizedTransaction> {
       : null;
 }
 
-class AccountRefDoc extends _Document<AccountRef> {
-  AccountRefDoc(AccountRef model) : super(model);
-
-  factory AccountRefDoc.fromString(String accountId) {
-    final accountRef = accountId.parse();
-    return AccountRefDoc(accountRef);
-  }
-
-  factory AccountRefDoc.fromIds(String ledgerId, Object accountId) {
-    var intAccountId = <int>[];
-    if (accountId is String) {
-      intAccountId = hex.decode(accountId);
-    } else if (accountId is! List<int>) {
-      throw ArgumentError('Invalid type for account ID');
-    } else {
-      intAccountId = accountId;
-    }
-
-    final accountRef = AccountRef()
-      ..ledgerId = ledgerId
-      ..accountId = intAccountId;
-    return AccountRefDoc(accountRef);
-  }
-
-  String get ledgerId => _model.ledgerId;
-  String get accountId => hex.encode(_model.accountId);
-
-  AccountRef intoInner() => _model;
-
-  @override
-  bool operator ==(Object other) =>
-      other is AccountRefDoc &&
-      other.ledgerId == ledgerId &&
-      other.accountId == accountId;
-  @override
-  int get hashCode => ledgerId.hashCode ^ accountId.hashCode;
-
-  @override
-  String toString() => '${_model.ledgerId}/${hex.encode(_model.accountId)}';
-}
-
 class TransactionMetricsDoc extends _Document<TransactionMetrics> {
-  TransactionMetricsDoc(TransactionMetrics model) : super(model);
+  TransactionMetricsDoc(super.model);
 
   factory TransactionMetricsDoc.fromModel(TransactionMetrics model) =>
       TransactionMetricsDoc(model);
@@ -686,16 +645,6 @@ class TransactionMetricsDoc extends _Document<TransactionMetrics> {
   int get transferCount => model.transferCount.toInt();
   int get transferErrors => model.transferErrors.toInt();
   int get accountsCreated => model.accountsCreated.toInt();
-}
-
-extension ParseAccountRef on String {
-  AccountRef parse() {
-    final split = this.split('/');
-    final accountRef = AccountRef()
-      ..ledgerId = split.first
-      ..accountId = hex.decode(split.last);
-    return accountRef;
-  }
 }
 
 extension LedgerExt on Ledger {
@@ -753,4 +702,18 @@ extension RedeemableTokenExt on RedeemableToken {
       .map((input) => input.value)
       .reduce((value, total) => value + total)
       .toInt();
+}
+
+sealed class QueryFilter {
+  const QueryFilter(this.value);
+
+  final String value;
+}
+
+final class OwnerFilter extends QueryFilter {
+  OwnerFilter(super.value);
+}
+
+final class NameFilter extends QueryFilter {
+  NameFilter(super.value);
 }

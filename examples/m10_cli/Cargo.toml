@@ -1,33 +1,53 @@
 [package]
 name = "m10"
-version = "0.2.0"
+version = "1.1.0"
 authors = ["Michael Wittner <michael.wittner@m10.io>"]
 edition = "2021"
 
+[features]
+customers = []
+internal = []
+
 [dependencies]
-anyhow = "=1.0.61"
+anyhow = "1"
 base64 = "0.13"
 bytes = "1"
 chrono = "0.4.31"
-clap = { version = "4.3.10",  features = ["derive"] }
-config = { version = "0.13", default-features = false, features = ["yaml", "json", "toml"] }
+clap = { version = "4.4", features = ["derive", "env", "wrap_help"] }
+config = { version = "0.15.11", default-features = false, features = [
+  "yaml",
+  "json",
+  "toml",
+] }
+const-str = "0.5"
 dirs = "3"
-futures-lite = "1.11"
+env_logger = "0.11.8"
+futures-lite = "2"
 hex = "0.4"
-hyper = "0.14.28"
-hyper-rustls = "0.22"
+http-body-util = "0.1.2"
+hyper = { version = "1.4.1", features = ["full"] }
+hyper-rustls = { version = "0.27.2" }
+hyper-util = { version = "0.1.7", features = ["client-legacy"] }
 libxid = { path = "../crates/libxid" }
-m10-sdk = "0.34.0"
-m10-protos = { version = "0.34.0", features = ["dynamic2"] }
-ring = { version = "0.16", features = ["std"] }
+log = { version = "0.4", default-features = true }
+m10-sdk = "0.35.0"
+m10-protos = { version = "0.35.0", features = ["dynamic2"] }
+parse-display = { version = "0.5" }
+ring = { version = "0.17", features = ["std"] }
 ron = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
+serde_urlencoded = "0.7"
 serde_with = { version = "1.6.4", features = ["hex"] }
-serde_yaml = "0.8"
+serde_yml = "0.0.12"
 csv = "1.2"
 thiserror = "1"
-tokio = { version = "1.25", features = ["full"] }
-tonic = { version = "0.5", features = ["tls", "tls-roots"] }
+tokio = { default-features = false, version = "1.25", features = ["full"] }
+tonic = { version = "0.12.1", features = ["tls", "tls-roots"] }
+urlencoding = "2.1"
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
+rustls = { version = "0.23.12", features = ["ring"] }
 
+[build-dependencies]
+vergen = { version = "9.0.6", features = ["build", "cargo", "rustc"] }
+vergen-git2 = { version = "1.0.7", features = ["build", "cargo", "rustc"] }

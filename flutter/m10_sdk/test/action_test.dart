@@ -148,7 +148,7 @@ void main() {
             TransferStep()
               ..fromAccountId = hex.decode(targetAccount)
               ..toAccountId = hex.decode(account)
-              ..amount = Int64(100)
+              ..amount = Int64(100),
           ]),
       );
       expect(requestResponse.hasError, false);
@@ -187,7 +187,7 @@ void main() {
             ..amount = Int64(2000)
             ..fromAccountId = rawTargetAccount
             ..toAccountId = rawAccount
-            ..setMetadata([Metadata.memo('First')])
+            ..setMetadata([Metadata.memo('First')]),
         ]);
       final first = await bankAdmin.request(
         operator: operator,
@@ -200,7 +200,7 @@ void main() {
             ..amount = Int64(2500)
             ..fromAccountId = rawTargetAccount
             ..toAccountId = rawAccount
-            ..setMetadata([Metadata.memo('Second')])
+            ..setMetadata([Metadata.memo('Second')]),
         ]);
       final second = await bankAdmin.request(
         operator: operator,
@@ -213,7 +213,7 @@ void main() {
             ..amount = Int64(2600)
             ..fromAccountId = rawAccount
             ..toAccountId = rawTargetAccount
-            ..setMetadata([Metadata.memo('Third')])
+            ..setMetadata([Metadata.memo('Third')]),
         ]);
       final third = await bankAdmin.request(
         operator: operator,

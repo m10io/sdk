@@ -11,11 +11,12 @@ void main() {
       handle =
           '${randomAlpha(10)}${DateTime.now().toUtc().millisecondsSinceEpoch}';
       await directory.createAlias(
-          handle: handle,
-          displayName: '',
-          accountSetId: aliceId,
-          aliasType: Alias_Type.HANDLE,
-          operator: operator,);
+        handle: handle,
+        displayName: '',
+        accountSetId: aliceId,
+        aliasType: Alias_Type.HANDLE,
+        operator: operator,
+      );
     });
 
     test('it should resolve an alias', () async {
@@ -24,19 +25,21 @@ void main() {
         name: 'Spending Account',
         operator: operator,
       );
-      final ledgerId = 'm10';
-      final accountRef = AccountRefDoc.fromIds(ledgerId, accountId);
       await bob.updateUser(
-          userId: bobId, operator: operator, accounts: [accountRef.model],);
+        userId: bobId,
+        operator: operator,
+        accounts: [accountId],
+      );
 
       final handle = randomAlpha(10);
 
       await directory.createAlias(
-          handle: handle,
-          displayName: '',
-          accountSetId: bobId,
-          aliasType: Alias_Type.HANDLE,
-          operator: operator,);
+        handle: handle,
+        displayName: '',
+        accountSetId: bobId,
+        aliasType: Alias_Type.HANDLE,
+        operator: operator,
+      );
 
       final alias = await directory.getAlias(handle);
       expect(alias?.accountSetId, bobId);
@@ -45,7 +48,7 @@ void main() {
         userId: bobId,
         operator: operator,
       );
-      expect(resolvedAccounts.accounts.contains(accountRef), true);
+      expect(resolvedAccounts.accounts.contains(accountId), true);
     });
   });
 }

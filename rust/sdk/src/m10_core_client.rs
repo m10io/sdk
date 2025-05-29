@@ -302,7 +302,7 @@ pub trait M10CoreClient {
         builder: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
     ) -> M10Result<Vec<AccountSet>>;
 
-    async fn get_account_metadata(&self, id: AccountId) -> M10Result<AccountMetadata>;
+    async fn get_account_metadata(&self, id: Vec<u8>) -> M10Result<AccountMetadata>;
 
     async fn list_account_metadata(
         &self,

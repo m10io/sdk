@@ -72,7 +72,7 @@ impl DrcReserveHandler {
                 Ok(Ok(())) => {
                     let mut conn = self.context.db_pool.get().await?;
                     let mut txn = conn.begin().await?;
-                    transfer.set_handled(&mut txn).await?;
+                    transfer.set_handled(&mut *txn).await?;
                     txn.commit().await?;
                 }
                 Ok(Err(err)) => {

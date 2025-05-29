@@ -6,3 +6,5 @@
 
 build/
 **/.last_build_id
+
+oauth_config.yaml

@@ -16,10 +16,17 @@ class DebugInterceptor extends ClientInterceptor {
 }
 
 class ServiceClient {
-  ServiceClient(ClientChannel channel)
-      : query =
-            M10QueryServiceClient(channel, interceptors: [DebugInterceptor()]),
-        tx = M10TxServiceClient(channel, interceptors: [DebugInterceptor()]);
+  ServiceClient(
+    ClientChannel channel, [
+    Iterable<ClientInterceptor> interceptors = const [],
+  ])  : query = M10QueryServiceClient(
+          channel,
+          interceptors: [DebugInterceptor(), ...interceptors],
+        ),
+        tx = M10TxServiceClient(
+          channel,
+          interceptors: [DebugInterceptor(), ...interceptors],
+        );
 
   final M10QueryServiceClient query;
   final M10TxServiceClient tx;

@@ -131,7 +131,7 @@ impl Issue {
             id: token_id.to_vec(),
             inputs,
         };
-        let key = context.signing_key()?;
+        let key = context.signer();
         let mut token_data_buf = vec![];
         data.encode(&mut token_data_buf)?;
         let token = sdk::RedeemableToken {

@@ -18,9 +18,13 @@ pub(crate) struct UpdateRoleBindingArgs {
     /// Update role link
     #[arg(short, long)]
     role: Option<Uuid>,
-    /// Add subjects
-    #[arg(long, alias = "subjs")]
-    subjects: Option<Vec<String>>,
+    /// Add subject
+    #[arg(
+        long,
+        alias = "subjs",
+        long_help = "IMPORTANT: When updating one or more subjects for a role-binding, ALL subjects must be entered, even those that don't change."
+    )]
+    subject: Option<Vec<String>>,
     /// Update guard expression
     #[clap(short, long, alias = "exps")]
     expressions: Option<Expression>,
@@ -37,7 +41,7 @@ impl super::BuildFromArgs for UpdateRoleBindingArgs {
         if let Some(name) = self.name {
             builder.name(name);
         }
-        if let Some(subjects) = self.subjects {
+        if let Some(subjects) = self.subject {
             let subjects = subjects
                 .iter()
                 .map(base64::decode)
@@ -56,6 +60,7 @@ impl super::BuildFromArgs for UpdateRoleBindingArgs {
                     .collect(),
             );
         }
+        builder.merge_repeated(true);
         Ok(())
     }
 }

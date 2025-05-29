@@ -35,7 +35,7 @@ class ContractBuilder {
             ..fromAccountId = fromAccountId
             ..toAccountId = toAccountId
             ..amount = amount
-            ..setMetadata(metadata)
+            ..setMetadata(metadata),
         ]));
 
     _transfers.add(transfer);

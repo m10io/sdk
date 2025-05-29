@@ -1,6 +1,6 @@
 [package]
 name = "m10-signing"
-version = "0.35.4"
+version = "0.35.5"
 authors = ["Michael Wittner <michael.wittner@m10.io>"]
 edition = "2021"
 description = "M10 utility library for request signing"

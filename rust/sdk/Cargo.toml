@@ -1,6 +1,6 @@
 [package]
 name = "m10-sdk"
-version = "0.35.9"
+version = "1.0.0"
 authors = [
     "Michael Wittner <michael.wittner@m10.io>",
     "Sam De Roeck <sam.deroeck@m10.io>",
@@ -54,7 +54,7 @@ verbose_errors = ["log", "m10-signing/verbose_errors"]
 bytes = "1"
 fastrand = "2"
 hex = { version = "0.4", default-features = false }
-m10-protos = { version = "0.35", path = "../protos", features = ["dynamic2"] }
+m10-protos = { version = "1.0", path = "../protos", features = ["dynamic2"] }
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
 serde = { version = "1", features = ["derive"] }
 serde_urlencoded = "0.7"
@@ -82,7 +82,7 @@ ring = { version = "0.17.13", features = ["std"], optional = true }
 async-trait = { version = "0.1", optional = true }
 futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-m10-signing = { version = "0.35.9", path = "../signing", optional = true }
+m10-signing = { version = "1.0.0", path = "../signing", optional = true }
 tonic = { version = "0.12.1", features = ["tls", "tls-roots"], optional = true }
 
 # format

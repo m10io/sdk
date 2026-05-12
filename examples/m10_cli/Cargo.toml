@@ -30,8 +30,8 @@ hyper-rustls = { version = "0.27.2" }
 hyper-util = { version = "0.1.7", features = ["client-legacy"] }
 libxid = { path = "../crates/libxid" }
 log = { version = "0.4", default-features = true }
-m10-sdk = "1.5.2"
-m10-protos = { version = "1.5.2", features = ["dynamic2"] }
+m10-sdk = "1.5.3"
+m10-protos = { version = "1.5.3", features = ["dynamic2"] }
 parse-display = { version = "0.5" }
 ron = "0.8"
 serde = { version = "1", features = ["derive"] }

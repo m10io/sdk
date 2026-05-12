@@ -1,6 +1,6 @@
 [package]
 name = "m10-sdk"
-version = "1.5.2"
+version = "1.5.3"
 authors = [
     "Michael Wittner <michael.wittner@m10.io>",
     "Sam De Roeck <sam.deroeck@m10.io>",
@@ -91,7 +91,7 @@ futures-core = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
 h2 = { version = "0.4", optional = true }
 hyper = { version = "1", optional = true }
-m10-signing = { version = "1.5.2", path = "../signing", optional = true }
+m10-signing = { version = "1.5.3", path = "../signing", optional = true }
 p256 = { version = "0.13", features = ["ecdsa"], optional = true }
 tonic = { version = "0.12.1", features = ["tls", "tls-roots"], optional = true }
 

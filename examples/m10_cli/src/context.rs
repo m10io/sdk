@@ -5,11 +5,13 @@ use crate::utils::m10_config_path;
 use m10_protos::sdk::signature::Algorithm;
 use m10_sdk::block_explorer::BlockExplorerClient;
 use m10_sdk::{
-    directory::directory_service_client::DirectoryServiceClient, GrpcClient, HttpClient,
+    directory::directory_service_client::DirectoryServiceClient, Ed25519, GrpcClient, HttpClient,
     ImageClient, KeyPair, M10CoreClient, VaultTransit,
 };
 use std::{cell::OnceCell, fs::File, io::Read, str::FromStr, sync::Arc};
-use tonic::transport::{Channel, ClientTlsConfig, Endpoint, Uri};
+use tonic::transport::{Channel, Endpoint, Uri};
+
+type ContextData<'a> = (&'a str, &'a str, &'a str, Option<String>, Option<String>);
 
 pub(crate) struct Context {
     context_id: Vec<u8>,
@@ -20,6 +22,7 @@ pub(crate) struct Context {
     ledger_client: OnceCell<Box<dyn M10CoreClient<Signer = DynSignerWrapper> + Send + Sync>>,
     http: bool,
     provider: Provider,
+    ca_cert: Option<String>,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -37,18 +40,15 @@ impl Context {
             env_logger::try_init()?;
         }
 
-        let config = config::Config::new()
-            .map_err(|err| {
-                println!("{err:?}");
-                err
-            })
-            .ok();
+        let config = config::Config::new().map_err(|err| anyhow::anyhow!(err))?;
 
-        let (signer, raw_key, provider) = init_signer(options, config.as_ref()).await?;
+        let (signer, raw_key, provider) = init_signer(options, &config).await?;
         let signer = signer.map(DynSignerWrapper::new);
 
-        let endpoint = build_endpoint(options, config.as_ref())?;
-        let ws_endpoint = build_ws_endpoint(options, config.as_ref())?;
+        let ca_cert = options.ca_cert.clone().or_else(|| config.ca_cert.clone());
+
+        let endpoint = build_endpoint(options, &config, ca_cert.as_deref())?;
+        let ws_endpoint = build_ws_endpoint(options, &config, ca_cert.as_deref())?;
 
         let context_id = options
             .context_id
@@ -68,6 +68,7 @@ impl Context {
             ledger_client: OnceCell::new(),
             http: options.http,
             provider,
+            ca_cert,
         })
     }
 
@@ -97,14 +98,15 @@ impl Context {
             .ok_or_else(|| anyhow::anyhow!("server ws addr missing"))
     }
 
-    pub(crate) fn signer(&self) -> &DynSignerWrapper {
-        self.signer.as_ref().expect("signer missing")
+    pub(crate) fn signer(&self) -> anyhow::Result<&DynSignerWrapper> {
+        self.signer
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("signer missing"))
     }
 
     pub(crate) fn raw_key(&self) -> anyhow::Result<Vec<u8>> {
         self.raw_key
-            .as_ref()
-            .map(|key| key.clone())
+            .clone()
             .ok_or_else(|| anyhow::anyhow!("raw key missing"))
     }
 
@@ -114,22 +116,53 @@ impl Context {
     ) -> &Box<dyn M10CoreClient<Signer = DynSignerWrapper> + Send + Sync> {
         self.ledger_client.get_or_init(|| {
             if self.http {
-                let ws_endpoint = self.ws_endpoint.clone().expect("server ws addr missing");
-                Box::new(HttpClient::new(
-                    self.endpoint.clone().expect("server addr missing"),
-                    ws_endpoint,
-                    Some(Arc::new(self.signer.clone().expect("signer missing"))),
-                ))
+                let ws_endpoint = self.ws_endpoint.clone().unwrap_or_else(|| {
+                    eprintln!("error: server ws addr missing");
+                    std::process::exit(1);
+                });
+                let endpoint = self.endpoint.clone().unwrap_or_else(|| {
+                    eprintln!("error: server addr missing");
+                    std::process::exit(1);
+                });
+                let signer = Some(Arc::new(self.signer.clone().unwrap_or_else(|| {
+                    eprintln!("error: signer missing");
+                    std::process::exit(1);
+                })));
+
+                if let Some(ca_cert_path) = &self.ca_cert {
+                    let pem = std::fs::read(ca_cert_path).unwrap_or_else(|e| {
+                        eprintln!("error: failed to read CA cert file: {e}");
+                        std::process::exit(1);
+                    });
+                    Box::new(
+                        HttpClient::new_with_ca_cert(endpoint, ws_endpoint, signer, &pem)
+                            .unwrap_or_else(|e| {
+                                eprintln!("error: failed to create HTTP client with CA cert: {e}");
+                                std::process::exit(1);
+                            }),
+                    )
+                } else {
+                    Box::new(HttpClient::new(endpoint, ws_endpoint, signer))
+                }
             } else {
                 let access_token =
                     std::fs::read_to_string(m10_config_path().join("access.token")).ok();
                 Box::new(
                     GrpcClient::new_with_access_token(
-                        self.endpoint.clone().expect("server addr missing"),
-                        Some(Arc::new(self.signer.clone().expect("signer missing"))),
+                        self.endpoint.clone().unwrap_or_else(|| {
+                            eprintln!("error: server addr missing");
+                            std::process::exit(1);
+                        }),
+                        Some(Arc::new(self.signer.clone().unwrap_or_else(|| {
+                            eprintln!("error: signer missing");
+                            std::process::exit(1);
+                        }))),
                         access_token.as_deref(),
                     )
-                    .expect("grpc client"),
+                    .unwrap_or_else(|e| {
+                        eprintln!("error: failed to connect to ledger: {}", e.get_message());
+                        std::process::exit(1);
+                    }),
                 )
             }
         })
@@ -145,6 +178,10 @@ impl Context {
         Ok(ImageClient::new(addr.to_string()))
     }
 
+    pub(crate) fn ca_cert(&self) -> Option<&str> {
+        self.ca_cert.as_deref()
+    }
+
     pub(crate) fn provider(&self) -> Provider {
         self.provider
     }
@@ -157,12 +194,28 @@ impl Context {
 
 async fn init_signer(
     options: &super::Opts,
-    config: Option<&config::Config>,
+    config: &config::Config,
 ) -> anyhow::Result<(Option<Arc<dyn DynSigner>>, Option<Vec<u8>>, Provider)> {
     if let Some(key_file) = &options.key_file {
         let key_str = load_key(key_file)?;
         let raw_key = base64::decode(&key_str)?;
-        let kp = KeyPair::from_str(&key_str)?;
+        let kp = match options.key_algorithm.as_deref() {
+            Some("ed25519ph") => match KeyPair::from_str(&key_str)? {
+                KeyPair::P256(_) => {
+                    return Err(anyhow::anyhow!(
+                        "P256 key is incompatible with --key-algorithm ed25519ph"
+                    ))
+                }
+                KeyPair::Ed25519(_) => KeyPair::Ed25519(Ed25519::from_pkcs8_ph(&raw_key)?),
+            },
+            Some(other) => {
+                return Err(anyhow::anyhow!(
+                    "invalid value '{}' for --key-algorithm: only 'ed25519ph' is supported",
+                    other
+                ))
+            }
+            None => KeyPair::from_str(&key_str)?,
+        };
         return Ok((
             Some(Arc::new(kp) as Arc<dyn DynSigner>),
             Some(raw_key),
@@ -181,6 +234,7 @@ async fn init_signer(
             .as_str()
         {
             "ed25519" => Algorithm::Ed25519,
+            "ed25519ph" => Algorithm::Ed25519PhSha512,
             "p256" => Algorithm::P256Sha256Asn1,
             other => return Err(anyhow::anyhow!("unsupported vault algorithm: {}", other)),
         };
@@ -193,7 +247,7 @@ async fn init_signer(
             vault_namespace,
         )
         .await
-        .map_err(|e| anyhow::anyhow!("failed to initialize vault signer: {:?}", e))?;
+        .map_err(|e| anyhow::anyhow!("failed to initialize vault signer: {}", e))?;
         return Ok((
             Some(Arc::new(vt) as Arc<dyn DynSigner>),
             None,
@@ -201,22 +255,20 @@ async fn init_signer(
         ));
     }
 
-    if let Some(cfg) = config {
-        let legacy_key = options
-            .profile
-            .as_ref()
-            .and_then(|profile_name| cfg.profile.get(profile_name).map(|p| p.key.clone()))
-            .or_else(|| cfg.key.clone())
-            .or_else(|| std::env::var("M10_SIGNING_KEY").ok());
-        if let Some(key) = legacy_key {
-            let raw_key = base64::decode(&key)?;
-            let kp = KeyPair::from_str(&key)?;
-            return Ok((
-                Some(Arc::new(kp) as Arc<dyn DynSigner>),
-                Some(raw_key),
-                Provider::KeyFile,
-            ));
-        }
+    let legacy_key = options
+        .profile
+        .as_ref()
+        .and_then(|profile_name| config.profile.get(profile_name).map(|p| p.key.clone()))
+        .or_else(|| config.key.clone())
+        .or_else(|| std::env::var("M10_SIGNING_KEY").ok());
+    if let Some(key) = legacy_key {
+        let raw_key = base64::decode(&key)?;
+        let kp = KeyPair::from_str(&key)?;
+        return Ok((
+            Some(Arc::new(kp) as Arc<dyn DynSigner>),
+            Some(raw_key),
+            Provider::KeyFile,
+        ));
     }
 
     Ok((None, None, Provider::KeyFile))
@@ -224,8 +276,8 @@ async fn init_signer(
 
 fn get_vault_params<'a>(
     options: &'a super::Opts,
-    config: Option<&'a config::Config>,
-) -> Option<(&'a str, &'a str, &'a str, Option<String>, Option<String>)> {
+    config: &'a config::Config,
+) -> Option<ContextData<'a>> {
     if options.vault_addr.is_some()
         && options.vault_token.is_some()
         && options.vault_key_name.is_some()
@@ -237,9 +289,9 @@ fn get_vault_params<'a>(
             options.vault_mount.clone(),
             options.vault_namespace.clone(),
         ))
-    } else if let Some(cfg) = config {
+    } else {
         if let Some(profile_name) = &options.profile {
-            if let Some(profile) = cfg.profile.get(profile_name) {
+            if let Some(profile) = config.profile.get(profile_name) {
                 if profile.vault_addr.is_some()
                     && profile.vault_token.is_some()
                     && profile.vault_key_name.is_some()
@@ -254,42 +306,42 @@ fn get_vault_params<'a>(
                 }
             }
         }
-        if cfg.vault_addr.is_some() && cfg.vault_token.is_some() && cfg.vault_key_name.is_some() {
+        if config.vault_addr.is_some()
+            && config.vault_token.is_some()
+            && config.vault_key_name.is_some()
+        {
             return Some((
-                cfg.vault_addr.as_deref().unwrap(),
-                cfg.vault_token.as_deref().unwrap(),
-                cfg.vault_key_name.as_deref().unwrap(),
-                cfg.vault_mount.clone(),
-                cfg.vault_namespace.clone(),
+                config.vault_addr.as_deref().unwrap(),
+                config.vault_token.as_deref().unwrap(),
+                config.vault_key_name.as_deref().unwrap(),
+                config.vault_mount.clone(),
+                config.vault_namespace.clone(),
             ));
         }
-        None
-    } else {
         None
     }
 }
 
-fn get_addr(options: &super::Opts, config: Option<&config::Config>) -> Option<String> {
+fn get_addr(options: &super::Opts, config: &config::Config) -> Option<String> {
     options.server.clone().or_else(|| {
-        config
-            .and_then(|cfg| {
-                options
+        options
+            .profile
+            .as_ref()
+            .and_then(|profile_name| {
+                config
                     .profile
-                    .as_ref()
-                    .and_then(|profile_name| {
-                        cfg.profile
-                            .get(profile_name)
-                            .and_then(|profile| profile.addr.clone())
-                    })
-                    .or_else(|| cfg.addr.clone())
+                    .get(profile_name)
+                    .and_then(|profile| profile.addr.clone())
             })
+            .or_else(|| config.addr.clone())
             .or_else(|| std::env::var("M10_APP").ok())
     })
 }
 
 fn build_endpoint(
     options: &super::Opts,
-    config: Option<&config::Config>,
+    config: &config::Config,
+    ca_cert: Option<&str>,
 ) -> anyhow::Result<Option<Endpoint>> {
     if let Some(addr) = get_addr(options, config) {
         let scheme = if options.no_tls { "http" } else { "https" };
@@ -302,7 +354,7 @@ fn build_endpoint(
             .keep_alive_while_idle(true)
             .http2_keep_alive_interval(std::time::Duration::from_secs(30));
         if !options.no_tls {
-            let tls_config = ClientTlsConfig::with_native_roots(Default::default());
+            let tls_config = crate::tls::build_tonic_tls_config(ca_cert)?;
             endpoint = endpoint.tls_config(tls_config)?;
         }
         Ok(Some(endpoint))
@@ -313,7 +365,8 @@ fn build_endpoint(
 
 fn build_ws_endpoint(
     options: &super::Opts,
-    config: Option<&config::Config>,
+    config: &config::Config,
+    ca_cert: Option<&str>,
 ) -> anyhow::Result<Option<Endpoint>> {
     if let Some(addr) = get_addr(options, config) {
         let scheme = if options.no_tls { "ws" } else { "wss" };
@@ -326,7 +379,7 @@ fn build_ws_endpoint(
             .keep_alive_while_idle(true)
             .http2_keep_alive_interval(std::time::Duration::from_secs(30));
         if !options.no_tls {
-            let tls_config = ClientTlsConfig::new();
+            let tls_config = crate::tls::build_tonic_tls_config(ca_cert)?;
             endpoint = endpoint.tls_config(tls_config)?;
         }
         Ok(Some(endpoint))
@@ -336,7 +389,7 @@ fn build_ws_endpoint(
 }
 
 fn load_key(path: &str) -> anyhow::Result<String> {
-    let mut key_file = File::open(path)?;
+    let mut key_file = File::open(path).map_err(|_| anyhow::anyhow!("file not found: {}", path))?;
     let mut pkcs8_bytes: Vec<u8> = Vec::new();
     key_file.read_to_end(&mut pkcs8_bytes)?;
     Ok(base64::encode(&pkcs8_bytes))

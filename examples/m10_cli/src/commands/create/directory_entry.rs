@@ -49,10 +49,12 @@ pub(crate) enum CreateDirEntry {
     ObjectUrl,
 }
 
+#[allow(clippy::result_large_err)]
 impl CreateDirEntry {
     pub(super) async fn create(self, context: &Context) -> anyhow::Result<()> {
         let channel = context.channel()?;
-        let access_token = std::fs::read_to_string(m10_config_path().join("access.token"))?;
+        let access_token = std::fs::read_to_string(m10_config_path().join("access.token"))
+            .map_err(|_| anyhow::anyhow!("authentication token not found"))?;
         let access_token = format!("Bearer {}", access_token.trim());
         let access_token = MetadataValue::try_from(access_token.as_str())?;
         let mut client =
@@ -64,7 +66,9 @@ impl CreateDirEntry {
 
         match self {
             CreateDirEntry::Ledger { operator, url } => {
-                create_ledger_entry(operator, url, &mut client).await
+                create_ledger_entry(operator, url, &mut client)
+                    .await
+                    .inspect(|_| println!("Ledger entry created successfully."))
             }
             CreateDirEntry::Alias {
                 handle,
@@ -72,18 +76,19 @@ impl CreateDirEntry {
                 alias_type,
                 account_set_id,
                 operator,
-            } => {
-                create_alias(
-                    handle,
-                    display_name,
-                    alias_type,
-                    account_set_id,
-                    operator,
-                    &mut client,
-                )
+            } => create_alias(
+                handle.clone(),
+                display_name,
+                alias_type,
+                account_set_id,
+                operator,
+                &mut client,
+            )
+            .await
+            .inspect(|_| println!("Alias entry for handle '{}' created successfully.", handle)),
+            CreateDirEntry::ObjectUrl => Self::create_object_url(&mut client)
                 .await
-            }
-            CreateDirEntry::ObjectUrl => Self::create_object_url(&mut client).await,
+                .inspect(|_| println!("Object URL created successfully.")),
         }
     }
 

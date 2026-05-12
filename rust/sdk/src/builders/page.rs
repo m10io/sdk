@@ -1,6 +1,6 @@
 use crate::types::PublicKey;
 use crate::{DocumentId, OwnerFilter};
-use m10_protos::sdk;
+use m10_protos::sdk::{self, MapWrapper};
 
 pub struct PageBuilder<ID: DocumentId, T = ()> {
     filter: T,
@@ -54,6 +54,7 @@ impl<ID: DocumentId> From<PageBuilder<ID, ()>> for Option<sdk::Page> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct NameFilter {
     name: String,
@@ -66,6 +67,90 @@ impl<ID: DocumentId> PageBuilder<ID, NameFilter> {
             limit: None,
             last_id: None,
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum NameOrInstanceFilter {
+    Name(String),
+    InstanceId(Vec<u8>),
+}
+
+impl<ID: DocumentId> PageBuilder<ID, NameOrInstanceFilter> {
+    pub fn name(name: impl Into<String>) -> Self {
+        PageBuilder::filter(NameOrInstanceFilter::Name(name.into()))
+    }
+
+    pub fn instance_id(instance_id: impl Into<Vec<u8>>) -> Self {
+        PageBuilder::filter(NameOrInstanceFilter::InstanceId(instance_id.into()))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum NameOrSubjectFilter {
+    Name(String),
+    Subject(Vec<u8>),
+}
+
+impl<ID: DocumentId> PageBuilder<ID, NameOrSubjectFilter> {
+    pub fn name(name: impl Into<String>) -> Self {
+        PageBuilder::filter(NameOrSubjectFilter::Name(name.into()))
+    }
+
+    pub fn subject(subject: impl Into<Vec<u8>>) -> Self {
+        PageBuilder::filter(NameOrSubjectFilter::Subject(subject.into()))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum RoleFilter {
+    Name(String),
+    Description(String),
+    Labels(std::collections::HashMap<String, String>),
+    InstanceId(Vec<u8>),
+}
+
+impl<ID: DocumentId> PageBuilder<ID, RoleFilter> {
+    pub fn name(name: impl Into<String>) -> Self {
+        PageBuilder::filter(RoleFilter::Name(name.into()))
+    }
+
+    pub fn description(description: impl Into<String>) -> Self {
+        PageBuilder::filter(RoleFilter::Description(description.into()))
+    }
+
+    pub fn labels(labels: impl Into<std::collections::HashMap<String, String>>) -> Self {
+        PageBuilder::filter(RoleFilter::Labels(labels.into()))
+    }
+
+    pub fn instance_id(instance_id: impl Into<Vec<u8>>) -> Self {
+        PageBuilder::filter(RoleFilter::InstanceId(instance_id.into()))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum RoleBindingFilter {
+    Name(String),
+    Description(String),
+    Subject(Vec<u8>),
+    Labels(std::collections::HashMap<String, String>),
+}
+
+impl<ID: DocumentId> PageBuilder<ID, RoleBindingFilter> {
+    pub fn name(name: impl Into<String>) -> Self {
+        PageBuilder::filter(RoleBindingFilter::Name(name.into()))
+    }
+
+    pub fn description(description: impl Into<String>) -> Self {
+        PageBuilder::filter(RoleBindingFilter::Description(description.into()))
+    }
+
+    pub fn subject(subject: impl Into<Vec<u8>>) -> Self {
+        PageBuilder::filter(RoleBindingFilter::Subject(subject.into()))
+    }
+
+    pub fn labels(subject: impl Into<std::collections::HashMap<String, String>>) -> Self {
+        PageBuilder::filter(RoleBindingFilter::Labels(subject.into()))
     }
 }
 
@@ -85,6 +170,42 @@ impl<ID: DocumentId> PageBuilder<ID, NameOrOwnerFilter> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum AccountMetadataFilter {
+    Name(String),
+    Owner(PublicKey),
+    PublicName(String),
+    Isin(String),
+    Dti(String),
+    IssuerBankId(String),
+}
+
+impl<ID: DocumentId> PageBuilder<ID, AccountMetadataFilter> {
+    pub fn name(name: impl Into<String>) -> Self {
+        PageBuilder::filter(AccountMetadataFilter::Name(name.into()))
+    }
+
+    pub fn owner(owner: PublicKey) -> Self {
+        PageBuilder::filter(AccountMetadataFilter::Owner(owner))
+    }
+
+    pub fn public_name(public_name: impl Into<String>) -> Self {
+        PageBuilder::filter(AccountMetadataFilter::PublicName(public_name.into()))
+    }
+
+    pub fn isin(isin: impl Into<String>) -> Self {
+        PageBuilder::filter(AccountMetadataFilter::Isin(isin.into()))
+    }
+
+    pub fn dti(dti: impl Into<String>) -> Self {
+        PageBuilder::filter(AccountMetadataFilter::Dti(dti.into()))
+    }
+
+    pub fn issuer_bank_id(issuer_bank_id: impl Into<String>) -> Self {
+        PageBuilder::filter(AccountMetadataFilter::IssuerBankId(issuer_bank_id.into()))
+    }
+}
+
 impl From<NameOrOwnerFilter> for sdk::list_account_sets_request::Filter {
     fn from(filter: NameOrOwnerFilter) -> Self {
         match filter {
@@ -96,19 +217,31 @@ impl From<NameOrOwnerFilter> for sdk::list_account_sets_request::Filter {
     }
 }
 
-impl From<NameOrOwnerFilter> for sdk::list_account_metadata_request::Filter {
-    fn from(filter: NameOrOwnerFilter) -> Self {
+impl From<AccountMetadataFilter> for sdk::list_account_metadata_request::Filter {
+    fn from(filter: AccountMetadataFilter) -> Self {
         match filter {
-            NameOrOwnerFilter::Name(name) => sdk::list_account_metadata_request::Filter::Name(name),
-            NameOrOwnerFilter::Owner(owner) => {
+            AccountMetadataFilter::Name(name) => {
+                sdk::list_account_metadata_request::Filter::Name(name)
+            }
+            AccountMetadataFilter::Owner(owner) => {
                 sdk::list_account_metadata_request::Filter::Owner(owner.0)
             }
+            AccountMetadataFilter::PublicName(public_name) => {
+                sdk::list_account_metadata_request::Filter::PublicName(public_name)
+            }
+            AccountMetadataFilter::Isin(isin) => {
+                sdk::list_account_metadata_request::Filter::Isin(isin)
+            }
+            AccountMetadataFilter::IssuerBankId(issuer_bank_id) => {
+                sdk::list_account_metadata_request::Filter::IssuerBankId(issuer_bank_id)
+            }
+            AccountMetadataFilter::Dti(dti) => sdk::list_account_metadata_request::Filter::Dti(dti),
         }
     }
 }
 
-impl<ID: DocumentId> From<PageBuilder<ID, NameFilter>> for sdk::ListRolesRequest {
-    fn from(builder: PageBuilder<ID, NameFilter>) -> Self {
+impl<ID: DocumentId> From<PageBuilder<ID, RoleFilter>> for sdk::ListRolesRequest {
+    fn from(builder: PageBuilder<ID, RoleFilter>) -> Self {
         let page = PageBuilder::<ID, ()> {
             filter: (),
             limit: builder.limit,
@@ -117,13 +250,24 @@ impl<ID: DocumentId> From<PageBuilder<ID, NameFilter>> for sdk::ListRolesRequest
         .into();
         Self {
             page,
-            filter: Some(sdk::list_roles_request::Filter::Name(builder.filter.name)),
+            filter: Some(match builder.filter {
+                RoleFilter::Name(name) => sdk::list_roles_request::Filter::Name(name),
+                RoleFilter::Description(description) => {
+                    sdk::list_roles_request::Filter::Description(description)
+                }
+                RoleFilter::Labels(labels) => {
+                    sdk::list_roles_request::Filter::Labels(MapWrapper { value: labels })
+                }
+                RoleFilter::InstanceId(instance_id) => {
+                    sdk::list_roles_request::Filter::InstanceId(instance_id)
+                }
+            }),
         }
     }
 }
 
-impl<ID: DocumentId> From<PageBuilder<ID, NameFilter>> for sdk::ListRoleBindingsRequest {
-    fn from(builder: PageBuilder<ID, NameFilter>) -> Self {
+impl<ID: DocumentId> From<PageBuilder<ID, RoleBindingFilter>> for sdk::ListRoleBindingsRequest {
+    fn from(builder: PageBuilder<ID, RoleBindingFilter>) -> Self {
         let page = PageBuilder::<ID, ()> {
             filter: (),
             limit: builder.limit,
@@ -132,9 +276,20 @@ impl<ID: DocumentId> From<PageBuilder<ID, NameFilter>> for sdk::ListRoleBindings
         .into();
         Self {
             page,
-            filter: Some(sdk::list_role_bindings_request::Filter::Name(
-                builder.filter.name,
-            )),
+            filter: Some(match builder.filter {
+                RoleBindingFilter::Name(name) => {
+                    sdk::list_role_bindings_request::Filter::Name(name)
+                }
+                RoleBindingFilter::Description(description) => {
+                    sdk::list_role_bindings_request::Filter::Description(description)
+                }
+                RoleBindingFilter::Labels(labels) => {
+                    sdk::list_role_bindings_request::Filter::Labels(MapWrapper { value: labels })
+                }
+                RoleBindingFilter::Subject(subject) => {
+                    sdk::list_role_bindings_request::Filter::Subject(subject)
+                }
+            }),
         }
     }
 }
@@ -154,8 +309,10 @@ impl<ID: DocumentId> From<PageBuilder<ID, NameOrOwnerFilter>> for sdk::ListAccou
     }
 }
 
-impl<ID: DocumentId> From<PageBuilder<ID, NameOrOwnerFilter>> for sdk::ListAccountMetadataRequest {
-    fn from(builder: PageBuilder<ID, NameOrOwnerFilter>) -> Self {
+impl<ID: DocumentId> From<PageBuilder<ID, AccountMetadataFilter>>
+    for sdk::ListAccountMetadataRequest
+{
+    fn from(builder: PageBuilder<ID, AccountMetadataFilter>) -> Self {
         let page = PageBuilder::<ID, ()> {
             filter: (),
             limit: builder.limit,

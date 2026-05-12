@@ -49,13 +49,18 @@ impl TryFrom<sdk::FinalizedTransaction> for Transaction {
             Data::CreateLedgerAccount(_)
             | Data::SetFreezeState(_)
             | Data::SetInstrument(_)
-            | Data::SetBalanceLimit(_) => Transaction::AccountUpdate(AccountUpdate::try_from(txn)?),
+            | Data::SetBalanceLimit(_)
+            | Data::SetDisplayCode(_)
+            | Data::SetIssuanceLimit(_) => {
+                Transaction::AccountUpdate(AccountUpdate::try_from(txn)?)
+            }
             Data::InvokeAction(_) => Transaction::Action(Action::try_from(txn)?),
             // TODO @sadroeck - fixme
             Data::DocumentOperations(_) => Transaction::DocumentOperations,
-            Data::CreateToken(_) | Data::RedeemToken(_) => {
+            Data::CreateToken(_) | Data::RedeemToken(_) | Data::RedeemLocksForCycle(_) => {
                 Transaction::Transfer(Transfer::try_from(txn)?)
             }
+            Data::CreateLock(_) | Data::ReleaseLock(_) => Transaction::DocumentOperations,
         };
         Ok(tx)
     }

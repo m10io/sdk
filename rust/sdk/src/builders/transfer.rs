@@ -87,6 +87,7 @@ impl From<TransferBuilder> for sdk::CreateTransfer {
 pub struct TransferFilter {
     filter: Filter,
     include_child_accounts: bool,
+    state: sdk::finalized_transfer::TransferState,
 }
 
 impl TxnFilter<TransferFilter> {
@@ -95,6 +96,8 @@ impl TxnFilter<TransferFilter> {
             filter: TransferFilter {
                 filter: Filter::AccountId(id.to_vec()),
                 include_child_accounts: false,
+                // Default to UNSPECIFIED as sentinel meaning "no state filter" on the server side
+                state: sdk::finalized_transfer::TransferState::Unspecified,
             },
             min: 0,
             max: u64::MAX,
@@ -107,6 +110,8 @@ impl TxnFilter<TransferFilter> {
             filter: TransferFilter {
                 filter: Filter::ContextId(context_id),
                 include_child_accounts: false,
+                // Default to UNSPECIFIED as sentinel meaning "no state filter" on the server side
+                state: sdk::finalized_transfer::TransferState::Unspecified,
             },
             min: 0,
             max: u64::MAX,
@@ -116,6 +121,11 @@ impl TxnFilter<TransferFilter> {
 
     pub fn include_child_accounts(mut self, enable: bool) -> Self {
         self.filter.include_child_accounts = enable;
+        self
+    }
+
+    pub fn state(mut self, state: sdk::finalized_transfer::TransferState) -> Self {
+        self.filter.state = state;
         self
     }
 }
@@ -128,6 +138,7 @@ impl From<TxnFilter<TransferFilter>> for sdk::ListTransferRequest {
             max_tx_id: filter.max,
             include_child_accounts: filter.filter.include_child_accounts,
             limit: filter.limit,
+            state: filter.filter.state as i32,
         }
     }
 }

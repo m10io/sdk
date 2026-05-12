@@ -37,12 +37,7 @@ impl Auth {
             stdout,
         } = self;
 
-        let connector = hyper_rustls::HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .unwrap()
-            .https_only()
-            .enable_http1()
-            .build();
+        let connector = crate::tls::build_https_connector(context.ca_cert())?;
         let client: Client<_, Full<Bytes>> = Client::builder(TokioExecutor::new()).build(connector);
 
         let response = if let Some(username) = username {
@@ -78,7 +73,7 @@ impl Auth {
             let response = response.into_body().collect().await?.to_bytes();
             let response = from_reader::<_, Value>(response.reader())?;
             if !status.is_success() {
-                anyhow::bail!(response);
+                anyhow::bail!("authentication failed with status: {}", status);
             }
 
             println!("Log in at {}", response["verification_uri_complete"]);
@@ -106,7 +101,7 @@ impl Auth {
         let response = response.into_body().collect().await?.to_bytes();
         let response = from_reader::<_, Value>(response.reader())?;
         if !status.is_success() {
-            anyhow::bail!(response);
+            anyhow::bail!("authentication failed with status: {}", status);
         }
         let m10_config_path = m10_config_path();
         let access_token = response["access_token"].as_str().unwrap();

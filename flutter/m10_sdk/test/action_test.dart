@@ -11,6 +11,26 @@ import 'package:test/test.dart';
 
 import 'utilities/utility.dart';
 
+Future<List<ActionDoc>> waitForActions(
+  Future<List<ActionDoc>> Function() fetchActions, {
+  int expectedCount = 2,
+  Duration timeout = const Duration(seconds: 10),
+  Duration interval = const Duration(milliseconds: 250),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  List<ActionDoc> actions = const [];
+
+  while (DateTime.now().isBefore(deadline)) {
+    actions = await fetchActions();
+    if (actions.length >= expectedCount) {
+      return actions;
+    }
+    await Future.delayed(interval);
+  }
+
+  return actions;
+}
+
 void main() {
   group('Actions', () {
     final account = parentAccountId;
@@ -82,12 +102,14 @@ void main() {
         operator: operator,
       );
 
-      final actions = await bankAdmin.listActions(
-        operator: operator,
-        name: actionName,
-        accountId: account,
-        minTxId: first.txId,
-        maxTxId: second.txId,
+      final actions = await waitForActions(
+        () => bankAdmin.listActions(
+          operator: operator,
+          name: actionName,
+          accountId: account,
+          minTxId: first.txId,
+          maxTxId: second.txId,
+        ),
       );
 
       expect(actions.length, 2);

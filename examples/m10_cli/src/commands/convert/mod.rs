@@ -102,7 +102,7 @@ impl Convert {
                     })
                 })
             })
-            .map_err(|_| anyhow::anyhow!("unsuported data format"))
+            .map_err(|_| anyhow::anyhow!("unsupported data format"))
     }
 
     fn convert_id(to: BinFormat, data: &str) -> anyhow::Result<()> {

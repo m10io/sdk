@@ -4,7 +4,12 @@ use serde_json::Value;
 use sqlx::Connection;
 use uuid::Uuid;
 
-use crate::{bank::Bank, config::BankEmulatorConfig, error::Error, models::ContactType};
+use crate::{
+    bank::Bank,
+    config::BankEmulatorConfig,
+    error::Error,
+    models::{AssetType, ContactType},
+};
 
 use self::model::{bank_accounts::*, bank_contacts::*, bank_transfers::*};
 
@@ -14,6 +19,9 @@ mod model;
 pub(crate) struct BankEmulator {
     checking_account_range: i32,
     holding_account: BankAccount,
+    cla_account: BankAccount,
+    tdl_regulated_account: BankAccount,
+    tdl_cbdc_account: BankAccount,
     currency: String,
     pre_fund_range: std::ops::Range<u64>,
     db_pool: bb8::Pool<RdsManager>,
@@ -35,13 +43,53 @@ impl BankEmulator {
                 .await?
                 .ok_or_else(|| Error::not_found("Bank holding account"))?
         };
+        let cla_name = format!("cla-{}", currency_conf.currency.to_lowercase());
+        let tdl_reg_name = format!("tdl-{}-regulated", currency_conf.currency.to_lowercase());
+        let tdl_cbdc_name = format!(
+            "tdl-{}-indirect_cbdc",
+            currency_conf.currency.to_lowercase()
+        );
+        let cla_account = {
+            let conn = db_pool.get().await?;
+            BankAccount::open_liability_if_missing(&cla_name, &currency_conf.currency, conn).await?
+        };
+        let tdl_regulated_account = {
+            let conn = db_pool.get().await?;
+            BankAccount::open_liability_if_missing(&tdl_reg_name, &currency_conf.currency, conn)
+                .await?
+        };
+        let tdl_cbdc_account = {
+            let conn = db_pool.get().await?;
+            BankAccount::open_liability_if_missing(&tdl_cbdc_name, &currency_conf.currency, conn)
+                .await?
+        };
         Ok(Self {
             checking_account_range: config.checking_account_start,
             holding_account,
+            cla_account,
+            tdl_regulated_account,
+            tdl_cbdc_account,
             currency: currency_conf.currency.clone(),
             pre_fund_range: currency_conf.pre_fund_range.clone(),
             db_pool,
         })
+    }
+
+    pub async fn adjust_tdl_pair(&mut self, delta_reg: i64, delta_cbdc: i64) -> Result<(), Error> {
+        let mut conn = self.db_pool.get().await?;
+        let mut txn = conn.begin().await?;
+        if delta_reg != 0 {
+            self.tdl_regulated_account
+                .adjust_balance(delta_reg, &mut *txn)
+                .await?;
+        }
+        if delta_cbdc != 0 {
+            self.tdl_cbdc_account
+                .adjust_balance(delta_cbdc, &mut *txn)
+                .await?;
+        }
+        txn.commit().await?;
+        Ok(())
     }
 }
 
@@ -73,6 +121,9 @@ impl Bank for BankEmulator {
             .await?;
         self.holding_account
             .settle_deposit(txn_id, &mut *txn)
+            .await?;
+        self.cla_account
+            .adjust_balance(fund as i64, &mut *txn)
             .await?;
         txn.commit().await?;
         let account = BankAccount::find_by_id(account.id)
@@ -306,6 +357,14 @@ impl Bank for BankEmulator {
             .holding_account
             .withdraw_from(account_id, amount.try_into()?, "SBW", None, &mut *txn)
             .await?;
+        let transfer = BankTransfer::find_by_id_and_type(txn_id, TransactionType::Debit)
+            .fetch_one(&mut *txn)
+            .await?;
+        if BankContact::has_contact(transfer.account as i64, &mut *txn).await? {
+            self.cla_account
+                .adjust_balance(-(amount as i64), &mut *txn)
+                .await?;
+        }
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
@@ -345,12 +404,8 @@ impl Bank for BankEmulator {
         Ok(txn_id)
     }
 
-    async fn transfer_by_id(&self, txn_id: Uuid) -> Result<Self::Transfer, Error> {
-        let mut conn = self.db_pool.get().await?;
-        let transfer = BankTransfer::find_by_id(txn_id)
-            .fetch_one(&mut *conn)
-            .await?;
-        Ok(transfer)
+    async fn transfer_by_id(&self, _txn_id: Uuid) -> Result<Self::Transfer, Error> {
+        unimplemented!()
     }
 
     async fn transfers_by_reference(&self, reference: &str) -> Result<Vec<Self::Transfer>, Error> {
@@ -393,6 +448,11 @@ impl Bank for BankEmulator {
         self.holding_account
             .settle_deposit(txn_id, &mut *txn)
             .await?;
+        if BankContact::has_contact(account_id, &mut *txn).await? {
+            self.cla_account
+                .adjust_balance(amount as i64, &mut *txn)
+                .await?;
+        }
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
         Ok(txn_id)
@@ -405,6 +465,14 @@ impl Bank for BankEmulator {
             .holding_account
             .settle_deposit(txn_id, &mut *txn)
             .await?;
+        let transfer = BankTransfer::find_by_id_and_type(txn_id, TransactionType::Credit)
+            .fetch_one(&mut *txn)
+            .await?;
+        if BankContact::has_contact(transfer.account as i64, &mut *txn).await? {
+            self.cla_account
+                .adjust_balance(amount as i64, &mut *txn)
+                .await?;
+        }
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
         Ok(amount.try_into()?)
@@ -441,6 +509,14 @@ impl Bank for BankEmulator {
             .holding_account
             .reverse_withdraw(txn_id, &mut *txn)
             .await?;
+        let transfer = BankTransfer::find_by_id_and_type(txn_id, TransactionType::Debit)
+            .fetch_one(&mut *txn)
+            .await?;
+        if BankContact::has_contact(transfer.account as i64, &mut *txn).await? {
+            self.cla_account
+                .adjust_balance(amount as i64, &mut *txn)
+                .await?;
+        }
         txn.commit().await?;
         self.holding_account.refresh(&mut *conn).await?;
         Ok(amount.try_into()?)
@@ -454,5 +530,25 @@ impl Bank for BankEmulator {
     }
     async fn deactivate_transfer_method(&self) -> Result<Value, Error> {
         unimplemented!()
+    }
+
+    async fn adjust_tdl(&mut self, asset_type: &AssetType, delta: i64) -> Result<(), Error> {
+        let mut conn = self.db_pool.get().await?;
+        let mut txn = conn.begin().await?;
+        match asset_type {
+            AssetType::Regulated => {
+                self.tdl_regulated_account
+                    .adjust_balance(delta, &mut *txn)
+                    .await?
+            }
+            AssetType::IndirectCbdc => {
+                self.tdl_cbdc_account
+                    .adjust_balance(delta, &mut *txn)
+                    .await?
+            }
+            _ => return Err(Error::internal_msg("unsupported asset type for TDL")),
+        }
+        txn.commit().await?;
+        Ok(())
     }
 }

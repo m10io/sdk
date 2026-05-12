@@ -12,7 +12,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
     feature = "format",
-    display("id={id} balance={balance} frozen={frozen} currency={code}({decimals}) limit={balance_limit} issuance={issuance:?}")
+    display("id={id} balance={balance} frozen={frozen} currency={code}({decimals}) display_code={display_code} limit={balance_limit} issuance={issuance:?}")
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct Account {
@@ -20,6 +20,7 @@ pub struct Account {
     pub balance: u64,
     pub frozen: bool,
     pub code: String,
+    pub display_code: String,
     pub decimals: u32,
     pub balance_limit: u64,
     pub issuance: Option<Issuance>,
@@ -28,7 +29,7 @@ pub struct Account {
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
 feature = "format",
-display("AccountInfo {{ id={id} parent_id={parent_id} public_name={public_name} currency={code}({decimals}) profile_image_url={profile_image_url} }}")
+display("AccountInfo {{ id={id} parent_id={parent_id} public_name={public_name} currency={code}({decimals}) display_code={display_code} profile_image_url={profile_image_url} }}")
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct AccountInfo {
@@ -37,19 +38,21 @@ pub struct AccountInfo {
     pub public_name: String,
     pub profile_image_url: String,
     pub code: String,
+    pub display_code: String,
     pub decimals: u32,
 }
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
     feature = "format",
-    display("balance={balance} issuance_accounts={issuance_accounts} holding_accounts={holding_accounts}")
+    display("balance={balance} issuance_accounts={issuance_accounts} holding_accounts={holding_accounts} issuance_limit={issuance_limit}")
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct Issuance {
     pub balance: u64,
     pub issuance_accounts: u64,
     pub holding_accounts: u64,
+    pub issuance_limit: u64,
 }
 
 #[serde_as]
@@ -95,11 +98,12 @@ pub enum AccountUpdateType {
     SetBalanceLimit { account_id: AccountId, limit: u64 },
     #[cfg_attr(
         feature = "format",
-        display("SetInstrument{{ account_id={account_id} code={code}({decimals}) }}")
+        display("SetInstrument{{ account_id={account_id} code={code}({decimals}) display_code={display_code} }}")
     )]
     SetInstrument {
         account_id: AccountId,
         code: String,
+        display_code: String,
         decimals: u32,
     },
     #[cfg_attr(
@@ -107,6 +111,14 @@ pub enum AccountUpdateType {
         display("NewAccount{{ account_id={account_id:?} }}")
     )]
     NewAccount { account_id: Option<AccountId> },
+    #[cfg_attr(
+        feature = "format",
+        display("SetDisplayCode{{ account_id={account_id} display_code={display_code} }}")
+    )]
+    SetDisplayCode {
+        account_id: AccountId,
+        display_code: String,
+    },
 }
 
 impl TryFrom<IndexedAccount> for Account {
@@ -119,6 +131,7 @@ impl TryFrom<IndexedAccount> for Account {
             balance: account.balance,
             frozen: account.frozen,
             code: instrument.code,
+            display_code: account.display_code,
             decimals: instrument.decimal_places,
             balance_limit: account.balance_limit,
             issuance: account.issuance.map(Issuance::try_from).transpose()?,
@@ -134,6 +147,7 @@ impl TryFrom<sdk::indexed_account::Issuance> for Issuance {
             balance: issuance.issued_balance,
             issuance_accounts: issuance.non_leaf_children,
             holding_accounts: issuance.leaf_children,
+            issuance_limit: issuance.issuance_limit,
         })
     }
 }
@@ -156,9 +170,14 @@ impl TryFrom<(&sdk::transaction_data::Data, &[u8])> for AccountUpdateType {
                 limit: limit.balance_limit,
                 account_id: AccountId::try_from_be_slice(&limit.account_id)?,
             }),
+            Data::SetDisplayCode(display_code) => Ok(AccountUpdateType::SetDisplayCode {
+                display_code: display_code.display_code.clone(),
+                account_id: AccountId::try_from_be_slice(&display_code.account_id)?,
+            }),
             Data::SetInstrument(instrument) => Ok(AccountUpdateType::SetInstrument {
                 account_id: AccountId::try_from_be_slice(&instrument.account_id)?,
                 code: instrument.code.clone(),
+                display_code: instrument.display_code.clone(),
                 decimals: instrument.decimal_places,
             }),
             _ => Err(M10Error::InvalidTransaction),
@@ -209,6 +228,7 @@ impl TryFrom<sdk::AccountInfo> for AccountInfo {
             public_name: info.public_name,
             profile_image_url: info.profile_image_url,
             code: info.code,
+            display_code: info.display_code,
             decimals: info.decimal_places,
         })
     }

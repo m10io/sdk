@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::account::AccountIdError;
 use crate::error::M10Error;
-use m10_protos::sdk;
+use m10_protos::{prost::Message, sdk};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
@@ -119,6 +119,9 @@ impl From<sdk::value::Value> for ResourceId {
             }
             sdk::value::Value::Uint8Value(v) => {
                 ResourceId::Hex(bytes::Bytes::copy_from_slice(v.to_be_bytes().as_slice()))
+            }
+            sdk::value::Value::HashmapValue(v) => {
+                ResourceId::Hex(bytes::Bytes::from(v.encode_to_vec()))
             }
         }
     }

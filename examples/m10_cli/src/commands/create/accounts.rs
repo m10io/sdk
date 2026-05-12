@@ -26,6 +26,15 @@ pub(crate) struct CreateAccountMetadataArgs {
     /// Set profile image url
     #[arg(long, aliases = ["image", "pi"])]
     profile_image_url: Option<String>,
+    /// Set ISIN for the issued asset
+    #[arg(long)]
+    isin: Option<String>,
+    /// Set DTI for the issued asset
+    #[arg(long)]
+    dti: Option<String>,
+    /// Set Issuer Bank Id
+    #[arg(long)]
+    issuer_bank_id: Option<String>,
 }
 
 impl super::BuildFromArgs for CreateAccountMetadataArgs {
@@ -39,6 +48,9 @@ impl super::BuildFromArgs for CreateAccountMetadataArgs {
             name: self.name.unwrap_or_default(),
             public_name: self.public_name.unwrap_or_default(),
             profile_image_url: self.profile_image_url.unwrap_or_default(),
+            isin: self.isin.unwrap_or_default(),
+            dti: self.dti.unwrap_or_default(),
+            issuer_bank_id: self.issuer_bank_id.unwrap_or_default(),
         })
     }
 }
@@ -50,6 +62,9 @@ impl From<&CreateLedgerAccountArgs> for CreateAccountMetadataArgs {
             name,
             public_name,
             profile_image_url,
+            isin,
+            dti,
+            issuer_bank_id,
             ..
         } = other;
         CreateAccountMetadataArgs {
@@ -59,6 +74,9 @@ impl From<&CreateLedgerAccountArgs> for CreateAccountMetadataArgs {
             name: name.clone(),
             public_name: public_name.clone(),
             profile_image_url: profile_image_url.clone(),
+            isin: isin.clone(),
+            dti: dti.clone(),
+            issuer_bank_id: issuer_bank_id.clone(),
         }
     }
 }

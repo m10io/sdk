@@ -1,11 +1,9 @@
-use crate::{internal_error, Signer, SigningError};
+use crate::{internal_error, PreparedDigest, PreparedTransaction, Signer, SigningError};
 use core::convert::TryFrom;
 use core::str::FromStr;
 use m10_protos::sdk::signature::Algorithm;
-use ring::{
-    rand::{self, SystemRandom}, // Import SystemRandom
-    signature::{EcdsaKeyPair, KeyPair, ECDSA_P256_SHA256_ASN1_SIGNING},
-};
+use p256::ecdsa::signature::hazmat::PrehashSigner;
+use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use std::fs::File;
 use std::io::{Read, Write};
 
@@ -13,30 +11,32 @@ use std::io::{Read, Write};
 #[derive(serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct P256 {
-    #[serde(flatten)]
-    key_pair: EcdsaKeyPair,
     #[serde(skip)]
-    rng: rand::SystemRandom,
+    key: p256::ecdsa::SigningKey,
+    public_key: [u8; 65],
+}
+
+fn make_p256(key: p256::ecdsa::SigningKey) -> P256 {
+    let ep = key.verifying_key().to_encoded_point(false);
+    let public_key: [u8; 65] = ep
+        .as_bytes()
+        .try_into()
+        .expect("P-256 uncompressed point is always 65 bytes");
+    P256 { key, public_key }
 }
 
 impl P256 {
     /// Generates a P256 key-pair, and if the path is passed writes it to disk as a PKCS8 document
     pub fn new_key_pair(path: Option<&str>) -> Result<Self, SigningError> {
-        let rng = SystemRandom::new();
-        let pkcs8_bytes = EcdsaKeyPair::generate_pkcs8(&ECDSA_P256_SHA256_ASN1_SIGNING, &rng)
-            .map_err(|e| internal_error(e, "P256::new_key_pair: generate_pkcs8"))?;
+        let key = p256::ecdsa::SigningKey::random(&mut rand_core::OsRng);
         if let Some(p) = path {
+            let doc = key
+                .to_pkcs8_der()
+                .map_err(|e| internal_error(e, "P256::new_key_pair: to_pkcs8_der"))?;
             let mut key_file = File::create(p)?;
-            key_file.write_all(pkcs8_bytes.as_ref())?;
+            key_file.write_all(doc.as_bytes())?;
         }
-        Ok(Self {
-            key_pair: EcdsaKeyPair::from_pkcs8(
-                &ECDSA_P256_SHA256_ASN1_SIGNING,
-                pkcs8_bytes.as_ref(),
-                &rng, // Added rng here
-            )?,
-            rng,
-        })
+        Ok(make_p256(key))
     }
 
     /// Loads a P256 key-pair from a PKCS8 formatted file
@@ -44,50 +44,63 @@ impl P256 {
         let mut key_file = File::open(path)?;
         let mut pkcs8_bytes: Vec<u8> = Vec::new();
         key_file.read_to_end(&mut pkcs8_bytes)?;
-        let rng = SystemRandom::new();
-        Ok(Self {
-            key_pair: EcdsaKeyPair::from_pkcs8(
-                &ECDSA_P256_SHA256_ASN1_SIGNING,
-                pkcs8_bytes.as_ref(),
-                &rng, // Added rng here
-            )?,
-            rng,
-        })
+        P256::from_pkcs8(&pkcs8_bytes)
     }
 
     /// Generates a new key-pair, and returns both the key-pair and a PKCS8 document containing the key-pair
     pub fn new_key_pair_exportable() -> Result<(Vec<u8>, Self), SigningError> {
-        let rng = SystemRandom::new();
-        let pkcs8_bytes = EcdsaKeyPair::generate_pkcs8(&ECDSA_P256_SHA256_ASN1_SIGNING, &rng)
-            .map_err(|e| internal_error(e, "P256::new_key_pair_exportable: generate_pkcs8"))?;
-        let key_pair =
-            EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_ASN1_SIGNING, pkcs8_bytes.as_ref(), &rng)?; // Added rng here
-        Ok((pkcs8_bytes.as_ref().to_vec(), Self { key_pair, rng }))
+        let key = p256::ecdsa::SigningKey::random(&mut rand_core::OsRng);
+        let doc = key
+            .to_pkcs8_der()
+            .map_err(|e| internal_error(e, "P256::new_key_pair_exportable: to_pkcs8_der"))?;
+        let pkcs8_bytes = doc.as_bytes().to_vec();
+        Ok((pkcs8_bytes, make_p256(key)))
     }
 
     /// Returns a new [`P256`] key-pair from a PKCS8 document
     pub fn from_pkcs8(bytes: &[u8]) -> Result<Self, SigningError> {
-        let rng = SystemRandom::new();
-        let key_pair = EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_ASN1_SIGNING, bytes, &rng)?; // Added rng here
-        Ok(Self { key_pair, rng })
+        let key = p256::ecdsa::SigningKey::from_pkcs8_der(bytes)
+            .map_err(|e| internal_error(e, "P256::from_pkcs8"))?;
+        Ok(make_p256(key))
     }
 }
 
 #[async_trait::async_trait]
 impl Signer for P256 {
     async fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, super::SigningError> {
-        self.key_pair
-            .sign(&self.rng, msg)
-            .map(|x| x.as_ref().to_vec())
-            .map_err(|e| internal_error(e, "P256::sign: signing failed"))
+        use p256::ecdsa::signature::Signer as _;
+        let sig: p256::ecdsa::Signature = self.key.sign(msg);
+        Ok(sig.to_der().to_bytes().to_vec())
     }
 
     fn public_key(&self) -> &[u8] {
-        self.key_pair.public_key().as_ref()
+        &self.public_key
     }
 
     fn algorithm(&self) -> Algorithm {
         Algorithm::P256Sha256Asn1
+    }
+
+    async fn sign_prepared_transaction(
+        &self,
+        prepared: &PreparedTransaction,
+    ) -> Result<Vec<u8>, super::SigningError> {
+        let hash = match (prepared.algorithm, &prepared.digest) {
+            (Algorithm::P256Sha256Asn1, PreparedDigest::P256Sha256(h)) => h,
+            _ => {
+                return Err(internal_error(
+                    "algorithm and digest type mismatch or unsupported",
+                    "P256::sign_prepared_transaction",
+                ))
+            }
+        };
+
+        let sig: p256::ecdsa::Signature = self
+            .key
+            .sign_prehash(hash)
+            .map_err(|e| internal_error(e, "P256::sign_prepared_transaction: sign_prehash"))?;
+
+        Ok(sig.to_der().to_bytes().to_vec())
     }
 }
 

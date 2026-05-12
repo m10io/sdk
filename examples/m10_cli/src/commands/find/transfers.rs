@@ -1,8 +1,16 @@
-use clap::{ArgGroup, Args};
-use m10_sdk::{account::AccountId, Format, PrettyPrint, TransferFilter, TxnFilter};
+use clap::{ArgGroup, Args, ValueEnum};
+use m10_sdk::{account::AccountId, sdk, Format, PrettyPrint, TransferFilter, TxnFilter};
 use serde::{Deserialize, Serialize};
 
 use crate::context::Context;
+
+#[derive(ValueEnum, Clone, Debug, Serialize, Deserialize)]
+pub(crate) enum TransferState {
+    Accepted,
+    Pending,
+    Expired,
+    Rejected,
+}
 
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
 #[clap(group = ArgGroup::new("filter").required(true))]
@@ -25,6 +33,9 @@ pub(crate) struct FindTransferArgs {
     /// Include child accounts in result
     #[arg(short, long)]
     include_child_accounts: bool,
+    /// Set status filter
+    #[arg(long)]
+    status: Option<TransferState>,
     /// Set enhanced result
     #[arg(short, long)]
     enhanced: bool,
@@ -38,17 +49,33 @@ impl FindTransferArgs {
     pub(crate) async fn find(&self, context: &Context) -> anyhow::Result<()> {
         let max_tx_id = self.max_tx_id.unwrap_or(u64::MAX);
 
-        let filter = if let Some(account) = self.account {
+        // Build the base filter (account / context + range + limit + child accounts)
+        let mut filter = if let Some(account) = self.account {
             TxnFilter::<TransferFilter>::by_account(account)
         } else if let Some(context_id) = &self.context_id {
             TxnFilter::<TransferFilter>::by_context_id(hex::decode(context_id)?)
         } else {
             anyhow::bail!("Missing account or context_id filter")
+        };
+
+        filter = filter
+            .min_tx(self.min_tx_id)
+            .max_tx(max_tx_id)
+            .limit(self.limit)
+            .include_child_accounts(self.include_child_accounts);
+
+        // Only apply a state filter if the user explicitly provided --status.
+        // If no status is provided, we leave the state unset / default so the server
+        // returns transfers in all states.
+        if let Some(status) = &self.status {
+            let state = match status {
+                TransferState::Accepted => sdk::finalized_transfer::TransferState::Accepted,
+                TransferState::Pending => sdk::finalized_transfer::TransferState::Pending,
+                TransferState::Rejected => sdk::finalized_transfer::TransferState::Rejected,
+                TransferState::Expired => sdk::finalized_transfer::TransferState::Expired,
+            };
+            filter = filter.state(state);
         }
-        .min_tx(self.min_tx_id)
-        .max_tx(max_tx_id)
-        .limit(self.limit)
-        .include_child_accounts(self.include_child_accounts);
 
         if self.enhanced {
             context
@@ -63,6 +90,7 @@ impl FindTransferArgs {
                 .await?
                 .print(self.format)?;
         }
+
         Ok(())
     }
 }

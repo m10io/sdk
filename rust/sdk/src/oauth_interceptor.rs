@@ -32,7 +32,7 @@ struct TokenResponse {
 
 fn load_config(filepath: &str) -> Result<Config, std::io::Error> {
     let contents = fs::read_to_string(filepath)?;
-    toml::from_str(&contents).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+    toml::from_str(&contents).map_err(std::io::Error::other)
 }
 
 // TODO: Add handling for expired tokens
@@ -94,7 +94,7 @@ impl OauthInterceptor {
             HeaderValue::from_str("application/x-www-form-urlencoded").unwrap(),
         );
 
-        let encoded_params = serde_urlencoded::to_string(&[
+        let encoded_params = serde_urlencoded::to_string([
             ("client_id", client_id),
             ("client_secret", client_secret),
         ])
@@ -111,6 +111,12 @@ impl OauthInterceptor {
         let token_response: TokenResponse = response.json().await?;
         self.set_token(&token_response.access_token);
         Ok(())
+    }
+}
+
+impl Default for OauthInterceptor {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

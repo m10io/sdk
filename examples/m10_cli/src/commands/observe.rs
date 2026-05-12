@@ -21,7 +21,7 @@ pub(crate) struct ObserveArgs {
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Observe {
-    /// Observe account updates for the provided account IDs
+    /// Observe *structural account changes* (creation, freeze/unfreeze, balance limits, instrument).
     #[command(alias = "a")]
     Accounts(ObserveArgs),
     /// Observe actions for the provided account IDs
@@ -47,9 +47,13 @@ pub(crate) enum Observe {
     created since the last report. Refreshed approximately every 25 seconds."
     )]
     Metrics(ObserveArgs),
-    /// Observe transfers involving the provided account IDs
+    /// Observe actual transfers involving the provided account IDs.
     #[command(alias = "t")]
     Transfers(ObserveArgs),
+}
+
+fn stream_error(err: m10_sdk::error::M10Error) -> anyhow::Error {
+    err.into()
 }
 
 impl Observe {
@@ -87,13 +91,9 @@ impl Observe {
                 Ok(account_updates) => {
                     account_updates.print(format)?;
                 }
-                Err(err) => {
-                    eprintln!("Error while receiving message: {}", err);
-                    break;
-                }
+                Err(err) => return Err(stream_error(err)),
             }
         }
-        eprintln!("Stream terminated");
         Ok(())
     }
 
@@ -118,13 +118,9 @@ impl Observe {
                 Ok(actions) => {
                     actions.print(format)?;
                 }
-                Err(err) => {
-                    eprintln!("Error while receiving message: {}", err);
-                    break;
-                }
+                Err(err) => return Err(stream_error(err)),
             }
         }
-        eprintln!("Stream terminated");
         Ok(())
     }
 
@@ -148,13 +144,9 @@ impl Observe {
                 Ok(sample) => {
                     sample.print(format)?;
                 }
-                Err(err) => {
-                    eprintln!("Error while receiving message: {}", err);
-                    break;
-                }
+                Err(err) => return Err(stream_error(err)),
             }
         }
-        eprintln!("Stream terminated");
         Ok(())
     }
 
@@ -178,13 +170,9 @@ impl Observe {
                 Ok(transfers) => {
                     transfers.print(format)?;
                 }
-                Err(err) => {
-                    eprintln!("Error while receiving message: {}", err);
-                    break;
-                }
+                Err(err) => return Err(stream_error(err)),
             }
         }
-        eprintln!("Stream terminated");
         Ok(())
     }
 }

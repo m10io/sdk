@@ -20,6 +20,19 @@ message RoleBinding {
   bool is_universal = 6;
   // ID (public key) of the owner of this RoleBinding.
   bytes owner = 7;
+  // Timestamp (in milliseconds since Unix epoch) when this RoleBinding was created.
+  uint64 created_at = 8;
+  // Timestamp (in milliseconds since Unix epoch) when this RoleBinding was last updated.
+  uint64 updated_at = 9;
+  // Public key of the user who created this RoleBinding.
+  bytes created_by = 10;
+  // Optional description of this RoleBinding (max 100 characters).
+  string description = 11;
+  // Optional expiry time (unix ms). If set and the current time is past expiry time,
+  // the binding is treated as if it does not exist. If absent = never expires.
+  optional uint64 expires_at = 12;
+  // Optional labels (metadata) of this RoleBinding (Key and Value must be 100 characters or less each)
+  map<string, string> labels = 13;
 }
 
 // Expression represents a conditional expression that refines the scope of a RoleBinding.
@@ -40,6 +53,18 @@ message Role {
   string name = 3;
   // List of rules that define the permissions granted by this role.
   repeated Rule rules = 4;
+  // Timestamp (in milliseconds since Unix epoch) when this Role was created.
+  uint64 created_at = 5;
+  // Timestamp (in milliseconds since Unix epoch) when this Role was last updated.
+  uint64 updated_at = 6;
+  // Public key of the user who created this Role.
+  bytes created_by = 7;
+  // Optional description of this Role (max 100 characters).
+  string description = 8;
+  // If true, role cannot be modified or deleted by any principal.
+  bool immutable = 9;
+  // Optional labels (metadata) of this Role (Key and Value must be 100 characters or less each)
+  map<string, string> labels = 10;
 }
 
 // Rule specifies permissions on a particular collection.
@@ -50,8 +75,6 @@ message Rule {
   repeated Value instance_keys = 3;  // Assumes a Value message is defined elsewhere.
   // List of verbs allowed for this rule.
   repeated Verb verbs = 4;
-  // Exclusion: If present, these instance keys are explicitly NOT allowed
-  repeated Value excluded_instance_keys = 5;
 
   // Verb defines the actions a subject can perform on a resource.
   enum Verb {
@@ -62,5 +85,8 @@ message Rule {
     TRANSACT = 4;   // Transaction access
     INITIATE = 5;   // Initiate transaction
     COMMIT = 6;    // Commit transaction
+    GRANT = 7;     // Allow granting this permission to others
+    DENY = 8;      // Deny action
+    REVOKE = 9;    // Allow revoking this permission from others
   }
 }

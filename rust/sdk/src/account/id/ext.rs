@@ -98,6 +98,34 @@ impl AccountIdExt for sdk::RedeemToken {
     }
 }
 
+impl AccountIdExt for sdk::CreateLock {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.account_id.involves_account(id)
+    }
+}
+
+impl AccountIdExt for sdk::ReleaseLock {
+    #[inline]
+    fn involves_account(&self, _id: AccountId) -> bool {
+        false
+    }
+}
+
+impl AccountIdExt for sdk::RedemptionStep {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.holder_account_id.involves_account(id) || self.issuance_account_id.involves_account(id)
+    }
+}
+
+impl AccountIdExt for sdk::RedeemLocksForCycle {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.steps.iter().any(|step| step.involves_account(id))
+    }
+}
+
 impl AccountIdExt for sdk::SetFreezeState {
     #[inline]
     fn involves_account(&self, id: AccountId) -> bool {
@@ -106,6 +134,13 @@ impl AccountIdExt for sdk::SetFreezeState {
 }
 
 impl AccountIdExt for sdk::SetInstrument {
+    #[inline]
+    fn involves_account(&self, id: AccountId) -> bool {
+        self.account_id.involves_account(id)
+    }
+}
+
+impl AccountIdExt for sdk::SetDisplayCode {
     #[inline]
     fn involves_account(&self, id: AccountId) -> bool {
         self.account_id.involves_account(id)
@@ -139,8 +174,15 @@ impl AccountIdExt for (&sdk::transaction_data::Data, &sdk::TransactionResponse) 
                 .unwrap_or(false),
             Data::SetInstrument(set_instrument) => set_instrument.involves_account(id),
             Data::SetBalanceLimit(set_balance_limit) => set_balance_limit.involves_account(id),
+            Data::SetIssuanceLimit(set_issuance_limit) => {
+                set_issuance_limit.account_id.involves_account(id)
+            }
+            Data::SetDisplayCode(set_display_code) => set_display_code.involves_account(id),
             Data::CreateToken(create_token) => create_token.involves_account(id),
             Data::RedeemToken(redeem_token) => redeem_token.involves_account(id),
+            Data::CreateLock(create_lock) => create_lock.involves_account(id),
+            Data::ReleaseLock(release_lock) => release_lock.involves_account(id),
+            Data::RedeemLocksForCycle(redeem) => redeem.involves_account(id),
         }
     }
 }

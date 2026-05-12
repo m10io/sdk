@@ -7,17 +7,17 @@ import { AccountId, Collection, ResourceId } from "../src";
 
 export const testCase = {
     "contextId": "fd5cd0c2b6ca7ae8e6c1ce4c7034c0cd5830b5b03e95d3de223c69bb19ce0a7e",
-    "usdCentralBankId": "3a000000000000000000000000000000",
-    "eurCentralBankId": "3b000000000000000000000000000000",
+    "usdCentralBankId": "02800004000000000000000000000002",
+    "eurCentralBankId": "00800003000000000000000000000002",
 
-    "bankUSDId": "05800000000000000000000000000002",
-    "bankEURId": "06800000000000000000000000000002",
+    "bankUSDId": "02800004800000000000000000000004",
+    "bankEURId": "00800003800000000000000000000004",
 
-    "aliceUSDAccountId": "05800000800000000000000000000004",
-    "bobEURAccountId": "06800000800000000000000000000004",
+    "aliceUSDAccountId": "02800004800000800000000000000006",
+    "bobEURAccountId": "00800003800000800000000000000006",
 
-    "fxUsdAccountId": "05000000000000000000000000000001",
-    "fxEurAccountId": "06000000000000000000000000000001",
+    "fxUsdAccountId": "02800000000000000000000000000002",
+    "fxEurAccountId": "00800000000000000000000000000002",
 };
 
 export const LEDGER_ID = "m10";
@@ -26,8 +26,8 @@ export const OPERATOR_KEY = "MFMCAQEwBQYDK2VwBCIEIHyr+m5Z4gy9JxoMdgrrX/EE8uhzkj3
 export const USD_BANK_ID = AccountId.fromHex(testCase.bankUSDId);
 export const EUR_BANK_ID = AccountId.fromHex(testCase.bankEURId);
 
-export const TEST_USERNAME = "ops+directory_test_admin@m10.io";
-export const TEST_PASSWORD = "AMsrNB9YuYfmYBw7";
+export const TEST_USERNAME = process.env.DIRECTORY_USERNAME as string;
+export const TEST_PASSWORD = process.env.DIRECTORY_PASSWORD as string;
 
 export type TestCaseInstances = {
     operatorSigner: CryptoSigner;

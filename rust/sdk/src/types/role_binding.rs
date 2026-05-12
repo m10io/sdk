@@ -8,7 +8,7 @@ use serde::Serialize;
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
     feature = "format",
-    display("RoleBinding{{ id={id} owner={owner} name={name} role_id={role_id} is_universal={is_universal} }}")
+    display("RoleBinding{{ id={id} owner={owner} name={name} role_id={role_id} is_universal={is_universal} created_at={created_at} updated_at={updated_at} created_by={created_by} description={description} expires_at={expires_at:?} labels={labels:?} }}")
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct RoleBinding {
@@ -19,6 +19,12 @@ pub struct RoleBinding {
     pub subjects: Vec<bytes::Bytes>,
     pub expressions: Vec<Expression>,
     pub is_universal: bool,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub created_by: PublicKey,
+    pub description: String,
+    pub labels: std::collections::HashMap<String, String>,
+    pub expires_at: Option<u64>,
 }
 
 impl TryFrom<sdk::RoleBinding> for RoleBinding {
@@ -33,6 +39,12 @@ impl TryFrom<sdk::RoleBinding> for RoleBinding {
             subjects: role_binding.subjects,
             expressions: role_binding.expressions,
             is_universal: role_binding.is_universal,
+            created_at: role_binding.created_at,
+            updated_at: role_binding.updated_at,
+            created_by: PublicKey(role_binding.created_by.to_vec()),
+            description: role_binding.description,
+            labels: role_binding.labels,
+            expires_at: role_binding.expires_at,
         })
     }
 }

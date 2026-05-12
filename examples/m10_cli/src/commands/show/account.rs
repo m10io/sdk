@@ -1,7 +1,7 @@
-use std::convert::TryInto;
-
+use crate::collections::PrettyId;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 pub(crate) enum Account {
@@ -32,7 +32,7 @@ impl Account {
                 let id = Self::try_convert(&id)?;
                 if let Some(parent_id) = id.parent_id() {
                     let raw_id = parent_id.to_be_bytes();
-                    println!("{}", hex::encode(raw_id));
+                    println!("{}", PrettyId::from_slice(&raw_id));
                 } else {
                     eprintln!("account is root");
                 }
@@ -64,7 +64,7 @@ impl Account {
     }
 
     fn try_convert(id: &str) -> Result<m10_sdk::account::AccountId, anyhow::Error> {
-        let bytes = hex::decode(id)?;
+        let bytes = PrettyId::from_str(id)?.to_vec();
         let raw_id = u128::from_be_bytes((&bytes[0..16]).try_into()?);
         Ok(m10_sdk::account::AccountId::from_raw(raw_id)?)
     }

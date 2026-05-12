@@ -2,7 +2,7 @@ use clap::Subcommand;
 use m10_sdk::{contract::FinalizedContractExt, prost::Message, sdk::Contract, Signer};
 use serde::{Deserialize, Serialize};
 
-use crate::context::Context;
+use crate::{context::Context, utils::secure_read_file};
 
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,13 +33,14 @@ async fn endorse_contract(
     context: &Context,
 ) -> anyhow::Result<()> {
     let output = output.ok_or_else(|| anyhow::anyhow!("No output path specified"))?;
-    let file = std::fs::read(path)?;
-    let mut contract = Contract::decode(file.as_slice())?;
+    let file = secure_read_file(&path)?;
+    let mut contract = Contract::decode(file.as_slice())
+        .map_err(|_| anyhow::anyhow!("invalid contract file: {}", &path))?;
 
     // TODO: fetch ledger-id
     let ledger_id = "usd.m10";
     let contract_id = hex::encode(contract.id()).to_uppercase();
-    let signing_key = context.signer().public_key();
+    let signing_key = context.signer()?.public_key();
     if contract
         .endorsements
         .iter()
@@ -50,7 +51,7 @@ async fn endorse_contract(
         return Ok(());
     }
     context
-        .signer()
+        .signer()?
         .endorse(&mut contract, ledger_id.to_string())
         .await?;
     let buf = contract.encode_to_vec();

@@ -45,6 +45,23 @@ impl<S> HttpClient<S> {
         }
     }
 
+    pub fn new_with_ca_cert(
+        endpoint: Endpoint,
+        ws_endpoint: Endpoint,
+        signer: Option<Arc<S>>,
+        ca_cert_pem: &[u8],
+    ) -> M10Result<Self> {
+        let cert = reqwest::Certificate::from_pem(ca_cert_pem)?;
+        let client = Client::builder().add_root_certificate(cert).build()?;
+        let ws = WSClient::new_with_ca_cert(ws_endpoint, ca_cert_pem)?;
+        Ok(Self {
+            endpoint,
+            signer,
+            client,
+            ws,
+        })
+    }
+
     async fn get_with_request(
         &self,
         ep: &str,
@@ -53,9 +70,11 @@ impl<S> HttpClient<S> {
         let mut req_body = vec![];
         req.encode(&mut req_body)?;
 
+        let content_length = req_body.len().to_string();
         Ok(self
             .client
             .get(format!("{}ledger/api/v1/{}", self.endpoint.uri(), ep))
+            .header(reqwest::header::CONTENT_LENGTH, &content_length)
             .body(req_body)
             .send()
             .await?
@@ -177,14 +196,14 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
 
     async fn list_accounts(
         &self,
-        filter: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+        filter: PageBuilder<Vec<u8>, AccountMetadataFilter>,
     ) -> M10Result<Vec<Account>> {
         let req = self
             .signer()?
             .sign_request::<sdk::ListAccountMetadataRequest>(filter.into())
             .await?;
         let mut msg = self
-            .get_with_request("accounst-metadata", req.into())
+            .get_with_request("accounts-metadata", req.into())
             .await?;
         let accounts = sdk::ListAccountMetadataResponse::decode(&mut msg)?;
         let accounts = try_join_all(
@@ -382,7 +401,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
         Role::try_from(role)
     }
 
-    async fn list_roles(&self, builder: PageBuilder<Vec<u8>, NameFilter>) -> M10Result<Vec<Role>> {
+    async fn list_roles(&self, builder: PageBuilder<Vec<u8>, RoleFilter>) -> M10Result<Vec<Role>> {
         let req = self
             .signer()?
             .sign_request::<sdk::ListRolesRequest>(builder.into())
@@ -411,7 +430,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
 
     async fn list_role_bindings(
         &self,
-        builder: PageBuilder<Vec<u8>, NameFilter>,
+        builder: PageBuilder<Vec<u8>, RoleBindingFilter>,
     ) -> M10Result<Vec<RoleBinding>> {
         let req = self
             .signer()?
@@ -472,7 +491,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for HttpClient<S> {
 
     async fn list_account_metadata(
         &self,
-        builder: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+        builder: PageBuilder<Vec<u8>, AccountMetadataFilter>,
     ) -> M10Result<Vec<AccountMetadata>> {
         let req = self
             .signer()?

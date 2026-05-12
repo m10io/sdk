@@ -1,0 +1,1 @@
+ALTER TYPE bank_account_type ADD VALUE 'liability';

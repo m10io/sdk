@@ -18,7 +18,8 @@ pub(crate) struct UpdateAccountSetArgs {
 impl super::BuildFromArgs for UpdateAccountSetArgs {
     type Document = sdk::AccountSet;
 
-    fn build_from_args(self, builder: &mut DocumentUpdate<Self::Document>) -> anyhow::Result<()> {
+    fn build_from_args(self, builder: &mut DocumentUpdate<Self::Document>) -> anyhow::Result<bool> {
+        let changed = self.accounts.is_some() || self.owner.is_some();
         if let Some(accounts) = self.accounts {
             builder.accounts(accounts);
         }
@@ -26,6 +27,6 @@ impl super::BuildFromArgs for UpdateAccountSetArgs {
             let owner_key = base64::decode(owner)?;
             builder.owner(owner_key);
         }
-        Ok(())
+        Ok(changed)
     }
 }

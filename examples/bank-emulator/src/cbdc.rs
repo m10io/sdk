@@ -9,6 +9,7 @@ use tokio::time::Duration;
 use tracing::{debug, error};
 
 const TRANSFER_ADJUSTMENT_TIMEOUT: Duration = Duration::from_secs(30);
+const TRANSFER_ADJUSTMENT_RETRIES: usize = 6;
 
 use crate::{
     context::Context,
@@ -63,28 +64,53 @@ impl CbdcAdjustmentHandler {
     pub async fn start(mut self) -> eyre::Result<()> {
         while let Some(mut transfer) = self.transfers.next().await {
             let tx_id = TxId::try_from(transfer.tx_id.as_slice());
+            let mut adjusted = false;
+            for attempt in 0..=TRANSFER_ADJUSTMENT_RETRIES {
+                match tokio::time::timeout(
+                    TRANSFER_ADJUSTMENT_TIMEOUT,
+                    self.check_and_adjust(&transfer),
+                )
+                .await
+                {
+                    Ok(Ok(())) => {
+                        let mut conn = self.context.db_pool.get().await?;
+                        let mut txn = conn.begin().await?;
+                        transfer.set_handled(&mut *txn).await?;
+                        txn.commit().await?;
+                        adjusted = true;
+                        break;
+                    }
+                    Ok(Err(err)) => {
+                        error!(
+                            %err,
+                            attempt,
+                            retries = TRANSFER_ADJUSTMENT_RETRIES,
+                            "Failed to adjust transfer"
+                        );
+                    }
+                    Err(_) => {
+                        let txn_id = tx_id
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|_| "invalid txId".to_string());
+                        error!(
+                            %txn_id,
+                            attempt,
+                            retries = TRANSFER_ADJUSTMENT_RETRIES,
+                            "adjustment timed out after 30s"
+                        );
+                    }
+                }
 
-            match tokio::time::timeout(
-                TRANSFER_ADJUSTMENT_TIMEOUT,
-                self.check_and_adjust(&transfer),
-            )
-            .await
-            {
-                Ok(Ok(())) => {
-                    let mut conn = self.context.db_pool.get().await?;
-                    let mut txn = conn.begin().await?;
-                    transfer.set_handled(&mut *txn).await?;
-                    txn.commit().await?;
+                if attempt < TRANSFER_ADJUSTMENT_RETRIES {
+                    let backoff_ms = 200u64.saturating_mul(1u64 << attempt).min(5_000);
+                    tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
                 }
-                Ok(Err(err)) => {
-                    error!(%err, "Failed to adjust transfer");
-                }
-                Err(_) => {
-                    let txn_id = tx_id
-                        .map(|id| id.to_string())
-                        .unwrap_or_else(|_| "invalid txId".to_string());
-                    error!(%txn_id, "adjustment timed out after 30s");
-                }
+            }
+            if !adjusted {
+                let txn_id = tx_id
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|_| "invalid txId".to_string());
+                error!(%txn_id, "giving up adjustment after retries; transfer remains unhandled");
             }
         }
         Ok(())
@@ -117,6 +143,12 @@ impl CbdcAdjustmentHandler {
             // If balance is over limit transfer from CBDC to DRC account
             if indexed_account.balance > cbdc_config.customer_limit {
                 debug!("account over limit");
+                let excess = indexed_account
+                    .balance
+                    .saturating_sub(cbdc_config.customer_limit);
+                if excess == 0 {
+                    return Ok(());
+                }
                 let mut conn = self.context.db_pool.get().await?;
                 if let Some(asset) = Asset::find_by_ledger_account_id(target)
                     .fetch_optional(&mut *conn)
@@ -135,18 +167,53 @@ impl CbdcAdjustmentHandler {
                         asset.id,
                         hex::encode(&regulated_account.ledger_account_id)
                     );
-                    ledger_transfer(
+                    let tx_id = ledger_transfer(
                         target.to_vec(),
                         regulated_account.ledger_account_id,
-                        indexed_account.balance - cbdc_config.customer_limit,
+                        excess,
                         vec![sdk::RebalanceTransfer::default().any()],
                         &self.context,
                     )
                     .await?;
-                    debug!(
-                        "amount adjsuted {}",
-                        indexed_account.balance - cbdc_config.customer_limit
-                    );
+                    let transfer = self.context.ledger.get_transfer(tx_id).await?;
+                    if transfer.success {
+                        let reg_bytes = self
+                            .context
+                            .get_currency_regulated_account(currency_code)
+                            .await?;
+                        let cbdc_bytes = self
+                            .context
+                            .get_currency_cbdc_account(currency_code)
+                            .await?;
+                        let mut delta_reg: i64 = 0;
+                        let mut delta_cbdc: i64 = 0;
+
+                        for step in &transfer.steps {
+                            if is_parent(&step.from.to_be_bytes(), &reg_bytes)? {
+                                delta_reg -= step.amount as i64;
+                            }
+                            if is_parent(&step.to.to_be_bytes(), &reg_bytes)? {
+                                delta_reg += step.amount as i64;
+                            }
+
+                            if is_parent(&step.from.to_be_bytes(), &cbdc_bytes)? {
+                                delta_cbdc -= step.amount as i64;
+                            }
+                            if is_parent(&step.to.to_be_bytes(), &cbdc_bytes)? {
+                                delta_cbdc += step.amount as i64;
+                            }
+                        }
+
+                        debug_assert_eq!(
+                            delta_reg + delta_cbdc,
+                            0,
+                            "rebalancer should be sum-zero"
+                        );
+
+                        let mut bank = self.context.bank.clone();
+                        bank.adjust_tdl_pair(delta_reg, delta_cbdc).await?;
+                    }
+                    debug!("amount adjsuted {}", excess);
                 }
             }
         }
@@ -201,28 +268,53 @@ impl CbdcReserveHandler {
     pub async fn start(mut self) -> eyre::Result<()> {
         while let Some(mut transfer) = self.transfers.next().await {
             let tx_id = TxId::try_from(transfer.tx_id.as_slice());
+            let mut adjusted = false;
+            for attempt in 0..=TRANSFER_ADJUSTMENT_RETRIES {
+                match tokio::time::timeout(
+                    TRANSFER_ADJUSTMENT_TIMEOUT,
+                    self.check_and_adjust_holdings(&transfer),
+                )
+                .await
+                {
+                    Ok(Ok(())) => {
+                        let mut conn = self.context.db_pool.get().await?;
+                        let mut txn = conn.begin().await?;
+                        transfer.set_handled(&mut *txn).await?;
+                        txn.commit().await?;
+                        adjusted = true;
+                        break;
+                    }
+                    Ok(Err(err)) => {
+                        error!(
+                            %err,
+                            attempt,
+                            retries = TRANSFER_ADJUSTMENT_RETRIES,
+                            "Failed to adjust transfer"
+                        );
+                    }
+                    Err(_) => {
+                        let txn_id = tx_id
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|_| "invalid txId".to_string());
+                        error!(
+                            %txn_id,
+                            attempt,
+                            retries = TRANSFER_ADJUSTMENT_RETRIES,
+                            "adjustment timed out after 30s"
+                        );
+                    }
+                }
 
-            match tokio::time::timeout(
-                TRANSFER_ADJUSTMENT_TIMEOUT,
-                self.check_and_adjust_holdings(&transfer),
-            )
-            .await
-            {
-                Ok(Ok(())) => {
-                    let mut conn = self.context.db_pool.get().await?;
-                    let mut txn = conn.begin().await?;
-                    transfer.set_handled(&mut *txn).await?;
-                    txn.commit().await?;
+                if attempt < TRANSFER_ADJUSTMENT_RETRIES {
+                    let backoff_ms = 200u64.saturating_mul(1u64 << attempt).min(5_000);
+                    tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
                 }
-                Ok(Err(err)) => {
-                    error!(%err, "Failed to adjust transfer");
-                }
-                Err(_) => {
-                    let txn_id = tx_id
-                        .map(|id| id.to_string())
-                        .unwrap_or_else(|_| "invalid txId".to_string());
-                    error!(%txn_id, "adjustment timed out after 30s");
-                }
+            }
+            if !adjusted {
+                let txn_id = tx_id
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|_| "invalid txId".to_string());
+                error!(%txn_id, "giving up adjustment after retries; transfer remains unhandled");
             }
         }
         Ok(())

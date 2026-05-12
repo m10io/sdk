@@ -30,6 +30,9 @@ const TASK_INIT_RETRY_DELAY: std::time::Duration = std::time::Duration::from_sec
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::Report> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls ring crypto provider");
     let config = crate::config::Config::new()?;
     logging::init(&config);
     tracing::info!(?config);

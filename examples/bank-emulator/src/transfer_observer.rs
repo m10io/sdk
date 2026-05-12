@@ -100,16 +100,17 @@ impl TransferObserver {
                 }
 
                 if let Some(mut transfer) = filter(&transaction, &account_id, &self.currency_code) {
-                    // Check if a transaction of same block was already queued for the handler
-                    if !LedgerTransfer::find_block(
+                    // Skip only exact duplicates for this handler; multiple relevant transfers can
+                    // occur in the same block and each must be processed.
+                    if LedgerTransfer::find_tx(
                         self.handler_type,
-                        pala_types::TxId::from(response.tx_id),
+                        response.tx_id.to_be_bytes().to_vec(),
                     )
-                    .fetch_all(&mut *conn)
+                    .fetch_optional(&mut *conn)
                     .await?
-                    .is_empty()
+                    .is_some()
                     {
-                        debug!("transfer for same block already queued");
+                        debug!("transfer already queued");
                         continue;
                     }
 

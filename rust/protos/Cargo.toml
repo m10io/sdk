@@ -1,6 +1,6 @@
 [package]
 name = "m10-protos"
-version = "1.0.0"
+version = "1.5.2"
 authors = ["Sascha Wise <sascha@m10.io>", "Sam De Roeck <sam.deroeck@m10.io>"]
 edition = "2021"
 description = "M10 Protocol Buffers"
@@ -25,11 +25,13 @@ prost-types = "0.13.1"
 once_cell = "1"
 hex = "0.4"
 ring = { version = "0.17.13", features = ["std"] }
+ed25519-dalek = { version = "2", default-features = false, features = ["digest", "std"] }
+sha2 = { version = "0.10", default-features = false, features = ["std"] }
 tonic = { version = "0.12.1", optional = true }
 
 # `dynamic-derive` feature.
-looking-glass = { version = "0.1.1", optional = true }
-looking-glass-derive = { version = "0.1.1", optional = true }
+looking-glass = { version = "0.1.4", optional = true}
+looking-glass-derive = { version = "0.1.4", optional = true}
 
 [build-dependencies]
 prost-build = "0.13.1"

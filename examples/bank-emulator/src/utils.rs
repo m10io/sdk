@@ -1,10 +1,14 @@
-use std::future::Future;
-use std::str::FromStr;
-
 use crate::error::Error;
 use crate::models::{AssetType, TransferChain};
 use crate::{context::Context, models::Payment};
+use std::collections::HashSet;
+use std::future::Future;
+use std::str::FromStr;
+use std::time::Duration;
 
+use m10_sdk::prost::Any;
+use m10_sdk::sdk::AccountSet;
+use m10_sdk::DocumentUpdate;
 use m10_sdk::{
     account::AccountId,
     contract::FinalizedContractExt,
@@ -13,10 +17,10 @@ use m10_sdk::{
     EnhancedTransfer, MetadataExt, Signer,
 };
 use m10_sdk::{
-    prost::Any, NameOrOwnerFilter, PageBuilder, StepBuilder, TransferBuilder, TransferFilter,
-    TxnFilter,
+    AccountMetadataFilter, PageBuilder, StepBuilder, TransferBuilder, TransferFilter, TxnFilter,
 };
-use tracing::{error, info};
+use tokio::time::{sleep, Instant};
+use tracing::{debug, error, info};
 use uuid::Uuid;
 
 const ALIAS_DEFAULT_OPERATOR: &str = "m10";
@@ -53,7 +57,7 @@ pub(crate) async fn find_ledger_account(
     let owner = owner
         .map(|o| Ok::<_, Error>(base64::decode(o)?))
         .unwrap_or_else(|| Ok::<_, Error>(context.ledger.signer()?.public_key().to_vec()))?;
-    let filter = PageBuilder::filter(NameOrOwnerFilter::Owner(m10_sdk::PublicKey(owner)));
+    let filter = PageBuilder::filter(AccountMetadataFilter::Owner(m10_sdk::PublicKey(owner)));
     let accounts = context
         .ledger
         .list_account_metadata(filter)
@@ -73,6 +77,14 @@ pub(crate) async fn create_account_set(
     ledger_accounts: Vec<Vec<u8>>,
     context: &Context,
 ) -> Result<Uuid, Error> {
+    let unique_accounts: HashSet<&Vec<u8>> = ledger_accounts.iter().collect();
+    if unique_accounts.len() != ledger_accounts.len() {
+        return Err(Error::validation(
+            "accounts",
+            "account set cannot contain duplicate accounts",
+        ));
+    }
+
     let account_set_id = Uuid::new_v4();
     let payload = sdk::Operation::insert(sdk::AccountSet {
         id: account_set_id.as_bytes().to_vec(),
@@ -81,6 +93,29 @@ pub(crate) async fn create_account_set(
     });
     submit_transaction(payload, vec![], context).await?;
     Ok(account_set_id)
+}
+
+pub(crate) async fn update_account_set(
+    account_set_id: Uuid,
+    ledger_accounts: Vec<Vec<u8>>,
+    context: &Context,
+) -> Result<(), Error> {
+    debug!("updating account-set {}", account_set_id);
+    let account_ids = ledger_accounts
+        .iter()
+        .map(|raw_id| AccountId::try_from_be_slice(raw_id))
+        .collect::<Result<Vec<_>, _>>()?;
+    debug!(
+        "adding account ids {:?} to account-set {}",
+        account_ids, account_set_id
+    );
+
+    let mut builder = DocumentUpdate::<AccountSet>::new(account_set_id);
+    builder.accounts(account_ids);
+
+    submit_transaction(builder.operation(), vec![], context).await?;
+    debug!("successfully updated account-set {}", account_set_id);
+    Ok(())
 }
 
 pub(crate) async fn create_ledger_account(
@@ -106,6 +141,7 @@ pub(crate) async fn create_ledger_account(
         name,
         public_name,
         profile_image_url: profile_image_url.unwrap_or_default().to_string(),
+        ..Default::default()
     };
     let payload = sdk::Operation::insert(account_doc);
     submit_transaction(payload, vec![], context).await?;
@@ -344,4 +380,28 @@ fn ledger_id_to_instrument(ledger_id: &str) -> Result<&str, Error> {
         .split('.')
         .next()
         .ok_or_else(|| Error::internal_msg("invalid ledger id"))
+}
+
+pub(crate) async fn wait_for_transfer(
+    context: &Context,
+    account_parent: &[u8],
+    tx_id: u64,
+    timeout: Duration,
+) -> Result<(), Error> {
+    let account = m10_sdk::account::AccountId::try_from_be_slice(account_parent)?;
+    let deadline = Instant::now() + timeout;
+    loop {
+        let filter = TxnFilter::<TransferFilter>::by_account(account)
+            .include_child_accounts(true)
+            .min_tx(0)
+            .limit(200);
+        let transfers = context.ledger.list_raw_transfers(filter).await?;
+        if transfers.transfers.iter().any(|t| t.tx_id == tx_id) {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err(Error::internal_msg("ledger transfer not indexed in time"));
+        }
+        sleep(Duration::from_millis(150)).await;
+    }
 }

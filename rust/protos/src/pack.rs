@@ -23,6 +23,8 @@ pub enum Collection {
     RoleBindings,
     Roles,
     Banks,
+    Locks,
+    SettlementCycles,
 }
 
 impl Deref for Collection {
@@ -35,6 +37,8 @@ impl Deref for Collection {
             Collection::RoleBindings => "role-bindings",
             Collection::Roles => "roles",
             Collection::Banks => "banks",
+            Collection::Locks => "locks",
+            Collection::SettlementCycles => "settlement-cycles",
         }
     }
 }
@@ -61,6 +65,8 @@ impl FromStr for Collection {
             "role-bindings" => Ok(Collection::RoleBindings),
             "roles" => Ok(Collection::Roles),
             "banks" => Ok(Collection::Banks),
+            "locks" => Ok(Collection::Locks),
+            "settlement-cycles" => Ok(Collection::SettlementCycles),
             _unsupported => Err(UnsupportedCollection()),
         }
     }

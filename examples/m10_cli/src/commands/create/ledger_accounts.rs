@@ -26,6 +26,12 @@ pub(crate) struct CreateLedgerAccountArgs {
     /// Set profile image url
     #[arg(long, aliases = ["image", "pi"])]
     pub(super) profile_image_url: Option<String>,
+    /// Set ISIN for the issued asset
+    #[arg(long)]
+    pub(super) isin: Option<String>,
+    /// Set DTI for the issued asset
+    #[arg(long)]
+    pub(super) dti: Option<String>,
     /// Set the parent account
     #[arg(long, aliases = ["parent", "pa"], conflicts_with("instrument"))]
     parent_account: Option<AccountId>,
@@ -49,9 +55,28 @@ pub(crate) struct CreateLedgerAccountArgs {
     /// Holding balance limit
     #[arg(short = 'l', long, aliases = ["limit", "hl"])]
     holding_limit: Option<u64>,
+    /// Issuance limit (maximum outstanding issued balance; 0 = unlimited)
+    #[arg(long, alias = "il")]
+    issuance_limit: Option<u64>,
+    /// Unique display code for the instrument
+    #[arg(long, alias = "dc", group = "instrument")]
+    display_code: Option<String>,
+    /// Set Issuer Bank Id
+    #[arg(long)]
+    pub(super) issuer_bank_id: Option<String>,
 }
 
 impl CreateLedgerAccountArgs {
+    fn has_metadata_fields(&self) -> bool {
+        self.owner.is_some()
+            || self.name.is_some()
+            || self.public_name.is_some()
+            || self.profile_image_url.is_some()
+            || self.isin.is_some()
+            || self.dti.is_some()
+            || self.issuer_bank_id.is_some()
+    }
+
     pub(super) async fn create(&self, context: &Context) -> anyhow::Result<()> {
         // If an id was given it will be checked if that particular account exists already.
         // In case it exists no new account will be created otherwise a new account will be
@@ -59,7 +84,7 @@ impl CreateLedgerAccountArgs {
         let mut create_new_account = true;
         if let Some(id) = self.id {
             if context.ledger_client().get_account(id).await.is_ok() {
-                eprintln!("ledger account {:?} exists already", id);
+                eprintln!("ledger account {} exists already", id);
                 create_new_account = false
             }
         }
@@ -73,15 +98,22 @@ impl CreateLedgerAccountArgs {
 
         // If any of the Arcadius record fields were set, an Arcadius record will be
         // created with a matching Id.
-        if self.owner.is_some() || self.public_name.is_some() {
+        if self.has_metadata_fields() {
             let mut account_options = CreateAccountMetadataArgs::from(self);
             let arcadius_id = Uuid::from_u128(account_id.as_raw());
             account_options.id = Some(arcadius_id);
             account_options.if_not_exists = self.id.is_some();
-            super::store_create::<_, sdk::AccountMetadata>(account_options, context).await?;
+            let id = super::store_create::<_, sdk::AccountMetadata>(account_options, context, true)
+                .await?;
+            if let Some(id) = id {
+                eprintln!("Created account and account-metadata resource:");
+                println!("{}", hex::encode(id));
+            }
         } else {
-            eprintln!("Created ledger account");
-            println!("{}", hex::encode(account_id.as_raw().to_be_bytes()));
+            if create_new_account {
+                eprintln!("Created ledger account");
+                println!("{}", hex::encode(account_id.as_raw().to_be_bytes()));
+            }
         }
         Ok(())
     }
@@ -97,11 +129,13 @@ impl CreateLedgerAccountArgs {
                 self.decimals
                     .ok_or_else(|| anyhow::anyhow!("Instrument decimals missing"))?,
                 self.description.clone(),
+                self.display_code.clone(),
             )
         }
         .issuance(self.issuance)
         .frozen(self.frozen)
         .balance_limit(self.holding_limit.unwrap_or_default())
+        .issuance_limit(self.issuance_limit.unwrap_or_default())
         .context_id(context.context_id());
         let (_tx_id, account_id) =
             m10_sdk::create_account(context.ledger_client(), builder).await?;

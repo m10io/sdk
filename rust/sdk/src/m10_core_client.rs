@@ -8,7 +8,8 @@ use std::{
 use async_trait::async_trait;
 use futures_core::Stream;
 use m10_protos::sdk;
-use m10_signing::{SignedRequest, Signer};
+use m10_protos::sdk::signature::Algorithm;
+use m10_signing::{PreparedTransaction, SignedRequest, Signer};
 
 use crate::{
     account::AccountId, builders::*, error::M10Result, transfer_ext::EnhancedTransfer, types::*,
@@ -36,8 +37,7 @@ pub trait M10CoreClient {
             context_id,
             data: Some(sdk::TransactionData { data: Some(data) }),
         };
-        let signed = self.signer()?.sign_request(req).await?;
-        Ok(signed)
+        sign_prepared_or_raw(req, self.signer()?.as_ref()).await
     }
 
     // Transactions
@@ -147,6 +147,46 @@ pub trait M10CoreClient {
         Ok(response.tx_id)
     }
 
+    async fn set_issuance_limit(
+        &self,
+        account_id: AccountId,
+        limit: u64,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::SetIssuanceLimit {
+                    account_id: account_id.to_vec(),
+                    issuance_limit: limit,
+                }
+                .into(),
+                context_id,
+            )
+            .await?;
+        let response = self.create_transaction(req.into()).await?;
+        Ok(response.tx_id)
+    }
+
+    async fn set_display_code(
+        &self,
+        account_id: AccountId,
+        display_code: String,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::SetDisplayCode {
+                    account_id: account_id.to_vec(),
+                    display_code,
+                }
+                .into(),
+                context_id,
+            )
+            .await?;
+        let response = self.create_transaction(req.into()).await?;
+        Ok(response.tx_id)
+    }
+
     async fn set_account_instrument(
         &self,
         account_id: AccountId,
@@ -154,14 +194,16 @@ pub trait M10CoreClient {
         decimals: u32,
         description: Option<String>,
         context_id: Vec<u8>,
+        display_code: Option<String>,
     ) -> M10Result<TxId> {
         let req = self
             .signed_transaction(
                 sdk::SetInstrument {
                     account_id: account_id.to_vec(),
-                    code,
+                    code: code.clone(),
                     decimal_places: decimals,
                     description: description.unwrap_or_default(),
+                    display_code: display_code.unwrap_or(code),
                 }
                 .into(),
                 context_id,
@@ -245,7 +287,7 @@ pub trait M10CoreClient {
 
     async fn list_accounts(
         &self,
-        filter: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+        filter: PageBuilder<Vec<u8>, AccountMetadataFilter>,
     ) -> M10Result<Vec<Account>>;
 
     async fn get_transfer(&self, tx_id: TxId) -> M10Result<Transfer>;
@@ -286,13 +328,13 @@ pub trait M10CoreClient {
 
     async fn get_role(&self, id: Vec<u8>) -> M10Result<Role>;
 
-    async fn list_roles(&self, builder: PageBuilder<Vec<u8>, NameFilter>) -> M10Result<Vec<Role>>;
+    async fn list_roles(&self, builder: PageBuilder<Vec<u8>, RoleFilter>) -> M10Result<Vec<Role>>;
 
     async fn get_role_binding(&self, id: Vec<u8>) -> M10Result<RoleBinding>;
 
     async fn list_role_bindings(
         &self,
-        builder: PageBuilder<Vec<u8>, NameFilter>,
+        builder: PageBuilder<Vec<u8>, RoleBindingFilter>,
     ) -> M10Result<Vec<RoleBinding>>;
 
     async fn get_account_set(&self, id: Vec<u8>) -> M10Result<AccountSet>;
@@ -306,7 +348,7 @@ pub trait M10CoreClient {
 
     async fn list_account_metadata(
         &self,
-        builder: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+        builder: PageBuilder<Vec<u8>, AccountMetadataFilter>,
     ) -> M10Result<Vec<AccountMetadata>>;
 
     // Transfer Enhancing
@@ -451,6 +493,50 @@ pub async fn signed_transaction<D: Into<sdk::transaction_data::Data>, S: Signer>
     client.signed_transaction(data.into(), context_id).await
 }
 
+// Routes signing through the digest path for P256 and Ed25519Ph, and falls back to
+// raw signing for plain Ed25519 to preserve backward compatibility.
+async fn sign_prepared_or_raw<S: Signer>(
+    req: sdk::TransactionRequestPayload,
+    signer: &S,
+) -> M10Result<SignedRequest<sdk::TransactionRequestPayload>> {
+    use m10_protos::prost::Message as _;
+
+    match signer.algorithm() {
+        Algorithm::Ed25519 => Ok(signer.sign_request(req).await?),
+        algorithm => {
+            let payload = req.encode_to_vec();
+            let prepared = PreparedTransaction::new(payload, algorithm)?;
+            prepared.verify_integrity()?;
+            let sig_bytes = signer.sign_prepared_transaction(&prepared).await?;
+            // Reject structurally invalid signature bytes before attaching to the envelope
+            match algorithm {
+                Algorithm::P256Sha256Asn1 => {
+                    let _ = p256::ecdsa::Signature::from_der(&sig_bytes)
+                        .map_err(|_| m10_signing::SigningError::MalFormedSignature)?;
+                }
+                Algorithm::Ed25519PhSha512 => {
+                    if sig_bytes.len() != ed25519_dalek::SIGNATURE_LENGTH {
+                        return Err(m10_signing::SigningError::MalFormedSignature.into());
+                    }
+                }
+                Algorithm::Ed25519 => unreachable!("Ed25519 is handled in the outer match arm"),
+            }
+            let signature = sdk::Signature {
+                algorithm: algorithm.into(),
+                public_key: signer.public_key().to_vec(),
+                signature: sig_bytes,
+            };
+            Ok(SignedRequest {
+                request_envelope: sdk::RequestEnvelope {
+                    payload: prepared.payload,
+                    signature: Some(signature),
+                },
+                data: req,
+            })
+        }
+    }
+}
+
 pub async fn signed_transaction_as<S: Signer>(
     data: sdk::transaction_data::Data,
     context_id: Vec<u8>,
@@ -463,8 +549,7 @@ pub async fn signed_transaction_as<S: Signer>(
         context_id,
         data: Some(sdk::TransactionData { data: Some(data) }),
     };
-    let signed = signer.sign_request(req).await?;
-    Ok(signed)
+    sign_prepared_or_raw(req, signer.as_ref()).await
 }
 
 #[allow(clippy::borrowed_box)]
@@ -540,6 +625,7 @@ pub async fn set_account_instrument<S: Signer>(
     decimals: u32,
     description: Option<impl Into<String>>,
     context_id: Vec<u8>,
+    display_code: impl Into<String>,
 ) -> M10Result<TxId> {
     let req = signed_transaction(
         client,
@@ -548,6 +634,7 @@ pub async fn set_account_instrument<S: Signer>(
             code: code.into(),
             decimal_places: decimals,
             description: description.map(|d| d.into()).unwrap_or_default(),
+            display_code: display_code.into(),
         },
         context_id,
     )

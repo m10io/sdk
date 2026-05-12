@@ -35,6 +35,7 @@ pub(crate) enum DirEntry {
     Ledger,
 }
 
+#[allow(clippy::result_large_err)]
 impl DirEntry {
     pub(super) async fn find(self, context: &Context) -> anyhow::Result<()> {
         let channel = context.channel()?;

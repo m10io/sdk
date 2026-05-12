@@ -4,7 +4,7 @@ use clap::Subcommand;
 use m10_sdk::{account, account::AccountId, prost::Message, sdk, Signer};
 use serde::{Deserialize, Serialize};
 
-use crate::context::Context;
+use crate::{context::Context, utils::secure_read_file};
 
 #[derive(Clone, Debug, Subcommand, Serialize, Deserialize)]
 pub(crate) enum Verify {
@@ -31,7 +31,7 @@ impl Verify {
     }
 
     fn verify_offline(file: &str) -> anyhow::Result<()> {
-        let master_token_file = fs::read(file)?;
+        let master_token_file = secure_read_file(file)?;
         let sdk::OfflineToken { data, signature } =
             sdk::OfflineToken::decode(master_token_file.as_slice())?;
         let data = data.ok_or_else(|| anyhow::anyhow!("missing data in master token"))?;
@@ -45,12 +45,12 @@ impl Verify {
     }
 
     fn verify_redeemable(master: &str, file: &str) -> anyhow::Result<()> {
-        let master_token_file = fs::read(master)?;
+        let master_token_file = secure_read_file(master)?;
         let sdk::OfflineToken { data, .. } =
             sdk::OfflineToken::decode(master_token_file.as_slice())?;
         let master_token = data.ok_or_else(|| anyhow::anyhow!("missing data in master token"))?;
 
-        let token_file = fs::read(file)?;
+        let token_file = secure_read_file(file)?;
         let sdk::RedeemableToken { data, signature } =
             sdk::RedeemableToken::decode(token_file.as_slice())?;
         let token = data.ok_or_else(|| anyhow::anyhow!("missing data in redeemable token"))?;
@@ -107,8 +107,9 @@ impl Issue {
             .iter()
             .zip(values)
             .map(|(file, value)| {
-                let master_token_file = fs::read(file)?;
-                let master_token = sdk::OfflineToken::decode(master_token_file.as_slice())?;
+                let master_token_file = secure_read_file(file)?;
+                let master_token = sdk::OfflineToken::decode(master_token_file.as_slice())
+                    .map_err(|_| anyhow::anyhow!("invalid token file: {}", file))?;
                 let sdk::offline_token::Data { id, currency, .. } = master_token
                     .data
                     .ok_or_else(|| anyhow::anyhow!("missing data in master token"))?;
@@ -131,7 +132,7 @@ impl Issue {
             id: token_id.to_vec(),
             inputs,
         };
-        let key = context.signer();
+        let key = context.signer()?;
         let mut token_data_buf = vec![];
         data.encode(&mut token_data_buf)?;
         let token = sdk::RedeemableToken {
@@ -141,7 +142,8 @@ impl Issue {
         let mut token_buf = vec![];
         token.encode(&mut token_buf)?;
         let path = format!("./rt-{}.tok", token_id);
-        fs::write(path, token_buf)?;
+        fs::write(&path, token_buf)?;
+        println!("created redeemable token: {}", path);
         Ok(())
     }
 }
@@ -165,8 +167,9 @@ impl Redeem {
     }
 
     async fn redeem(file: &str, account: AccountId, context: &Context) -> anyhow::Result<()> {
-        let token_file = fs::read(file)?;
-        let token = sdk::RedeemableToken::decode(token_file.as_slice())?;
+        let token_file = secure_read_file(file)?;
+        let token = sdk::RedeemableToken::decode(token_file.as_slice())
+            .map_err(|_| anyhow::anyhow!("invalid token file: {}", file))?;
         context
             .ledger_client()
             .redeem_token(token, account, vec![])

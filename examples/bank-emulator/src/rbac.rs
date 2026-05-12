@@ -10,7 +10,8 @@ use m10_sdk::{
     sdk::{rule::Verb, Operation, Role, RoleBinding, Rule, Value},
     Collection, DocumentUpdate, Signer,
 };
-use m10_sdk::{sdk, NameFilter, PageBuilder, PublicKey};
+use m10_sdk::{sdk, PageBuilder, PublicKey, RoleFilter};
+use tokio::time::{sleep, Duration};
 use tracing::debug;
 use uuid::Uuid;
 
@@ -29,16 +30,12 @@ pub(crate) async fn is_key_known(
     key: &[u8],
     context: &Context,
 ) -> Result<bool, Error> {
-    let role_binding = m10_sdk::get_role_binding(&context.ledger, role_id)
-        .await
-        .internal_error("getting role_binding")?;
+    let role_binding = get_role_binding_retry(role_id, context).await?;
     Ok(role_binding.subjects.contains(&Bytes::from(key.to_vec())))
 }
 
 pub(crate) async fn add_key(role_id: Uuid, key: &[u8], context: &Context) -> Result<(), Error> {
-    let role_binding = m10_sdk::get_role_binding(&context.ledger, role_id)
-        .await
-        .internal_error("getting role_binding")?;
+    let role_binding = get_role_binding_retry(role_id, context).await?;
 
     if role_binding.subjects.contains(&Bytes::from(key.to_vec())) {
         return Err(Error::validation("public_key", "key already exists"));
@@ -55,7 +52,14 @@ pub(crate) async fn add_key(role_id: Uuid, key: &[u8], context: &Context) -> Res
         owner: role_binding.owner.to_vec().into(),
         role: role_binding.role_id.to_vec().into(),
         subjects: vec![Bytes::copy_from_slice(key)],
-        ..Default::default()
+        expressions: vec![],
+        is_universal: false,
+        created_at: 0,
+        updated_at: 0,
+        created_by: role_binding.created_by.to_vec().into(),
+        description: role_binding.description,
+        labels: role_binding.labels,
+        expires_at: role_binding.expires_at,
     };
 
     let ops = vec![delete_op, sdk::Operation::insert(role_binding)];
@@ -67,11 +71,32 @@ pub(crate) async fn add_key(role_id: Uuid, key: &[u8], context: &Context) -> Res
     Ok(())
 }
 
+async fn get_role_binding_retry(
+    role_id: Uuid,
+    context: &Context,
+) -> Result<m10_sdk::RoleBinding, Error> {
+    const RETRIES: usize = 10;
+
+    let mut attempts = 0usize;
+    loop {
+        match m10_sdk::get_role_binding(&context.ledger, role_id).await {
+            Ok(role_binding) => return Ok(role_binding),
+            Err(err) => {
+                attempts += 1;
+                if attempts > RETRIES {
+                    return Err(err).internal_error("getting role_binding");
+                }
+                sleep(Duration::from_millis((attempts * 200) as u64)).await;
+            }
+        }
+    }
+}
+
 pub(crate) async fn find_role_by_name(
     name: &str,
     context: &Context,
 ) -> Result<Option<Role>, Error> {
-    let request = PageBuilder::<_, NameFilter>::name(name);
+    let request = PageBuilder::<_, RoleFilter>::name(name);
     let roles = context.ledger.clone().list_roles(request).await?;
     let role = roles.into_iter().next();
 
@@ -80,6 +105,12 @@ pub(crate) async fn find_role_by_name(
         name: r.name,
         owner: Bytes::copy_from_slice(&r.owner.to_vec()),
         rules: r.rules,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        created_by: Bytes::copy_from_slice(&r.created_by.to_vec()),
+        description: r.description,
+        labels: r.labels,
+        immutable: r.immutable,
     }))
 }
 
@@ -100,7 +131,6 @@ pub(crate) async fn create_contact_rbac_role(
     rules.push(Rule {
         collection: Collection::AccountSets.to_string(),
         instance_keys: vec![Bytes::copy_from_slice(account_set_id.as_bytes()).into()],
-        excluded_instance_keys: vec![],
         verbs: vec![Verb::Read as i32, Verb::Update as i32, Verb::Delete as i32],
     });
     if !ledger_accounts.is_empty() {
@@ -111,13 +141,11 @@ pub(crate) async fn create_contact_rbac_role(
         rules.push(Rule {
             collection: Collection::AccountMetadata.to_string(),
             instance_keys: ledger_accounts.clone(),
-            excluded_instance_keys: vec![],
             verbs: vec![Verb::Read as i32],
         });
         rules.push(Rule {
             collection: LEDGER_ACCOUNT_COLLECTION.to_string(),
             instance_keys: ledger_accounts,
-            excluded_instance_keys: vec![],
             verbs: vec![Verb::Initiate as i32, Verb::Transact as i32],
         });
     }
@@ -126,6 +154,12 @@ pub(crate) async fn create_contact_rbac_role(
         name: format!("owner-{}", contact_name),
         owner: Bytes::copy_from_slice(context.ledger.signer()?.public_key()),
         rules,
+        created_at: 0,
+        updated_at: 0,
+        created_by: Bytes::copy_from_slice(context.ledger.signer()?.public_key()),
+        description: String::new(),
+        labels: std::collections::HashMap::new(),
+        immutable: false,
     };
 
     debug!("Role created with id: {}", role_uuid.clone());
@@ -140,7 +174,14 @@ pub(crate) async fn create_contact_rbac_role(
             .into_iter()
             .map(|key| Bytes::copy_from_slice(key.to_vec().as_slice()))
             .collect(),
-        ..Default::default()
+        expressions: vec![],
+        is_universal: false,
+        created_at: 0,
+        updated_at: 0,
+        created_by: Bytes::copy_from_slice(context.ledger.signer()?.public_key()),
+        description: String::new(),
+        labels: std::collections::HashMap::new(),
+        expires_at: None,
     };
 
     let ops = vec![Operation::insert(role), Operation::insert(role_binding)];
@@ -179,15 +220,28 @@ pub(crate) async fn create_requiem_rbac_role(
         name: name.clone(),
         owner: owner.clone(),
         rules,
+        created_at: 0,
+        updated_at: 0,
+        created_by: owner.clone(),
+        description: String::new(),
+        labels: std::collections::HashMap::new(),
+        immutable: false,
     };
 
     let role_binding = RoleBinding {
         id: role_id.clone(),
         name,
-        owner,
+        owner: owner.clone(),
         role: role_id.clone(),
         subjects: vec![Bytes::copy_from_slice(public_key.to_vec().as_slice())],
-        ..Default::default()
+        expressions: vec![],
+        is_universal: false,
+        created_at: 0,
+        updated_at: 0,
+        created_by: owner,
+        description: String::new(),
+        labels: std::collections::HashMap::new(),
+        expires_at: None,
     };
 
     let ops = vec![Operation::insert(role), Operation::insert(role_binding)];
@@ -212,7 +266,6 @@ pub(crate) async fn add_accounts_to_role(
         .unwrap_or(&Rule {
             collection: Collection::AccountMetadata.to_string(),
             instance_keys: vec![],
-            excluded_instance_keys: vec![],
             verbs: vec![Verb::Read as i32],
         })
         .clone();
@@ -223,7 +276,6 @@ pub(crate) async fn add_accounts_to_role(
         .unwrap_or(&Rule {
             collection: LEDGER_ACCOUNT_COLLECTION.to_string(),
             instance_keys: vec![],
-            excluded_instance_keys: vec![],
             verbs: vec![Verb::Initiate as i32, Verb::Transact as i32],
         })
         .clone();

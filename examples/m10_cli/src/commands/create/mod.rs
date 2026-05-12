@@ -1,25 +1,25 @@
-use std::{fmt::Debug, fs::File, io::Read};
-
 use clap::{Subcommand, ValueEnum};
 use m10_sdk::{
     account::AccountId, error::M10Error, prost::Message, sdk, DocumentBuilder, Pack, PublicKey,
     Signer, WithContext,
 };
 use serde::{Deserialize, Serialize};
+use std::{fmt::Debug, fs::File, io::Read};
 use uuid::Uuid;
 
+use super::convert::BinFormat;
+use crate::collections::PrettyId;
 use crate::{
     context::{Context, Provider},
     utils,
 };
-
-use super::convert::BinFormat;
 
 mod account_sets;
 mod accounts;
 pub(crate) mod banks;
 mod directory_entry;
 mod ledger_accounts;
+mod locks;
 mod role_bindings;
 mod roles;
 mod transfer;
@@ -116,6 +116,15 @@ pub(crate) enum Create {
     /// Create a new transfer
     #[command(alias = "t")]
     Transfer(transfer::CreateTransferArgs),
+    /// Create a new settlement lock reservation transaction
+    #[command(alias = "l")]
+    Lock(locks::CreateLockArgs),
+    /// Release a settlement lock transaction
+    #[command(alias = "rl")]
+    ReleaseLock(locks::ReleaseLockArgs),
+    /// Redeem settlement locks for a cycle transaction
+    #[command(alias = "rfc")]
+    RedeemLocksForCycle(locks::RedeemLocksForCycleArgs),
     /// Generate new uuid(s)
     #[command(alias = "u")]
     Uuid {
@@ -130,10 +139,14 @@ impl Create {
         match self {
             Create::Account(args) => args.create(context).await,
             Create::AccountMetadata(args) => {
-                store_create::<_, sdk::AccountMetadata>(args, context).await
+                store_create::<_, sdk::AccountMetadata>(args, context, false)
+                    .await
+                    .map(|_| ())
             }
-            Create::AccountSet(args) => store_create::<_, sdk::AccountSet>(args, context).await,
-            Create::Bank(args) => store_create::<_, sdk::Bank>(args, context).await,
+            Create::AccountSet(args) => store_create::<_, sdk::AccountSet>(args, context, false)
+                .await
+                .map(|_| ()),
+            Create::Bank(args) => args.create(context).await,
             Create::CollectionMetadata { name, descriptor } => {
                 create_collection(name, descriptor, context).await
             }
@@ -145,7 +158,7 @@ impl Create {
                 algorithm,
             } => {
                 if context.provider() == Provider::Vault {
-                    let pubkey = context.signer().public_key();
+                    let pubkey = context.signer()?.public_key();
                     format.print_bytes(pubkey, vec![BinFormat::Uuid])?;
                     Ok(())
                 } else {
@@ -155,9 +168,16 @@ impl Create {
             Create::OfflineToken { account, value } => {
                 create_offline_token(account, value, context).await
             }
-            Create::Role(args) => store_create::<_, sdk::Role>(args, context).await,
-            Create::RoleBinding(args) => store_create::<_, sdk::RoleBinding>(args, context).await,
+            Create::Role(args) => store_create::<_, sdk::Role>(args, context, false)
+                .await
+                .map(|_| ()),
+            Create::RoleBinding(args) => store_create::<_, sdk::RoleBinding>(args, context, false)
+                .await
+                .map(|_| ()),
             Create::Transfer(args) => args.create(context).await,
+            Create::Lock(args) => args.create(context).await,
+            Create::ReleaseLock(args) => args.release(context).await,
+            Create::RedeemLocksForCycle(args) => args.redeem(context).await,
             Create::Uuid { multiple } => {
                 generate_uuid(multiple);
                 Ok(())
@@ -191,12 +211,16 @@ trait BuildFromArgs {
     fn build_from_options(self, default_owner: PublicKey) -> Result<Self::Document, anyhow::Error>;
 }
 
-async fn store_create<O, D>(args: O, context: &Context) -> anyhow::Result<()>
+async fn store_create<O, D>(
+    args: O,
+    context: &Context,
+    quiet: bool,
+) -> anyhow::Result<Option<Vec<u8>>>
 where
     O: BuildFromArgs<Document = D> + Debug,
     D: Message + Pack + 'static,
 {
-    let default_owner = context.signer().public_key().to_vec();
+    let default_owner = context.signer()?.public_key().to_vec();
 
     let document = args.build_from_options(PublicKey(default_owner))?;
     let id = document.id().to_vec();
@@ -209,24 +233,33 @@ where
     .await;
     match response {
         Ok(_) => {
-            eprintln!("Created {} resource:", D::COLLECTION);
-            println!("{}", hex::encode(id));
-            Ok(())
+            if !quiet {
+                eprintln!("Created {} resource:", D::COLLECTION);
+                println!("{}", PrettyId::from_slice(&id));
+            }
+            Ok(Some(id))
         }
         Err(M10Error::Transaction(err))
             if err.code() == sdk::transaction_error::Code::AlreadyExists =>
         {
-            eprintln!("Item exists already");
-            Ok(())
+            if D::COLLECTION == sdk::Role::COLLECTION {
+                eprintln!(
+                    "A role with that ID already exist. Use 'update role' to modify an existing role."
+                );
+            } else if D::COLLECTION == sdk::RoleBinding::COLLECTION {
+                eprintln!(
+                    "A role-binding with that ID already exist. Use 'update role-binding' to modify an existing role-binding."
+                );
+            } else {
+                if err.message.is_empty() {
+                    eprintln!("item exists already");
+                } else {
+                    eprintln!("{}", err.message);
+                }
+            }
+            Ok(None)
         }
-        Err(M10Error::Transaction(err)) => {
-            eprintln!("Err {} creating resource: {}", err.code, err.message);
-            Err(anyhow::anyhow!("failed resource creation"))
-        }
-        Err(err) => {
-            eprintln!("Err {}", err);
-            Err(anyhow::anyhow!("failed resource creation"))
-        }
+        Err(err) => Err(err.into()),
     }
 }
 
@@ -235,7 +268,7 @@ where
     O: BuildFromArgs<Document = D>,
     D: Message + Pack + 'static,
 {
-    let default_owner = context.signer().public_key().to_vec();
+    let default_owner = context.signer()?.public_key().to_vec();
     let document = args.build_from_options(PublicKey(default_owner))?;
     Ok(sdk::Operation::insert(document))
 }
@@ -257,11 +290,11 @@ pub(super) async fn create_collection(
     )
     .await;
     match response {
-        Ok(_) => {}
+        Ok(_) => println!("created collection:: {name}"),
         Err(M10Error::Transaction(err))
             if err.code() == sdk::transaction_error::Code::AlreadyExists =>
         {
-            eprintln!("ignoring existing collection: {}", name);
+            eprintln!("ignoring existing collection: {name}");
         }
         Err(err) => {
             anyhow::bail!("{}", err);
@@ -276,16 +309,16 @@ async fn create_image(
     file: Option<String>,
     context: &Context,
 ) -> anyhow::Result<()> {
-    let image = if let Some(file_name) = file {
-        let mut image_file = File::open(file_name)?;
+    let image = if let Some(file_name) = &file {
+        let mut image_file = File::open(file_name)
+            .map_err(|_| anyhow::anyhow!("could not read image file: {file_name}"))?;
         let mut image: Vec<u8> = Vec::new();
         image_file.read_to_end(&mut image)?;
         image
     } else if let Some(data) = data {
-        base64::decode(data)?
+        base64::decode(data).map_err(|_| anyhow::anyhow!("invalid base64 data"))?
     } else {
-        eprintln!("Neither image file or data given");
-        return Err(anyhow::anyhow!("Required option missing"));
+        return Err(anyhow::anyhow!("neither image file or data given"));
     };
 
     context.image_client()?.put_image(&name, image).await?;
@@ -324,8 +357,8 @@ async fn create_offline_token(
     let mut token_buf = vec![];
     token.encode(&mut token_buf)?;
     let path = format!("./ot-{}.tok", hex::encode(tx_id.to_be_bytes().as_slice()));
-    std::fs::write(path, token_buf)?;
-    println!("{token:?}");
+    std::fs::write(&path, token_buf)?;
+    println!("created offline token: {}", &path);
     Ok(())
 }
 

@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 mod document_id;
 
 #[cfg(feature = "account")]
@@ -18,6 +20,8 @@ mod http_client;
 pub mod image;
 #[cfg(feature = "client")]
 mod m10_core_client;
+#[cfg(test)]
+mod tests;
 #[cfg(feature = "service")]
 pub mod transaction_ext;
 #[cfg(feature = "service")]

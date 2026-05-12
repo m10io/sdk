@@ -3,12 +3,14 @@ use uuid::Uuid;
 
 pub(crate) mod account_sets;
 pub(crate) mod accounts;
-pub(crate) mod actions;
 pub(crate) mod banks;
 pub(crate) mod contracts;
 pub(crate) mod role_bindings;
 pub(crate) mod roles;
-pub(crate) mod transfers;
+
+pub(crate) const LEDGER_ACCOUNTS: &str = "ledger-accounts";
+pub(crate) const ROLES: &str = "roles";
+pub(crate) const ROLE_BINDINGS: &str = "role-bindings";
 
 #[derive(Clone, Debug)]
 pub enum PrettyId {
@@ -22,6 +24,15 @@ impl PrettyId {
         match self {
             Self::Hex(h) => h.to_vec(),
             Self::Uuid(u) => u.as_bytes().to_vec(),
+        }
+    }
+
+    #[inline]
+    pub fn from_slice(b: &[u8]) -> Self {
+        if let Ok(u) = Uuid::from_slice(b) {
+            Self::Uuid(u)
+        } else {
+            Self::Hex(bytes::Bytes::copy_from_slice(b))
         }
     }
 }

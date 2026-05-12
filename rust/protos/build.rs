@@ -51,6 +51,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(
+                ".m10.sdk.MapWrapper",
+                "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
+            )
+            .type_attribute(
                 ".m10.sdk.Value",
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )

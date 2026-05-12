@@ -1,5 +1,7 @@
+use anyhow::Result;
 use serde::Deserialize;
 
+#[derive(Clone)]
 pub struct BlockExplorerClient {
     address: String,
     block_explorer_client: reqwest::Client,
@@ -20,6 +22,23 @@ struct AuditLogResponse {
     data: AuditLog,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TxnResponse {
+    pub data: Vec<TxnData>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TxnData {
+    pub attributes: TxnAttributes,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TxnAttributes {
+    pub signer_public_key: String,
+}
+
 // TODO add query params
 impl BlockExplorerClient {
     pub fn new(address: impl Into<String>) -> Self {
@@ -29,6 +48,23 @@ impl BlockExplorerClient {
             address,
             block_explorer_client,
         }
+    }
+
+    /// Gets a transaction by its id from the block explorer (v2)
+    pub async fn get_transaction_v2(&self, id: &str) -> Result<TxnResponse> {
+        let base_url = reqwest::Url::parse(&self.address)?;
+        let url = base_url.join(&format!(
+            "/block-explorer/api/v2/transactions?filter[id]={}",
+            id
+        ))?;
+        let resp = self
+            .block_explorer_client
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?;
+        let txn: TxnResponse = resp.json().await?;
+        Ok(txn)
     }
 
     pub async fn get_block(&mut self, block_id: &str) -> reqwest::Result<String> {

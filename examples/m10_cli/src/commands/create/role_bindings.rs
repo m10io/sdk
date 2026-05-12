@@ -5,6 +5,7 @@ use serde_with::{serde_as, DisplayFromStr};
 use uuid::Uuid;
 
 use crate::collections::{role_bindings::Expression, PrettyId};
+use crate::utils::{parse_labels, validate_labels};
 
 #[serde_as]
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
@@ -37,13 +38,25 @@ pub(crate) struct CreateRoleBindingArgs {
     /// Sets role binding to be used by any public key. Default: False
     #[arg(short = 'u', long, alias = "universal")]
     is_universal: bool,
+    #[arg(short = 'd', long)]
+    description: Option<String>,
+    /// Set expiry time in RFC3339 format (YYYY-MM-DDTHH:MM:SSZ).
+    /// If set, the binding is rejected after this time
+    #[arg(long)]
+    #[serde(default)]
+    expires_at: Option<String>,
+    /// Set optional labels. (e.g. `-l label_1=value_1 -l label_2=value_2`)
+    #[arg(short = 'l', long, value_parser = parse_labels)]
+    #[serde(default)]
+    pub labels: Option<Vec<(String, String)>>,
 }
 
 impl super::BuildFromArgs for CreateRoleBindingArgs {
     type Document = sdk::RoleBinding;
     fn build_from_options(self, default_owner: PublicKey) -> Result<Self::Document, anyhow::Error> {
         let id = self.id.unwrap_or_else(Uuid::new_v4).as_bytes().to_vec();
-        let owner = self.owner.unwrap_or(default_owner).0;
+        let owner = self.owner.unwrap_or(default_owner.clone()).0;
+        let signer_key = default_owner.0;
         let subjects = self
             .subject
             .iter()
@@ -61,6 +74,37 @@ impl super::BuildFromArgs for CreateRoleBindingArgs {
                 })
                 .collect()
         });
+        let description = self.description.unwrap_or_default();
+        if description.len() > 100 {
+            return Err(anyhow::anyhow!(
+                "Description must be 100 characters or less"
+            ));
+        }
+
+        let labels: std::collections::HashMap<String, String> =
+            self.labels.unwrap_or_default().into_iter().collect();
+        validate_labels(&labels)?;
+
+        let expires_at = self
+            .expires_at
+            .map(|s| {
+                chrono::DateTime::parse_from_rfc3339(&s)
+                    .map_err(|e| {
+                        anyhow::anyhow!(
+                            "Invalid expires_at format (expected RFC3339 YYYY-MM-DDTHH:MM:SSZ): {}",
+                            e
+                        )
+                    })
+                    .map(|dt| dt.timestamp_millis() as u64)
+            })
+            .transpose()?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Time went backwards");
+        if expires_at.is_some_and(|ts| ts <= now.as_millis() as u64) {
+            return Err(anyhow::anyhow!("expires_at must be in the future"));
+        }
+        let timestamp = now.as_micros() as u64;
         Ok(sdk::RoleBinding {
             id: id.into(),
             name: self.name,
@@ -69,6 +113,12 @@ impl super::BuildFromArgs for CreateRoleBindingArgs {
             subjects,
             expressions,
             is_universal: self.is_universal,
+            created_at: timestamp,
+            updated_at: timestamp,
+            created_by: signer_key.into(),
+            description,
+            labels,
+            expires_at,
         })
     }
 }

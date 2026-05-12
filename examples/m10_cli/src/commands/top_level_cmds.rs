@@ -80,7 +80,7 @@ pub(crate) enum Commands {
         #[command(subcommand)]
         cmd: token::Redeem,
     },
-    /// Run a migration or batch query file
+    /// Run a migration or batch query (get or find) file
     #[command(alias = "r")]
     Run {
         /// Set batch file location
@@ -200,7 +200,7 @@ impl Commands {
     pub(crate) async fn run(self, context: &Context) -> anyhow::Result<()> {
         let result = match self {
             Commands::Auth(cmd) => cmd.run(context).await,
-            Commands::FisAuth(cmd) => cmd.run().await,
+            Commands::FisAuth(cmd) => cmd.run(context.ca_cert()).await,
             Commands::Convert { cmd } => cmd.convert(),
             Commands::Create { cmd } => cmd.run(context).await,
             Commands::Delete { cmd } => cmd.run(context).await,
@@ -217,9 +217,8 @@ impl Commands {
             Commands::Verify { cmd } => cmd.run(),
         };
 
-        match &result {
-            Err(err) => log::debug!("Command failed: {:?}", err),
-            _ => {}
+        if let Err(err) = &result {
+            log::debug!("Command failed: {:?}", err);
         }
 
         result

@@ -1,7 +1,10 @@
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::{error::Error, models::ContactType};
+use crate::{
+    error::Error,
+    models::{AssetType, ContactType},
+};
 
 #[async_trait::async_trait]
 #[allow(dead_code)]
@@ -72,6 +75,7 @@ pub(crate) trait Bank {
     async fn create_transfer_method(&self) -> Result<Value, Error>;
     async fn get_transfer_method(&self) -> Result<Value, Error>;
     async fn deactivate_transfer_method(&self) -> Result<Value, Error>;
+    async fn adjust_tdl(&mut self, asset_type: &AssetType, delta: i64) -> Result<(), Error>;
 }
 
 pub fn try_account_number_from(value: &Value) -> Result<i32, Error> {

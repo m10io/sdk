@@ -10,6 +10,9 @@ pub struct AccountMetadata {
     pub profile_image_url: String,
     pub name: String,
     pub public_name: String,
+    pub isin: String,
+    pub dti: String,
+    pub issuer_bank_id: String,
 }
 
 #[cfg(feature = "format")]
@@ -21,8 +24,14 @@ impl std::fmt::Display for AccountMetadata {
             profile_image_url,
             name,
             public_name,
+            isin,
+            dti,
+            issuer_bank_id,
         } = self;
-        write!(f, "AccountSet{{ id={id} owner={owner} profile_image_url={profile_image_url} name={name} public_name={public_name} }}")
+        write!(
+            f,
+            "AccountSet{{ id={id} owner={owner} profile_image_url={profile_image_url} name={name} public_name={public_name} isin={isin} dti={dti} issuer_bank_id={issuer_bank_id}}}"
+        )
     }
 }
 
@@ -36,6 +45,9 @@ impl TryFrom<sdk::AccountMetadata> for AccountMetadata {
             profile_image_url: meta.profile_image_url,
             name: meta.name,
             public_name: meta.public_name,
+            isin: meta.isin,
+            dti: meta.dti,
+            issuer_bank_id: meta.issuer_bank_id,
         })
     }
 }

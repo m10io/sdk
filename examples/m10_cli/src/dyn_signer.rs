@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use m10_protos::prost;
 use m10_protos::sdk::signature::Algorithm;
 use m10_protos::sdk::Contract;
 use m10_protos::sdk::Endorsement;
-use m10_protos::sdk::RequestEnvelope;
 use m10_protos::sdk::Signature;
-use m10_sdk::{SignedRequest, Signer, SigningError, VaultTransit};
+use m10_sdk::{PreparedTransaction, Signer, SigningError, VaultTransit};
 use tonic::async_trait;
 
 #[async_trait]
@@ -16,6 +14,11 @@ pub trait DynSigner: Send + Sync {
     fn public_key(&self) -> &[u8];
 
     fn algorithm(&self) -> Algorithm;
+
+    async fn sign_prepared_transaction(
+        &self,
+        prepared: &PreparedTransaction,
+    ) -> Result<Vec<u8>, SigningError>;
 }
 
 #[async_trait]
@@ -31,6 +34,13 @@ impl DynSigner for m10_sdk::KeyPair {
     fn algorithm(&self) -> Algorithm {
         Signer::algorithm(self)
     }
+
+    async fn sign_prepared_transaction(
+        &self,
+        prepared: &PreparedTransaction,
+    ) -> Result<Vec<u8>, SigningError> {
+        Signer::sign_prepared_transaction(self, prepared).await
+    }
 }
 
 #[async_trait]
@@ -45,6 +55,13 @@ impl DynSigner for VaultTransit {
 
     fn algorithm(&self) -> Algorithm {
         Signer::algorithm(self)
+    }
+
+    async fn sign_prepared_transaction(
+        &self,
+        prepared: &PreparedTransaction,
+    ) -> Result<Vec<u8>, SigningError> {
+        Signer::sign_prepared_transaction(self, prepared).await
     }
 }
 
@@ -80,20 +97,11 @@ impl Signer for DynSignerWrapper {
         })
     }
 
-    async fn sign_request<P: prost::Message>(
+    async fn sign_prepared_transaction(
         &self,
-        data: P,
-    ) -> Result<SignedRequest<P>, m10_sdk::SigningError> {
-        let payload = data.encode_to_vec();
-        let signature = self.sign_payload(&payload).await?;
-        let envelope = RequestEnvelope {
-            payload,
-            signature: Some(signature),
-        };
-        Ok(SignedRequest {
-            request_envelope: envelope,
-            data,
-        })
+        prepared: &PreparedTransaction,
+    ) -> Result<Vec<u8>, SigningError> {
+        self.0.sign_prepared_transaction(prepared).await
     }
 
     async fn endorse(

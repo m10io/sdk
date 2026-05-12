@@ -7,6 +7,7 @@ mod documents;
 mod fees;
 mod notification_preferences;
 mod public_key;
+mod reconciliation;
 mod transfer_methods;
 
 pub fn configure(config: &mut ServiceConfig) {
@@ -19,6 +20,7 @@ pub fn configure(config: &mut ServiceConfig) {
             .service(fees::scope())
             .service(notification_preferences::scope())
             .service(public_key::scope())
+            .service(reconciliation::scope())
             .service(transfer_methods::scope()),
     );
 }

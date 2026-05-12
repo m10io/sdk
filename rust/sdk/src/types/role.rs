@@ -15,6 +15,9 @@ pub enum Verb {
     Transact,
     Initiate,
     Commit,
+    Grant,
+    Deny,
+    Revoke,
 }
 
 impl From<sdk::rule::Verb> for Verb {
@@ -27,6 +30,9 @@ impl From<sdk::rule::Verb> for Verb {
             sdk::rule::Verb::Read => Verb::Read,
             sdk::rule::Verb::Update => Verb::Update,
             sdk::rule::Verb::Transact => Verb::Transact,
+            sdk::rule::Verb::Grant => Verb::Grant,
+            sdk::rule::Verb::Deny => Verb::Deny,
+            sdk::rule::Verb::Revoke => Verb::Revoke,
         }
     }
 }
@@ -41,6 +47,9 @@ impl From<Verb> for sdk::rule::Verb {
             Verb::Read => sdk::rule::Verb::Read,
             Verb::Update => sdk::rule::Verb::Update,
             Verb::Transact => sdk::rule::Verb::Transact,
+            Verb::Grant => sdk::rule::Verb::Grant,
+            Verb::Deny => sdk::rule::Verb::Deny,
+            Verb::Revoke => sdk::rule::Verb::Revoke,
         }
     }
 }
@@ -48,7 +57,7 @@ impl From<Verb> for sdk::rule::Verb {
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
     feature = "format",
-    display("Role{{ id={id} owner={owner} name={name} rules={rules:?} }}")
+    display("Role{{ id={id} owner={owner} name={name} rules={rules:?} created_at={created_at} updated_at={updated_at} created_by={created_by} description={description} labels={labels:?} }}")
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct Role {
@@ -56,6 +65,12 @@ pub struct Role {
     pub owner: PublicKey,
     pub name: String,
     pub rules: Vec<Rule>,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub created_by: PublicKey,
+    pub description: String,
+    pub labels: std::collections::HashMap<String, String>,
+    pub immutable: bool,
 }
 
 impl TryFrom<sdk::Role> for Role {
@@ -67,6 +82,12 @@ impl TryFrom<sdk::Role> for Role {
             owner: PublicKey(role.owner.to_vec()),
             name: role.name,
             rules: role.rules,
+            created_at: role.created_at,
+            updated_at: role.updated_at,
+            created_by: PublicKey(role.created_by.to_vec()),
+            description: role.description,
+            labels: role.labels,
+            immutable: role.immutable,
         })
     }
 }

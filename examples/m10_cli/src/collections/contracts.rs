@@ -9,6 +9,8 @@ use m10_sdk::{
 use serde::Serialize;
 use std::{convert::TryFrom, fmt::Debug};
 
+use crate::utils::secure_read_file;
+
 #[derive(Serialize, Debug)]
 pub struct ContractContent {
     pub id: String,
@@ -50,6 +52,7 @@ impl TryFrom<sdk::Endorsement> for Endorsement {
                 algorithm: match Algorithm::try_from(sig.algorithm).unwrap() {
                     Algorithm::Ed25519 => "Ed25519",
                     Algorithm::P256Sha256Asn1 => "P256",
+                    Algorithm::Ed25519PhSha512 => "Ed25519Ph",
                 }
                 .to_string(),
             }),
@@ -58,7 +61,7 @@ impl TryFrom<sdk::Endorsement> for Endorsement {
 }
 
 pub(crate) async fn show_contract(path: &str, formatter: Format) -> anyhow::Result<()> {
-    let file = std::fs::read(path)?;
+    let file = secure_read_file(path)?;
     let contract = sdk::Contract::decode(file.as_slice())?;
     let id = contract.id();
     let transfers = contract.transfer_info()?;

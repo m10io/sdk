@@ -42,6 +42,10 @@ impl UpdateTransferArgs {
                 context.context_id(),
             )
             .await?;
+        match self.state {
+            TransferState::Accept => println!("Transfer {} has been accepted", self.id),
+            TransferState::Reject => println!("Transfer {} has been rejected", self.id),
+        }
         Ok(())
     }
 }

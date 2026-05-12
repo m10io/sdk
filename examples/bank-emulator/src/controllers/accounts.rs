@@ -1,4 +1,6 @@
 #![allow(clippy::unnecessary_fallible_conversions)]
+use std::{str::FromStr, time::Duration};
+
 use actix_web::{
     delete, get, post,
     web::{Data, Json, Path, Query},
@@ -6,11 +8,10 @@ use actix_web::{
 };
 use m10_sdk::{
     sdk::{Deposit, SelfTransfer, SetFreezeState, Withdraw},
-    Metadata, StepBuilder, TransferBuilder, TransferStatus, TransferStep,
+    Metadata, TransferStatus, TransferStep,
 };
 use serde_json::{json, Value};
 use sqlx::Acquire;
-use tracing::info;
 use uuid::Uuid;
 
 use crate::{
@@ -107,8 +108,13 @@ async fn create(
         }
     }
 
-    // Create AccountSet on ledger
-    let account_set_id = create_account_set(ledger_accounts.to_vec(), &context).await?;
+    let account_set_id = if let Some(id_str) = req.account_set_id.clone() {
+        let parsed_account_set_id = Uuid::from_str(&id_str)?;
+        update_account_set(parsed_account_set_id, ledger_accounts.to_vec(), &context).await?;
+        parsed_account_set_id
+    } else {
+        create_account_set(ledger_accounts.to_vec(), &context).await?
+    };
 
     // Create RBAC role for contact
     let role_id = create_contact_rbac_role(
@@ -139,13 +145,15 @@ async fn create(
     txn.commit().await?;
 
     // Create Alias for contact
-    create_alias_from_contact_data(
-        &contact.contact_data,
-        &current_user.token,
-        account_set_id,
-        &context,
-    )
-    .await?;
+    if req.account_set_id.is_none() {
+        create_alias_from_contact_data(
+            &contact.contact_data,
+            &current_user.token,
+            account_set_id,
+            &context,
+        )
+        .await?;
+    }
 
     Ok(Json(account))
 }
@@ -495,13 +503,49 @@ async fn convert_into(
     )
     .await
     {
-        Ok(_) => {
-            let amount = bank.settle_withdraw(bank_txn).await?;
+        Ok(tx_id) => {
+            let accepted = context.ledger.get_transfer(tx_id).await?;
+
+            let issuer_reg = context.get_currency_regulated_account(&instrument).await?;
+            wait_for_transfer(&context, &issuer_reg, tx_id, Duration::from_secs(3))
+                .await
+                .ok();
+            let issuer_cbdc = context.get_currency_cbdc_account(&instrument).await?;
+            let reg_id = issuer_reg.as_slice().try_into().unwrap();
+            let cbdc_id = issuer_cbdc.as_slice().try_into().unwrap();
+
+            let mut minted_reg: i64 = 0;
+            let mut minted_cbdc: i64 = 0;
+            for step in accepted.steps.iter() {
+                if step.from == reg_id {
+                    minted_reg += step.amount as i64;
+                }
+                if step.from == cbdc_id {
+                    minted_cbdc += step.amount as i64;
+                }
+            }
+
+            let total_minted = minted_reg + minted_cbdc;
+            let settled = bank.settle_withdraw(bank_txn).await? as i64;
+            if settled != total_minted {
+                let _ = bank.reverse_withdraw(bank_txn).await;
+                return Ok(Json(BankTransfer {
+                    id: bank_txn,
+                    from_account: bank_account_number,
+                    to_account: bank.account_number(),
+                    amount: None,
+                    status: 1,
+                    error: Some("ledger minted amount != core settled amount".to_string()),
+                }));
+            }
+
+            bank.adjust_tdl_pair(minted_reg, minted_cbdc).await?;
+
             BankTransfer {
                 id: bank_txn,
                 from_account: bank_account_number,
                 to_account: bank.account_number(),
-                amount: Some(amount),
+                amount: Some(settled as u64),
                 status: 0,
                 error: None,
             }
@@ -598,6 +642,7 @@ async fn convert_direct_from(
         .await?;
 
     let amount = bank.settle_deposit(bank_txn).await?;
+    bank.adjust_tdl(&asset_type, -(amount as i64)).await?;
     let transfer = BankTransfer {
         id: bank_txn,
         from_account: bank.account_number(),
@@ -642,6 +687,14 @@ async fn convert_from(
         return Err(Error::internal_msg("Transfer not accepted (state)"));
     }
 
+    wait_for_transfer(
+        &context,
+        &to_account_id,
+        request.txn_id,
+        Duration::from_secs(5),
+    )
+    .await?;
+
     // find transfer step that has bank reserve account as target
     let to_account_id = to_account_id.as_slice().try_into()?;
     let TransferStep { amount, .. } = transfer
@@ -670,6 +723,7 @@ async fn convert_from(
         .await?;
 
     let amount = bank.settle_deposit(bank_txn).await?;
+    bank.adjust_tdl(&asset_type, -(amount as i64)).await?;
     let transfer = BankTransfer {
         id: bank_txn,
         from_account: bank.account_number(),
@@ -701,33 +755,6 @@ async fn fund(
         let mut bank = context.bank.clone();
         bank.fund_account(request.amount_in_cents, account_ref, "sandbox fund")
             .await?;
-    }
-    if let Some(instrument) = request.currency.as_ref() {
-        let instrument = instrument.to_lowercase();
-        let asset_type = request.asset_type.unwrap_or_default();
-        let ledger_account_id = match asset_type {
-            AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
-            AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
-            _ => return Err(Error::internal_msg("unsupported asset type")),
-        };
-        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
-        let query =
-            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
-        let asset = query
-            .fetch_optional(&mut *conn)
-            .await?
-            .ok_or_else(Error::unauthorized)?;
-
-        // create transaction
-        let transfer = TransferBuilder::new().step(
-            StepBuilder::new(
-                ledger_account_id.as_slice().try_into()?,
-                asset.ledger_account_id.as_slice().try_into()?,
-                request.amount_in_cents,
-            )
-            .metadata(Deposit::default()),
-        );
-        m10_sdk::transfer(&context.ledger, transfer).await?;
     }
     Ok(HttpResponse::Ok().finish())
 }
@@ -765,53 +792,13 @@ async fn settle_deposit(
     let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
     let query = Account::find_by_id_scoped(id, scope)?;
     let mut conn = context.db_pool.get().await?;
-    let account = query
+    query
         .fetch_optional(&mut *conn)
         .await?
         .ok_or_else(|| Error::not_found("account"))?;
     let mut bank = context.bank.clone();
-    let amount = bank.settle_deposit(txn_id).await?;
+    bank.settle_deposit(txn_id).await?;
 
-    if let Some(instrument) = account
-        .bank_reference
-        .as_ref()
-        .and_then(|v| v.get("currency").and_then(|c| c.as_str()))
-    {
-        let instrument = instrument.to_lowercase();
-        let txn = bank.transfer_by_id(txn_id).await?;
-        let asset_type = txn
-            .refernce
-            .split(':')
-            .last()
-            .ok_or_else(|| Error::not_found("asset type in deposit reference"))?
-            .try_into()?;
-
-        let ledger_account_id = match asset_type {
-            AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
-            AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
-            _ => return Err(Error::internal_msg("unsupported asset type")),
-        };
-
-        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
-        let query =
-            Asset::find_by_account_id_instrument_type_scoped(id, &instrument, asset_type, scope)?;
-        let asset = query
-            .fetch_optional(&mut *conn)
-            .await?
-            .ok_or_else(Error::unauthorized)?;
-
-        // create transaction
-        let transfer = TransferBuilder::new().step(
-            StepBuilder::new(
-                ledger_account_id.as_slice().try_into()?,
-                asset.ledger_account_id.as_slice().try_into()?,
-                amount,
-            )
-            .metadata(Deposit::default()),
-        );
-        let tx_id = m10_sdk::transfer(&context.ledger, transfer).await?;
-        info!("Deposit mirrored on ledger: {}", tx_id);
-    }
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -858,39 +845,7 @@ async fn withdraw(
     } else {
         None
     };
-    let ledger_txn = if let Some(instrument) = request.currency.as_ref() {
-        let instrument = instrument.to_lowercase();
-        let asset_type = request.asset_type.unwrap_or_default();
-        let ledger_account_id = match asset_type {
-            AssetType::Regulated => context.get_currency_regulated_account(&instrument).await?,
-            AssetType::IndirectCbdc => context.get_currency_cbdc_account(&instrument).await?,
-            _ => return Err(Error::internal_msg("unsupported asset type")),
-        };
-        let scope = current_user.is_authorized(BankEmulatorRole::Read)?;
-        let query =
-            Asset::find_by_account_id_instrument_type_scoped(*id, &instrument, asset_type, scope)?;
-        let asset = query
-            .fetch_optional(&mut *conn)
-            .await?
-            .ok_or_else(Error::unauthorized)?;
-
-        // create transaction
-        let transfer = TransferBuilder::new().step(
-            StepBuilder::new(
-                asset.ledger_account_id.as_slice().try_into()?,
-                ledger_account_id.as_slice().try_into()?,
-                request.amount_in_cents,
-            )
-            .metadata(Withdraw::default()),
-        );
-        let tx_id = m10_sdk::transfer(&context.ledger, transfer).await?;
-        Some(tx_id)
-    } else {
-        None
-    };
-    Ok(Json(
-        json!({ "bank_tx": bank_txn, "ledger_tx": ledger_txn }),
-    ))
+    Ok(Json(json!({ "bank_tx": bank_txn })))
 }
 
 pub fn scope() -> Scope {

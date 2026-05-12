@@ -69,30 +69,47 @@ class AccountSetDoc extends _Document<AccountSet> {
 }
 
 class RuleDoc extends _Document<Rule> {
-  RuleDoc(super.model);
+  RuleDoc(
+    super.model, {
+    this.instanceIdType = IdType.hex,
+  });
 
   factory RuleDoc.fromStrings(
     String collection,
     List<String> verbs,
-    List<String> instanceKeys,
-  ) =>
-      RuleDoc(_fromStrings(collection, verbs, instanceKeys));
+    List<String> instanceKeys, {
+    IdType instanceIdType = IdType.hex,
+  }) =>
+      RuleDoc(
+        _fromStrings(collection, verbs, instanceKeys, instanceIdType),
+        instanceIdType: instanceIdType,
+      );
+
+  final IdType instanceIdType;
 
   String get collection => _model.collection;
   List<String> get verbs => _model.verbs.map((v) => v.toString()).toList();
-  List<String> get instanceKeys =>
-      _model.instanceKeys.map((i) => hex.encode(i.bytesValue)).toList();
+  List<String> get instanceKeys => _model.instanceKeys
+      .map((i) => instanceIdType == IdType.hex
+          ? hex.encode(i.bytesValue)
+          : UuidValue.fromList(i.bytesValue).uuid)
+      .toList();
 
   static Rule _fromStrings(
     String collection,
     List<String> verbs,
     List<String> instanceKeys,
+    IdType instanceIdType,
   ) {
     final rule = Rule()..collection = collection;
     rule.instanceKeys
       ..clear()
       ..addAll(
-        instanceKeys.map((i) => document.Value()..bytesValue = hex.decode(i)),
+        instanceKeys.map(
+          (i) => document.Value()
+            ..bytesValue =
+                instanceIdType == IdType.hex ? hex.decode(i) : Uuid.parse(i),
+        ),
       );
     rule.verbs
       ..clear()
@@ -100,7 +117,8 @@ class RuleDoc extends _Document<Rule> {
     return rule;
   }
 
-  Rule asRule() => _fromStrings(collection, instanceKeys, verbs);
+  Rule asRule() =>
+      _fromStrings(collection, verbs, instanceKeys, instanceIdType);
 }
 
 class RoleDoc extends _Document<Role> {
@@ -717,3 +735,5 @@ final class OwnerFilter extends QueryFilter {
 final class NameFilter extends QueryFilter {
   NameFilter(super.value);
 }
+
+enum IdType { hex, uuid }

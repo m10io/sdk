@@ -5,7 +5,7 @@ ledger_addr = "http://0.0.0.0:50051"
 directory_addr = "https://develop.m10.net"
 prometheus_port = "27777"
 
-key_pair = "MFMCAQEwBQYDK2VwBCIEIFX1/JTSaE+IV9aM3SWMLhh6Gi8G3+Uu8rfQG4+jmqmfoSMDIQAYsbQ3kBzKG2ijScMH9jnRYg7JUCL+QQkum+Sc1NIPEg=="
+key_pair = "MFECAQEwBQYDK2VwBCIEIFX1/JTSaE+IV9aM3SWMLhh6Gi8G3+Uu8rfQG4+jmqmfgSEAGLG0N5Acyhtoo0nDB/Y50WIOyVAi/kEJLpvknNTSDxI="
 bank_name = "M10 Bank"
 short_name = "MTB"
 swift_code = "MTBUSM10SB"

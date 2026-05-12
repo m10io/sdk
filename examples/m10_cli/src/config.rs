@@ -20,6 +20,8 @@ pub(crate) struct Config {
     pub vault_mount: Option<String>,
     #[serde(default)]
     pub vault_namespace: Option<String>,
+    #[serde(default)]
+    pub(crate) ca_cert: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

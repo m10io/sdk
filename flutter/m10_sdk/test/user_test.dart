@@ -1,9 +1,30 @@
-import 'dart:io';
-
 import 'package:grpc/grpc.dart';
 import 'package:m10_sdk/m10_sdk.dart';
 import 'package:test/test.dart';
 import 'utilities/utility.dart';
+
+Future<void> expectUserToContainAccount({
+  required M10Sdk sdk,
+  required String userId,
+  required String operator,
+  required String accountId,
+  int maxAttempts = 20,
+  Duration interval = const Duration(milliseconds: 250),
+}) async {
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    final user = await sdk.getUser(userId: userId, operator: operator);
+    final found = user.accounts.any((account) => account == accountId);
+    if (found) {
+      return;
+    }
+    if (attempt < maxAttempts) {
+      await Future<void>.delayed(interval);
+    }
+  }
+  fail(
+    'Account $accountId not found for user $userId after $maxAttempts attempts',
+  );
+}
 
 void main() {
   late final M10Sdk userSdk;
@@ -34,23 +55,19 @@ void main() {
     test(
       'it should update an existing user',
       () async {
+        const accountId = '05800002000000003d00000000000003';
         await userSdk.updateUser(
           userId: userId,
-          accounts: ['05800002000000003d00000000000003'],
+          accounts: [accountId],
           operator: operator,
         );
 
-        sleep(Duration(milliseconds: 200));
-
-        final alice = await userSdk.getUser(
+        await expectUserToContainAccount(
+          sdk: userSdk,
           userId: userId,
           operator: operator,
+          accountId: accountId,
         );
-
-        final found = alice.accounts.any(
-          (account) => account == '05800002000000003d00000000000003',
-        );
-        expect(found, true);
       },
       skip: false,
     );

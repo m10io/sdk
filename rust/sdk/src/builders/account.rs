@@ -82,6 +82,7 @@ pub struct AccountBuilder {
     issuance: bool,
     frozen: bool,
     balance_limit: u64,
+    issuance_limit: u64,
     instrument: Option<sdk::Instrument>,
 }
 
@@ -92,6 +93,7 @@ impl AccountBuilder {
             issuance: false,
             frozen: false,
             balance_limit: 0,
+            issuance_limit: 0,
             instrument: None,
         }
     }
@@ -102,6 +104,7 @@ impl AccountBuilder {
             issuance: false,
             frozen: false,
             balance_limit: 0,
+            issuance_limit: 0,
             instrument: None,
         }
     }
@@ -110,15 +113,17 @@ impl AccountBuilder {
         code: impl Into<String>,
         decimals: u32,
         description: Option<impl Into<String>>,
+        display_code: Option<impl Into<String>>,
     ) -> Self {
         Self {
             parent_id: None,
             issuance: false,
             frozen: false,
             balance_limit: 0,
+            issuance_limit: 0,
             instrument: None,
         }
-        .instrument(code, decimals, description)
+        .instrument(code, decimals, description, display_code)
     }
 
     pub fn issuance(mut self, flag: bool) -> Self {
@@ -136,16 +141,27 @@ impl AccountBuilder {
         self
     }
 
+    pub fn issuance_limit(mut self, limit: u64) -> Self {
+        self.issuance_limit = limit;
+        self
+    }
+
     pub fn instrument(
         mut self,
         code: impl Into<String>,
         decimals: u32,
         description: Option<impl Into<String>>,
+        display_code: Option<impl Into<String>>,
     ) -> Self {
+        let code = code.into();
+        let description = description.map(Into::into).unwrap_or_default();
+        let display_code = display_code.map(Into::into).unwrap_or_else(|| code.clone());
+
         self.instrument = Some(sdk::Instrument {
-            code: code.into(),
+            code,
             decimal_places: decimals,
-            description: description.map(|d| d.into()).unwrap_or_default(),
+            description,
+            display_code,
         });
         self
     }
@@ -159,6 +175,7 @@ impl From<AccountBuilder> for sdk::CreateLedgerAccount {
             issuance: builder.issuance,
             instrument: builder.instrument,
             balance_limit: builder.balance_limit,
+            issuance_limit: builder.issuance_limit,
         }
     }
 }

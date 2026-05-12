@@ -27,6 +27,7 @@ pub enum BankAccountType {
     Loan,
     Card,
     Holding,
+    Liability,
 }
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq)]
@@ -245,6 +246,52 @@ impl BankAccount {
         let query = sqlx::query_as("SELECT * FROM bank_accounts WHERE id = $1").bind(self.id);
         let account: Self = query.fetch_one(txn).await?;
         *self = account;
+        Ok(())
+    }
+
+    pub async fn open_liability_if_missing(
+        name: &str,
+        currency: &str,
+        mut conn: PooledConnection<'_, RdsManager>,
+    ) -> Result<BankAccount, Error> {
+        if let Some(acc) = Self::find_by_name(name).fetch_optional(&mut *conn).await? {
+            return Ok(acc);
+        }
+        let mut txn = conn.begin().await?;
+        sqlx::query("SELECT pg_advisory_xact_lock($1)")
+            .bind(600000000_i32)
+            .execute(&mut *txn)
+            .await?;
+        let _: i64 = sqlx::query_scalar("SELECT open_account($1, $2, $3, $4)")
+            .bind(600000000_i32)
+            .bind(name)
+            .bind(currency.to_uppercase())
+            .bind(0_i64)
+            .fetch_one(&mut *txn)
+            .await?;
+        txn.commit().await?;
+        let acc = Self::find_by_name(name).fetch_one(&mut *conn).await?;
+        Ok(acc)
+    }
+
+    pub async fn adjust_balance(
+        &mut self,
+        delta: i64,
+        txn: impl Executor<'_, Database = Postgres>,
+    ) -> Result<(), Error> {
+        let updated: Self = sqlx::query_as(
+            "UPDATE bank_accounts
+             SET balance = balance + $1,
+                 updated_at = $2
+             WHERE id = $3
+             RETURNING *",
+        )
+        .bind(delta)
+        .bind(Utc::now())
+        .bind(self.id)
+        .fetch_one(txn)
+        .await?;
+        *self = updated;
         Ok(())
     }
 }

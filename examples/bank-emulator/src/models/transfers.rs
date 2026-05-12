@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 use chrono::TimeZone;
 use m10_sdk::sdk;
-use pala_types::TxId;
 use sqlx::{postgres::PgArguments, query::QueryAs, Executor, Postgres};
 
 use crate::error::Error;
@@ -77,19 +76,13 @@ impl LedgerTransfer {
         .bind(handler)
     }
 
-    pub(crate) fn find_block(
+    pub(crate) fn find_tx(
         handler: TransferHandler,
-        tx_id: TxId,
+        tx_id: Vec<u8>,
     ) -> QueryAs<'static, Postgres, Self, PgArguments> {
-        let height = tx_id.height();
-        sqlx::query_as(
-            "SELECT * FROM ledger_transfers
-            WHERE handler = $1 AND tx_id >= $2 AND tx_id < $3
-            ORDER BY tx_id DESC LIMIT 1",
-        )
-        .bind(handler)
-        .bind(height.to_be_bytes().to_vec())
-        .bind((height + 1).to_be_bytes().to_vec())
+        sqlx::query_as("SELECT * FROM ledger_transfers WHERE handler = $1 AND tx_id = $2")
+            .bind(handler)
+            .bind(tx_id)
     }
 
     pub(crate) fn find_unhandled(

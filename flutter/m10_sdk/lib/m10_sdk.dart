@@ -680,19 +680,25 @@ class M10Sdk {
   /// * `owner` (optional): The public key of the role owner in base64-encoded
   ///   format.
   /// * `rules` (optional): A list of `RuleDoc`
-  Future createRole({
+  Future<String?> createRole({
     required String operator,
     required String name,
     String? id,
     String? owner,
     List<RuleDoc>? rules,
     String? contextId,
+    IdType roleIdType = IdType.hex,
   }) async {
     final uuid = Uuid();
     final ownerBytes = owner != null ? base64Decode(owner) : null;
+    final rawId = id != null
+        ? roleIdType == IdType.hex
+            ? hex.decode(id)
+            : Uuid.parse(id)
+        : uuid.v4buffer(List.filled(16, 0));
 
     final role = Role()
-      ..id = (id != null ? hex.decode(id) : uuid.v4buffer(List.filled(16, 0)))
+      ..id = rawId
       ..name = name
       ..owner = ownerBytes ?? await signer.publicKey();
 
@@ -871,7 +877,7 @@ class M10Sdk {
   ///
   /// Throws:
   /// * An Exception if role binding creation fails.
-  Future createRoleBinding({
+  Future<String?> createRoleBinding({
     required String operator,
     required String role,
     required String name,
@@ -879,11 +885,22 @@ class M10Sdk {
     List<String>? subjects,
     List<Expression>? expressions,
     String? contextId,
+    IdType roleBindingIdType = IdType.hex,
   }) async {
     final uuid = Uuid();
+    final rawRoleBindingId = id != null
+        ? roleBindingIdType == IdType.hex
+            ? hex.decode(id)
+            : Uuid.parse(id)
+        : uuid.v4buffer(List.filled(16, 0));
+    final rawRoleId =
+        roleBindingIdType == IdType.hex ? hex.decode(role) : Uuid.parse(role);
+
     final roleBinding = RoleBinding()
-      ..id = (id != null ? hex.decode(id) : uuid.v4buffer(List.filled(16, 0)))
-      ..name = name;
+      ..id = rawRoleBindingId
+      ..role = rawRoleId
+      ..name = name
+      ..owner = await signer.publicKey();
 
     roleBinding.expressions.clear();
     if (expressions != null) {

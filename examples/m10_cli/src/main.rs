@@ -1,4 +1,5 @@
 use clap::Parser;
+use m10_sdk::error::M10Error;
 use verbose::LogLevel;
 
 mod collections;
@@ -6,19 +7,18 @@ mod commands;
 mod config;
 mod context;
 mod dyn_signer;
+mod tls;
 mod utils;
 mod verbose;
 
-// Construct the long version string at compile time
+#[cfg(feature = "internal")]
 const LONG_VERSION: &str = const_str::concat!(
-    // The header: "<name> <semver> (commit <short_sha>, built <timestamp>)"
     env!("CARGO_PKG_VERSION"),
     " (commit ",
-    env!("VERGEN_GIT_SHA"),
+    env!("GIT_SHA_SHORT"),
     ", built ",
     env!("VERGEN_BUILD_TIMESTAMP"),
     ")\n",
-    // More details:
     "Commit Date:      ",
     env!("VERGEN_GIT_COMMIT_TIMESTAMP"),
     "\n",
@@ -29,6 +29,17 @@ const LONG_VERSION: &str = const_str::concat!(
     env!("VERGEN_RUSTC_SEMVER"),
     "\n",
 );
+
+#[cfg(not(feature = "internal"))]
+const LONG_VERSION: &str = const_str::concat!(
+    env!("CARGO_PKG_VERSION"),
+    " (commit ",
+    env!("GIT_SHA_SHORT"),
+    ", built ",
+    env!("VERGEN_BUILD_TIMESTAMP"),
+    ")\n",
+);
+
 #[derive(Clone, Parser, Debug)]
 #[clap(
     about,
@@ -53,6 +64,14 @@ pub(crate) struct Opts {
         conflicts_with_all = &["vault_addr", "vault_token", "vault_key_name"]
     )]
     pub(crate) key_file: Option<String>,
+    /// Force digest signing mode for Ed25519 key file (only valid value: "ed25519ph").
+    #[arg(
+        global = true,
+        long,
+        requires = "key_file",
+        conflicts_with_all = &["vault_addr", "vault_token", "vault_key_name"]
+    )]
+    pub(crate) key_algorithm: Option<String>,
     /// Use a profile from a config file for global options
     #[arg(global = true, short, long)]
     pub(crate) profile: Option<String>,
@@ -74,9 +93,12 @@ pub(crate) struct Opts {
     /// Vault enterprise namespace
     #[arg(global = true, long)]
     pub(crate) vault_namespace: Option<String>,
-    /// Vault algorithm: "ed25519" or "p256" (default: "ed25519")
+    /// Vault algorithm: "ed25519", "ed25519ph", or "p256" (default: "ed25519")
     #[arg(global = true, long)]
     pub(crate) vault_algorithm: Option<String>,
+    /// Path to additional CA certificate PEM file (added to native roots)
+    #[arg(global = true, long)]
+    pub(crate) ca_cert: Option<String>,
     #[command(subcommand)]
     cmd: commands::Commands,
     /// Set log level (default: no logging)
@@ -84,12 +106,24 @@ pub(crate) struct Opts {
     pub(crate) verbose: Option<LogLevel>,
 }
 
+fn error_to_message(err: &anyhow::Error) -> String {
+    if let Some(error) = err.downcast_ref::<M10Error>() {
+        return error.get_message();
+    };
+
+    err.to_string()
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts: Opts = Opts::parse();
     let _ = rustls::crypto::ring::default_provider().install_default();
     let context = context::Context::new_from_options(&opts).await?;
-    opts.cmd.run(&context).await?;
+    if let Err(err) = opts.cmd.run(&context).await {
+        eprintln!("error: {}", error_to_message(&err));
+        std::process::exit(1);
+    }
+
     Ok(())
 }
 

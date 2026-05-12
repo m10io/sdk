@@ -56,6 +56,8 @@ pub struct CreateAccountRequest {
     pub assets: Option<Vec<String>>,
 
     pub signatures: Vec<Signature>,
+
+    pub account_set_id: Option<String>,
 }
 
 impl From<CreateAccountRequest> for Account {

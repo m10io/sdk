@@ -1,7 +1,9 @@
 use std::io::{self, BufReader};
 
 use clap::Args;
-use m10_sdk::{account::AccountId, Format, NameOrOwnerFilter, PageBuilder, PrettyPrint, PublicKey};
+use m10_sdk::{
+    account::AccountId, AccountMetadataFilter, Format, PageBuilder, PrettyPrint, PublicKey,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::context::Context;
@@ -11,9 +13,21 @@ pub(crate) struct FindAccountArgs {
     /// Set name filter
     #[arg(short, long, group = "filter")]
     name: Option<String>,
+    /// Set public-name filter
+    #[arg(long = "public-name", group = "filter")]
+    public_name: Option<String>,
     /// Set owner filter
     #[arg(short, long, group = "filter")]
     owner: Option<PublicKey>,
+    /// Set ISIN filter (exact match)
+    #[arg(long, group = "filter")]
+    isin: Option<String>,
+    /// Set DTI filter (exact match)
+    #[arg(long, group = "filter")]
+    dti: Option<String>,
+    /// Set Issuer Bank Id filter (exact match)
+    #[arg(long, group = "filter")]
+    issuer_bank_id: Option<String>,
     /// Set output format (one of 'json', 'yaml', 'raw')
     #[arg(short, long, default_value = "raw")]
     #[serde(default)]
@@ -30,13 +44,31 @@ impl FindAccountArgs {
         Ok(())
     }
 
-    fn filter_from_options(&self) -> anyhow::Result<PageBuilder<Vec<u8>, NameOrOwnerFilter>> {
+    fn filter_from_options(&self) -> anyhow::Result<PageBuilder<Vec<u8>, AccountMetadataFilter>> {
         if let Some(name) = &self.name {
-            Ok(PageBuilder::filter(NameOrOwnerFilter::Name(
+            Ok(PageBuilder::filter(AccountMetadataFilter::Name(
                 name.to_string(),
             )))
+        } else if let Some(public_name) = &self.public_name {
+            Ok(PageBuilder::filter(AccountMetadataFilter::PublicName(
+                public_name.to_string(),
+            )))
         } else if let Some(owner) = &self.owner {
-            Ok(PageBuilder::filter(NameOrOwnerFilter::Owner(owner.clone())))
+            Ok(PageBuilder::filter(AccountMetadataFilter::Owner(
+                owner.clone(),
+            )))
+        } else if let Some(isin) = &self.isin {
+            Ok(PageBuilder::filter(AccountMetadataFilter::Isin(
+                isin.to_string(),
+            )))
+        } else if let Some(dti) = &self.dti {
+            Ok(PageBuilder::filter(AccountMetadataFilter::Dti(
+                dti.to_string(),
+            )))
+        } else if let Some(issuer_bank_id) = &self.issuer_bank_id {
+            Ok(PageBuilder::filter(AccountMetadataFilter::IssuerBankId(
+                issuer_bank_id.to_string(),
+            )))
         } else {
             Err(anyhow::anyhow!("missing filter"))
         }

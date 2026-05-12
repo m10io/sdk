@@ -1,9 +1,8 @@
+use crate::context::Context;
 use clap::Subcommand;
 use m10_sdk::{prost::Message, sdk, DocumentBuilder, DocumentUpdate, Pack, WithContext};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::context::Context;
 
 mod account_sets;
 mod accounts;
@@ -31,9 +30,18 @@ pub(crate) enum Update {
     /// Update role record
     #[command(alias = "r")]
     Role(roles::UpdateRoleArgs),
+    /// Update role metadata (name, description, owner)
+    #[command(alias = "rm")]
+    RoleMetadata(roles::UpdateRoleMetadataArgs),
+    /// Update role rules
+    #[command(alias = "rr")]
+    RoleRules(roles::UpdateRoleRulesArgs),
     /// Update role binding record
     #[command(alias = "rb")]
     RoleBinding(role_bindings::UpdateRoleBindingArgs),
+    /// Update role binding subjects
+    #[command(subcommand)]
+    RoleBindingSubjects(role_bindings::RoleBindingSubjects),
     /// Update transfer status
     #[command(alias = "t")]
     Transfer(transfer::UpdateTransferArgs),
@@ -47,7 +55,10 @@ impl Update {
             Update::AccountSet(args) => store_update(args.id, args, context).await,
             Update::Bank(args) => store_update(args.id, args, context).await,
             Update::Role(args) => store_update(args.id, args, context).await,
+            Update::RoleMetadata(args) => store_update(args.id, args, context).await,
+            Update::RoleRules(args) => args.update(context).await,
             Update::RoleBinding(args) => store_update(args.id, args, context).await,
+            Update::RoleBindingSubjects(args) => args.update(context).await,
             Update::Transfer(args) => args.do_update(context).await,
         }
     }
@@ -58,6 +69,7 @@ impl Update {
             Update::AccountSet(args) => update_operation(args.id, args),
             Update::Bank(args) => update_operation(args.id, args),
             Update::Role(args) => update_operation(args.id, args),
+            Update::RoleMetadata(args) => update_operation(args.id, args),
             Update::RoleBinding(args) => update_operation(args.id, args),
             _ => Err(anyhow::anyhow!("Not supported")),
         }
@@ -67,7 +79,7 @@ impl Update {
 trait BuildFromArgs {
     type Document;
 
-    fn build_from_args(self, builder: &mut DocumentUpdate<Self::Document>) -> anyhow::Result<()>;
+    fn build_from_args(self, builder: &mut DocumentUpdate<Self::Document>) -> anyhow::Result<bool>;
 }
 
 async fn store_update<M, O>(id: Uuid, args: O, context: &Context) -> anyhow::Result<()>
@@ -77,7 +89,7 @@ where
 {
     let mut builder = DocumentUpdate::<M>::new(id);
 
-    args.build_from_args(&mut builder)?;
+    let changed = args.build_from_args(&mut builder)?;
 
     m10_sdk::documents(
         context.ledger_client(),
@@ -86,6 +98,13 @@ where
             .context_id(context.context_id()),
     )
     .await?;
+
+    if changed {
+        println!("document was successfully updated");
+    } else {
+        println!("warning: no fields specified, nothing was updated");
+    }
+
     Ok(())
 }
 

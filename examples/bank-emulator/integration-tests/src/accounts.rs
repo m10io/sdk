@@ -3,9 +3,65 @@ use m10_sdk::{Signature, Signer};
 use m10_sdk::{StepBuilder, TransferBuilder};
 use serde_json::json;
 use serde_json::Value;
+use std::time::Duration;
 
 use super::base_url;
 use super::utils::*;
+
+#[allow(dead_code)]
+#[derive(serde::Deserialize, Debug)]
+struct Recon {
+    currency: String,
+    cla: i64,
+    sum_traditional: i64,
+    tdl: ReconTdl,
+    issuance: ReconTdl,
+    diffs: ReconDiffs,
+}
+#[derive(serde::Deserialize, Debug)]
+struct ReconTdl {
+    regulated: i64,
+    indirect_cbdc: i64,
+}
+#[derive(serde::Deserialize, Debug)]
+struct ReconDiffs {
+    cla_vs_sum_traditional: i64,
+    tdl_regulated_vs_issuance: i64,
+    tdl_cbdc_vs_issuance: i64,
+}
+
+async fn reconcile(client: &reqwest::Client, jwt: &str, ccy: &str) -> Recon {
+    const MAX_ATTEMPTS: usize = 5;
+    let url = format!("{}/api/v1/reconciliation/{}", base_url(), ccy);
+
+    for attempt in 1..=MAX_ATTEMPTS {
+        match client.get(&url).bearer_auth(jwt).send().await {
+            Ok(resp) if resp.status().is_success() => return resp.assert_json::<Recon>().await,
+            Ok(resp) => {
+                if attempt == MAX_ATTEMPTS {
+                    let status = resp.status();
+                    let body = resp.text().await.unwrap_or_default();
+                    panic!(
+                        "reconciliation failed after {} attempts: [{}] {}",
+                        MAX_ATTEMPTS, status, body
+                    );
+                }
+            }
+            Err(err) => {
+                if attempt == MAX_ATTEMPTS {
+                    panic!(
+                        "reconciliation request failed after {} attempts: {}",
+                        MAX_ATTEMPTS, err
+                    );
+                }
+            }
+        }
+
+        tokio::time::sleep(Duration::from_millis((attempt as u64) * 250)).await;
+    }
+
+    unreachable!("retry loop should return or panic");
+}
 
 #[tokio::test]
 async fn accounts_wire_routes() {
@@ -27,6 +83,7 @@ async fn accounts_wire_routes() {
         contact_type: Some(ContactType::Individual),
         assets: Some(vec!["usd".into()]),
         signatures: vec![Signature::from(signature)],
+        account_set_id: None,
     };
 
     // create account
@@ -56,6 +113,10 @@ async fn accounts_wire_routes() {
         .assert_success()
         .await;
 
+    let admin = admin_jwt().await;
+    let r0 = reconcile(&client, &admin, "usd").await;
+    println!("reconciliation before: {:?}", r0);
+
     // fund
     println!("fund account for wire");
     client
@@ -75,6 +136,10 @@ async fn accounts_wire_routes() {
         .expect("fund account response")
         .assert_success()
         .await;
+    let r1 = reconcile(&client, &admin, "usd").await;
+    println!("reconciliation after: {:?}", r1);
+    assert_eq!(r1.cla - r0.cla, 50_000, "CLA should increase on fund");
+    assert_eq!(r1.diffs.cla_vs_sum_traditional, 0);
 
     // deposit
     let txn = client
@@ -111,6 +176,13 @@ async fn accounts_wire_routes() {
         .expect("settle deposit response")
         .assert_success()
         .await;
+    let r2 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(
+        r2.cla - r1.cla,
+        700,
+        "CLA should increase on settled deposit"
+    );
+    assert_eq!(r2.diffs.cla_vs_sum_traditional, 0);
 
     // withdraw
     let txn = client
@@ -147,6 +219,13 @@ async fn accounts_wire_routes() {
         .expect("settle withdraw response")
         .assert_success()
         .await;
+    let r3 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(
+        r3.cla - r2.cla,
+        -500,
+        "CLA should decrease on settled withdraw"
+    );
+    assert_eq!(r3.diffs.cla_vs_sum_traditional, 0);
 
     // fund ledger account from bank account
     println!("fund ledger account from bank account");
@@ -195,6 +274,14 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after + 10000, balance_before);
+    let r4 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(r4.cla - r3.cla, -10_000, "CLA must decrease on issuance");
+    assert_eq!(
+        r4.tdl.regulated - r3.tdl.regulated,
+        10_000,
+        "TDL(reg) must increase on issuance"
+    );
+    assert_eq!(r4.diffs.tdl_regulated_vs_issuance, 0);
 
     // fund CBDC account from bank account
     println!("fund CBDC account from bank account");
@@ -243,6 +330,10 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after + 5500, balance_before);
+    let r5 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(r5.cla - r4.cla, -5_500);
+    assert_eq!(r5.tdl.indirect_cbdc - r4.tdl.indirect_cbdc, 5_500);
+    assert_eq!(r5.diffs.tdl_cbdc_vs_issuance, 0);
 
     // Note temporary disabled, need to find a new way to
     // test failed transfer since this fails now before the actual transfer
@@ -334,6 +425,10 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after - 2200, balance_before);
+    let r6 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(r6.cla - r5.cla, 2_200);
+    assert_eq!(r6.tdl.regulated - r5.tdl.regulated, -2_200);
+    assert_eq!(r6.diffs.tdl_regulated_vs_issuance, 0);
 
     // Redeem direct
     println!("Redeem direct");
@@ -371,6 +466,10 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after - 3300, balance_before);
+    let r7 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(r7.cla - r6.cla, 3_300);
+    assert_eq!(r7.tdl.regulated - r6.tdl.regulated, -3_300);
+    assert_eq!(r7.diffs.tdl_regulated_vs_issuance, 0);
 
     // Redeem CBDC direct
     println!("Redeem CBDC direct");
@@ -408,6 +507,10 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after - 1100, balance_before);
+    let r8 = reconcile(&client, &admin, "usd").await;
+    assert_eq!(r8.cla - r7.cla, 1_100);
+    assert_eq!(r8.tdl.indirect_cbdc - r7.tdl.indirect_cbdc, -1_100);
+    assert_eq!(r8.diffs.tdl_cbdc_vs_issuance, 0);
 
     // fund CBDC account from bank account over limit
     println!("fund CBDC account from bank account over limit");
@@ -488,31 +591,94 @@ async fn accounts_wire_routes() {
     );
     println!("balance after transfer: {}", balance_after);
     assert_eq!(balance_after, balance_before - 1100_00);
+    let r9 = reconcile(&client, &admin, "usd").await;
+    let delta_cla = r9.cla - r8.cla;
+    let delta_tdl_total =
+        (r9.tdl.indirect_cbdc - r8.tdl.indirect_cbdc) + (r9.tdl.regulated - r8.tdl.regulated);
+    assert_eq!(delta_cla, -110_000, "CLA must decrease by issued amount");
+    assert_eq!(
+        delta_tdl_total, 110_000,
+        "Total TDL must increase by issued amount"
+    );
 
     // wait for adjustment
-    tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let mut sleep_ms = 200u64;
+    let (cbdc_ok, regulated_ok, last_cbdc_bal, last_reg_bal) = loop {
+        let regulated_account_after = ledger
+            .get_account(
+                regulated_asset
+                    .ledger_account_id
+                    .as_slice()
+                    .try_into()
+                    .unwrap(),
+            )
+            .await
+            .expect("regulated ledger account");
 
-    let regulated_account_after = ledger
-        .get_account(
-            regulated_asset
-                .ledger_account_id
-                .as_slice()
-                .try_into()
-                .unwrap(),
-        )
-        .await
-        .expect("regulated ledger account");
-    let cbdc_account = ledger
-        .get_account(cbdc_asset.ledger_account_id.as_slice().try_into().unwrap())
-        .await
-        .expect("cbdc ledger account");
+        let cbdc_account = ledger
+            .get_account(cbdc_asset.ledger_account_id.as_slice().try_into().unwrap())
+            .await
+            .expect("cbdc ledger account");
 
-    // Expect cbdc account to stay under limit
-    assert!(cbdc_account.balance <= 1000_00, "cbdc balance above limit");
-    // Expect overflow transferred to regulated account
+        let cbdc_ok = cbdc_account.balance <= 1000_00;
+        let regulated_ok = regulated_account_after.balance > regulated_account_before.balance;
+
+        if cbdc_ok && regulated_ok {
+            break (
+                cbdc_ok,
+                regulated_ok,
+                cbdc_account.balance,
+                regulated_account_after.balance,
+            );
+        }
+        if std::time::Instant::now() >= deadline {
+            break (
+                cbdc_ok,
+                regulated_ok,
+                cbdc_account.balance,
+                regulated_account_after.balance,
+            );
+        }
+
+        let _ = reconcile(&client, &admin, "usd").await;
+
+        tokio::time::sleep(std::time::Duration::from_millis(sleep_ms)).await;
+        sleep_ms = std::cmp::min(sleep_ms.saturating_mul(2), 2000);
+    };
+
     assert!(
-        regulated_account_after.balance > regulated_account_before.balance,
-        "regulated account balance not increased"
+        cbdc_ok,
+        "cbdc balance above limit (last={} expected<=100000)",
+        last_cbdc_bal
+    );
+    assert!(
+        regulated_ok,
+        "regulated account balance not increased (before={} last={})",
+        regulated_account_before.balance, last_reg_bal
+    );
+
+    let rec_deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let (aligned, last_diff, r10) = loop {
+        let r = reconcile(&client, &admin, "usd").await;
+        let diff = r.diffs.tdl_cbdc_vs_issuance;
+        if diff == 0 {
+            break (true, diff, r);
+        }
+        if std::time::Instant::now() >= rec_deadline {
+            break (false, diff, r);
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    };
+    assert!(aligned, "TDL(CBDC) != issuance (diff = {})", last_diff);
+    assert_eq!(r10.diffs.tdl_cbdc_vs_issuance, 0, "TDL(CBDC) != issuance");
+    assert_eq!(
+        r10.diffs.tdl_regulated_vs_issuance, 0,
+        "TDL(REG) != issuance"
+    );
+    assert_eq!(
+        r10.diffs.cla_vs_sum_traditional, 0,
+        "CLA != sum(traditional)"
     );
 }
 

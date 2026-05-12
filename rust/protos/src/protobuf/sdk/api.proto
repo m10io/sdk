@@ -177,9 +177,17 @@ message ListAccountMetadataRequest {
     bytes owner = 1; 
     /// Filter by name.
     string name = 2; 
+    /// Filter by public name.
+    string public_name = 3;
+    /// Filter by ISIN.
+    string isin = 5;
+    /// Filter by DTI.
+    string dti = 6;
+    /// Filter by Issuer Bank ID.
+    string issuer_bank_id = 7;
   }
   /// Pagination options.
-  Page page = 4; 
+  Page page = 4;
 }
 
 // The response message for listing account metadata.
@@ -201,9 +209,15 @@ message ListRoleBindingsRequest {
   oneof filter { 
     /// Filter by name.
     string name = 1; 
+    /// Filter by subject (public key).
+    bytes subject = 2;
+    /// Filter by description.
+    string description = 3;
+    /// Filter by labels.
+    MapWrapper labels = 4;
   }
   /// Pagination options.
-  Page page = 4;  
+  Page page = 5;
 }
 
 // The response message for listing role bindings.
@@ -225,9 +239,15 @@ message ListRolesRequest {
   oneof filter { 
     /// Filter by name.
     string name = 1; 
+    /// Filter by instance id (bytes).
+    bytes instance_id = 2;
+    /// Filter by description.
+    string description = 3;
+    /// Filter by labels.
+    MapWrapper labels = 4;
   }
   /// Pagination options.
-  Page page = 4; 
+  Page page = 5;
 }
 
 // The response message for listing roles.
@@ -363,4 +383,3 @@ message OfflineKey {
   // The offline public key.
   bytes offline_pk = 1; 
 }
-

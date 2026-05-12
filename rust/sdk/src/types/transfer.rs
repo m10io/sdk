@@ -7,7 +7,7 @@ use core::result::Result;
 use core::time::Duration;
 use m10_protos::prost::Any;
 use m10_protos::sdk::transaction_data::Data;
-use m10_protos::{sdk, MetadataExt, MetadataType};
+use m10_protos::{sdk, Metadata, MetadataExt, MetadataType};
 use serde::{Serialize, Serializer};
 use serde_with::{serde_as, SerializeAs};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -115,6 +115,7 @@ pub enum TransferStatus {
 impl From<sdk::finalized_transfer::TransferState> for TransferStatus {
     fn from(status: sdk::finalized_transfer::TransferState) -> Self {
         match status {
+            sdk::finalized_transfer::TransferState::Unspecified => TransferStatus::Accepted,
             sdk::finalized_transfer::TransferState::Pending => TransferStatus::Pending,
             sdk::finalized_transfer::TransferState::Accepted => TransferStatus::Accepted,
             sdk::finalized_transfer::TransferState::Rejected => TransferStatus::Rejected,
@@ -244,6 +245,80 @@ impl TryFrom<sdk::FinalizedTransaction> for Transfer {
                     status,
                 })
             }
+            Data::CreateToken(transfer) => {
+                let sdk::CreateToken {
+                    account_id, value, ..
+                } = transfer;
+                let account_id = AccountId::try_from_be_slice(account_id)?;
+                let root_account =
+                    AccountId::from_root_account_index(account_id.root_account_index())?;
+                Ok(Self {
+                    tx_id,
+                    context_id,
+                    timestamp,
+                    steps: vec![TransferStep {
+                        from: account_id,
+                        to: root_account,
+                        amount: *value,
+                        metadata: vec![sdk::TokenWithdraw {}.any()],
+                    }],
+                    success,
+                    status: TransferStatus::Accepted,
+                })
+            }
+            Data::RedeemToken(transfer) => {
+                let sdk::RedeemToken { token, account_id } = transfer;
+                let sdk::RedeemableToken { data, .. } =
+                    token.as_ref().ok_or(M10Error::InvalidTransaction)?;
+                let sdk::redeemable_token::Data { inputs, .. } =
+                    data.as_ref().ok_or(M10Error::InvalidTransaction)?;
+
+                let account_id = AccountId::try_from_be_slice(account_id)?;
+                let root_account =
+                    AccountId::from_root_account_index(account_id.root_account_index())?;
+                let steps = inputs
+                    .iter()
+                    .map(
+                        |sdk::redeemable_token::TokenInput { input, value }| TransferStep {
+                            from: root_account,
+                            to: account_id,
+                            amount: *value,
+                            metadata: vec![sdk::OfflineTransfer { input: *input }.any()],
+                        },
+                    )
+                    .collect();
+
+                Ok(Self {
+                    tx_id,
+                    context_id,
+                    timestamp,
+                    steps,
+                    success,
+                    status: TransferStatus::Accepted,
+                })
+            }
+            Data::RedeemLocksForCycle(redemption) => {
+                let steps = redemption
+                    .steps
+                    .iter()
+                    .map(|step| {
+                        Ok::<_, M10Error>(TransferStep {
+                            from: AccountId::try_from_be_slice(&step.holder_account_id)?,
+                            to: AccountId::try_from_be_slice(&step.issuance_account_id)?,
+                            amount: step.amount,
+                            metadata: vec![],
+                        })
+                    })
+                    .collect::<M10Result<Vec<_>>>()?;
+                Ok(Self {
+                    tx_id,
+                    context_id,
+                    timestamp,
+                    steps,
+                    success,
+                    status: TransferStatus::Accepted,
+                })
+            }
             _ => Err(M10Error::InvalidTransaction),
         }
     }
@@ -365,7 +440,7 @@ impl TryFrom<EnhancedTransfer> for ExpandedTransfer {
             steps: transfer
                 .enhanced_steps
                 .into_iter()
-                .zip(transfer.transfer.transfer_steps.into_iter())
+                .zip(transfer.transfer.transfer_steps)
                 .map(ExpandedTransferStep::try_from)
                 .collect::<M10Result<_>>()?,
             success: transfer.transfer.error.is_none(),
@@ -383,7 +458,7 @@ pub struct TransferView {
     pub transfer: TransferData,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tx_sender: Option<String>,
+    pub tx_signer: Option<String>,
 }
 
 #[derive(serde::Serialize)]

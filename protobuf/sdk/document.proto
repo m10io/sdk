@@ -66,8 +66,6 @@ message Operation {
   }
 }
 
-
-
 // Metadata for a document collection.
 message CollectionMetadata {
   // Name of the collection.
@@ -96,6 +94,10 @@ message Exp {
   map<string, Value> vars = 2;
 }
 
+message MapWrapper {
+  map<string, string> value = 1;
+}
+
 // A value that can be stored in a document.
 message Value {
   // The actual value.
@@ -113,6 +115,7 @@ message Value {
     float float_value = 11;
     bool bool_value = 12;
     bytes bytes_value = 13;
+    MapWrapper hashmap_value = 14;
   }
 }
 

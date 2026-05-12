@@ -15,6 +15,12 @@ message AccountMetadata {
   string public_name = 11;
   /// Unique identifier (e.g. UUID) for the AccountMetadata.
   bytes id = 12;
+  /// International Securities Identification Number.
+  string isin = 13;
+  /// Digital Token Identifier.
+  string dti = 14;
+  /// Issuer bank id
+  string issuer_bank_id = 15;
 }
 
 message AccountSet {
@@ -34,18 +40,20 @@ message AccountInfo {
   /// Public name of the account.
   string public_name = 3;
   /// URL of the account's profile image.
-    string profile_image_url= 4;
+  string profile_image_url= 4;
   /// Account code (e.g., currency code).
   string code = 5;
   /// Number of decimal places for the account's value.
   uint32 decimal_places = 6;
+  /// Unique display code for the account (e.g., currency code). Equals `code` if not set.
+  string display_code = 7;
 }
 
 message BankAccountRef {
   /// Bank account type.
   enum BankAccountType {
   /// Central Bank Digital Currency.
-    CBDC = 0; 
+    CBDC = 0;
   /// Digital Regulated Money.
     DRM = 1;
   }
@@ -56,6 +64,19 @@ message BankAccountRef {
 }
 
 message Bank {
+  /// Operational status of a bank, aligned with the FIS US Consortium Scheme Rulebook.
+  enum BankStatus {
+    /// Bank is operational. Default value; existing records without the field read as ACTIVE.
+    ACTIVE = 0;
+    /// Bank is awaiting activation; onboarding not yet complete.
+    PENDING = 1;
+    /// Bank has been suspended by the Operator. The bank may not initiate new
+    /// transactions but continues to receive and process incoming transactions.
+    SUSPENDED = 2;
+    /// Bank membership has been terminated, whether voluntarily, involuntarily,
+    /// or automatically upon licence revocation.
+    TERMINATED = 3;
+  }
   /// Unique identifier for the bank.
   bytes id = 1;
   /// Owner of the bank collection record.
@@ -66,4 +87,16 @@ message Bank {
   string display_name = 4;
   /// List of BankAccountRef's.
   repeated BankAccountRef accounts = 5;
+  /// Operational status of the bank.
+  BankStatus status = 6;
+  /// ISO 3166-1 alpha-2 country code of the bank's jurisdiction.
+  string country_code = 7;
+  /// URL of the bank's integration service endpoint.
+  string endpoint = 8;
+  /// URL of the bank's logo image.
+  string logo_url = 9;
+  /// Human-readable description of the bank.
+  string description = 10;
+  /// BIC/SWIFT code identifying the bank in international transfers.
+  string bic_swift_code = 11;
 }

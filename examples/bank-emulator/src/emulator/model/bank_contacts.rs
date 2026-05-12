@@ -147,4 +147,16 @@ impl BankContact {
         *self = contact;
         Ok(())
     }
+
+    pub async fn has_contact(
+        account_id: i64,
+        txn: impl sqlx::Executor<'_, Database = sqlx::Postgres>,
+    ) -> Result<bool, Error> {
+        let exists: Option<bool> =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM bank_contacts WHERE account = $1)")
+                .bind(account_id)
+                .fetch_optional(txn)
+                .await?;
+        Ok(exists.unwrap_or(false))
+    }
 }

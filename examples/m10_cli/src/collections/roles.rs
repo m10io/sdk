@@ -2,7 +2,7 @@ use std::{convert::TryFrom, str::FromStr};
 
 use bytes::Bytes;
 use clap::Parser;
-use m10_sdk::sdk::{self, Value};
+use m10_sdk::sdk;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use uuid::Uuid;
@@ -11,25 +11,17 @@ use super::PrettyId;
 
 #[derive(Clone, Parser, Debug, Serialize, Deserialize)]
 pub(crate) struct RuleArgs {
-    #[clap(short, long)]
-    instances: Option<Vec<Uuid>>,
-    #[clap(short = 'x', long = "excluded-instances")]
-    excluded_instances: Option<Vec<Uuid>>,
-    #[clap(short, long)]
-    collection: String,
-    #[clap(short, long)]
-    verbs: Vec<Verb>,
+    #[clap(short = 'c', long = "collection")]
+    pub(crate) collection: String,
+    #[clap(short = 'v', long = "verbs")]
+    pub(crate) verbs: Vec<Verb>,
+    #[clap(short = 'i', long = "instances")]
+    pub(crate) instances: Option<Vec<Uuid>>,
 }
 
 impl RuleArgs {
     pub(crate) fn to_rbac_rule(&self) -> sdk::Rule {
         let instance_keys = self.instances.as_ref().map_or(vec![], |i| {
-            i.iter()
-                .map(|i| Bytes::copy_from_slice(i.as_bytes()).into())
-                .collect()
-        });
-
-        let excluded_instance_keys = self.excluded_instances.as_ref().map_or(vec![], |i| {
             i.iter()
                 .map(|i| Bytes::copy_from_slice(i.as_bytes()).into())
                 .collect()
@@ -41,7 +33,6 @@ impl RuleArgs {
         sdk::Rule {
             collection,
             instance_keys,
-            excluded_instance_keys,
             verbs,
         }
     }
@@ -58,9 +49,9 @@ impl FromStr for RuleArgs {
 }
 
 // Note: Arcadius types are not implementing Serialize/Deserialize.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "PascalCase")]
-enum Verb {
+pub(crate) enum Verb {
     Read = 0,
     Create = 1,
     Update = 2,
@@ -68,6 +59,9 @@ enum Verb {
     Transact = 4,
     Initiate = 5,
     Commit = 6,
+    Grant = 7,
+    Deny = 8,
+    Revoke = 9,
 }
 
 impl TryFrom<i32> for Verb {
@@ -82,6 +76,9 @@ impl TryFrom<i32> for Verb {
             4 => Ok(Verb::Transact),
             5 => Ok(Verb::Initiate),
             6 => Ok(Verb::Commit),
+            7 => Ok(Verb::Grant),
+            8 => Ok(Verb::Deny),
+            9 => Ok(Verb::Revoke),
             _ => Err(anyhow::anyhow!("Unknown verb: {}", value)),
         }
     }
@@ -99,20 +96,21 @@ impl FromStr for Verb {
             "Transact" => Ok(Verb::Transact),
             "Initiate" => Ok(Verb::Initiate),
             "Commit" => Ok(Verb::Commit),
+            "Grant" => Ok(Verb::Grant),
+            "Deny" => Ok(Verb::Deny),
+            "Revoke" => Ok(Verb::Revoke),
             _ => Err("no match"),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, parse_display::Display, Debug, Clone, Default)]
-#[display("Rule{{ collection={collection} instance_keys={instance_keys:?} excluded_instance_keys={excluded_instance_keys:?} verbs={verbs:?} }}")]
+#[display("Rule{{ collection={collection} instance_keys={instance_keys:?} verbs={verbs:?} }}")]
 pub struct Rule {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub collection: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub instance_keys: Vec<Value>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub excluded_instance_keys: Vec<Value>,
+    pub instance_keys: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub verbs: Vec<String>,
 }
@@ -124,7 +122,6 @@ impl TryFrom<m10_sdk::ledger::Rule> for Rule {
         let m10_sdk::ledger::Rule {
             collection,
             instance_keys,
-            excluded_instance_keys,
             verbs,
         } = other;
 
@@ -137,10 +134,20 @@ impl TryFrom<m10_sdk::ledger::Rule> for Rule {
             })
             .collect::<Result<_, anyhow::Error>>()?;
 
+        let converted_instance_keys = instance_keys
+            .into_iter()
+            .map(|v| {
+                if let Some(m10_sdk::sdk::value::Value::BytesValue(bytes)) = v.value {
+                    hex::encode(bytes)
+                } else {
+                    "<non-bytes-instance>".to_string()
+                }
+            })
+            .collect::<Vec<_>>();
+
         Ok(Rule {
             collection,
-            instance_keys,
-            excluded_instance_keys,
+            instance_keys: converted_instance_keys,
             verbs: converted_verbs,
         })
     }
@@ -152,11 +159,27 @@ pub struct Role {
     #[serde_as(as = "DisplayFromStr")]
     pub id: PrettyId,
     #[serde(skip_serializing_if = "String::is_empty")]
+    pub name: String,
+    pub description: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub owner: String,
     #[serde(skip_serializing_if = "String::is_empty")]
-    pub name: String,
+    pub created_by: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub rules: Vec<Rule>,
+    pub created_at: String,
+    pub updated_at: String,
+    #[serde(default)]
+    pub immutable: bool,
+    #[serde(default)]
+    pub labels: std::collections::HashMap<String, String>,
+}
+
+fn format_timestamp(timestamp_us: u64) -> String {
+    let secs = timestamp_us / 1_000_000;
+    let nanos = ((timestamp_us % 1_000_000) * 1_000) as u32;
+    let datetime = chrono::DateTime::from_timestamp(secs as i64, nanos).unwrap();
+    datetime.format("%Y-%m-%dT%H:%M:%S UTC").to_string()
 }
 
 impl TryFrom<m10_sdk::ledger::Role> for Role {
@@ -168,16 +191,27 @@ impl TryFrom<m10_sdk::ledger::Role> for Role {
             owner,
             name,
             mut rules,
-            ..
+            created_at,
+            updated_at,
+            created_by,
+            description,
+            immutable,
+            labels,
         } = other;
         Ok(Role {
             id: PrettyId::from(id),
-            owner: base64::encode(owner),
             name,
+            description,
+            owner: base64::encode(owner),
+            created_by: base64::encode(created_by),
             rules: rules
                 .drain(..)
                 .map(Rule::try_from)
                 .collect::<Result<_, _>>()?,
+            created_at: format_timestamp(created_at),
+            updated_at: format_timestamp(updated_at),
+            labels,
+            immutable,
         })
     }
 }
@@ -191,16 +225,27 @@ impl TryFrom<m10_sdk::Role> for Role {
             owner,
             name,
             mut rules,
-            ..
+            created_at,
+            updated_at,
+            created_by,
+            description,
+            immutable,
+            labels,
         } = other;
         Ok(Role {
             id: PrettyId::from(Bytes::from(id)),
-            owner: base64::encode(owner.to_vec()),
             name,
+            description,
+            owner: base64::encode(owner.to_vec()),
+            created_by: base64::encode(created_by.to_vec()),
             rules: rules
                 .drain(..)
                 .map(Rule::try_from)
                 .collect::<Result<_, _>>()?,
+            created_at: format_timestamp(created_at),
+            updated_at: format_timestamp(updated_at),
+            labels,
+            immutable,
         })
     }
 }

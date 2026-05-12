@@ -24,6 +24,12 @@ pub(crate) struct UpdateLedgerAccountArgs {
     /// Holding balance limit
     #[arg(short = 'l', long, aliases = ["limit", "hl"])]
     holding_limit: Option<u64>,
+    /// Issuance limit (maximum outstanding issued balance; 0 = unlimited)
+    #[arg(long, alias = "il")]
+    issuance_limit: Option<u64>,
+    /// Unique display code for the instrument
+    #[arg(long, alias = "dc")]
+    display_code: Option<String>,
 }
 
 impl UpdateLedgerAccountArgs {
@@ -41,17 +47,46 @@ impl UpdateLedgerAccountArgs {
                 .await?;
         }
 
-        if let Some(code) = self.code {
+        if let Some(limit) = self.issuance_limit {
+            client
+                .set_issuance_limit(self.id, limit, context.context_id())
+                .await?;
+        }
+
+        if self.id.depth() != 0 {
+            if let Some(display_code) = self.display_code.clone() {
+                client
+                    .set_display_code(self.id, display_code, context.context_id())
+                    .await?;
+            }
+        } else {
+            if self.display_code.is_some() && (self.code.is_none() || self.decimals.is_none()) {
+                eprintln!("warning: required code and decimals for root accounts")
+            }
+        }
+
+        if let Some(code) = &self.code {
             client
                 .set_account_instrument(
                     self.id,
-                    code,
+                    code.clone(),
                     self.decimals.unwrap(),
                     self.description,
                     context.context_id(),
+                    self.display_code.clone(),
                 )
                 .await?;
         }
+
+        if self.freeze.is_none()
+            && self.holding_limit.is_none()
+            && self.issuance_limit.is_none()
+            && self.code.is_none()
+            && self.display_code.is_none()
+        {
+            eprintln!("warning: no fields specified, nothing was updated");
+        }
+
         Ok(())
     }
 }

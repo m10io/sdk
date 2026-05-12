@@ -211,7 +211,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
 
     async fn list_accounts(
         &self,
-        filter: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+        filter: PageBuilder<Vec<u8>, AccountMetadataFilter>,
     ) -> M10Result<Vec<Account>> {
         let req = self
             .signer()?
@@ -460,7 +460,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
         Role::try_from(role)
     }
 
-    async fn list_roles(&self, builder: PageBuilder<Vec<u8>, NameFilter>) -> M10Result<Vec<Role>> {
+    async fn list_roles(&self, builder: PageBuilder<Vec<u8>, RoleFilter>) -> M10Result<Vec<Role>> {
         let req = self
             .signer()?
             .sign_request::<sdk::ListRolesRequest>(builder.into())
@@ -497,7 +497,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
 
     async fn list_role_bindings(
         &self,
-        builder: PageBuilder<Vec<u8>, NameFilter>,
+        builder: PageBuilder<Vec<u8>, RoleBindingFilter>,
     ) -> M10Result<Vec<RoleBinding>> {
         let req = self
             .signer()?
@@ -572,7 +572,7 @@ impl<S: Signer> crate::m10_core_client::M10CoreClient for GrpcClient<S> {
 
     async fn list_account_metadata(
         &self,
-        builder: PageBuilder<Vec<u8>, NameOrOwnerFilter>,
+        builder: PageBuilder<Vec<u8>, AccountMetadataFilter>,
     ) -> M10Result<Vec<AccountMetadata>> {
         let req = self
             .signer()?

@@ -1,29 +1,45 @@
+use std::env;
+
 use vergen::{BuildBuilder, Emitter, RustcBuilder};
 use vergen_git2::Git2Builder;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 1) Build info
     let build = BuildBuilder::default().build_timestamp(true).build()?;
+    let rustc = RustcBuilder::all_rustc()?;
 
-    // 2) Git info
-    let git = Git2Builder::default()
+    let mut emitter = Emitter::default();
+    emitter.add_instructions(&build)?.add_instructions(&rustc)?;
+
+    // When a .git directory is available (typical local dev), let vergen-git2
+    // populate VERGEN_GIT_*. When unavailable (e.g. Docker builds where .git
+    // isn't in the context), fall back to env-var values supplied by the
+    // caller, or "unknown" placeholders.
+    match Git2Builder::default()
         .branch(true)
         .commit_timestamp(true)
         .sha(true)
-        .build()?;
+        .build()
+    {
+        Ok(git) => {
+            emitter.add_instructions(&git)?;
+        }
+        Err(_) => {
+            for var in [
+                "VERGEN_GIT_SHA",
+                "VERGEN_GIT_BRANCH",
+                "VERGEN_GIT_COMMIT_TIMESTAMP",
+            ] {
+                let val = env::var(var).unwrap_or_else(|_| "unknown".to_string());
+                println!("cargo:rustc-env={var}={val}");
+            }
+        }
+    }
 
-    // 3) Rustc info
-    let rustc = RustcBuilder::all_rustc()?;
+    emitter.emit()?;
 
-    Emitter::default()
-        .add_instructions(&build)?
-        .add_instructions(&git)?
-        .add_instructions(&rustc)?
-        .emit()?;
-
-    // 4) Short SHA (7 chars) for display in version string.
+    // Short SHA (7 chars) for display in version string.
     // Priority: VERGEN_GIT_SHA env override (set in CI workflow) → git command → "unknown".
-    let sha = std::env::var("VERGEN_GIT_SHA")
+    let sha = env::var("VERGEN_GIT_SHA")
         .ok()
         .or_else(|| {
             std::process::Command::new("git")

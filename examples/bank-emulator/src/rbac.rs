@@ -60,6 +60,7 @@ pub(crate) async fn add_key(role_id: Uuid, key: &[u8], context: &Context) -> Res
         description: role_binding.description,
         labels: role_binding.labels,
         expires_at: role_binding.expires_at,
+        attributes: vec![],
     };
 
     let ops = vec![delete_op, sdk::Operation::insert(role_binding)];
@@ -132,6 +133,8 @@ pub(crate) async fn create_contact_rbac_role(
         collection: Collection::AccountSets.to_string(),
         instance_keys: vec![Bytes::copy_from_slice(account_set_id.as_bytes()).into()],
         verbs: vec![Verb::Read as i32, Verb::Update as i32, Verb::Delete as i32],
+        when: None,
+        types: std::collections::HashMap::new(),
     });
     if !ledger_accounts.is_empty() {
         let ledger_accounts: Vec<Value> = ledger_accounts
@@ -142,11 +145,15 @@ pub(crate) async fn create_contact_rbac_role(
             collection: Collection::AccountMetadata.to_string(),
             instance_keys: ledger_accounts.clone(),
             verbs: vec![Verb::Read as i32],
+            when: None,
+            types: std::collections::HashMap::new(),
         });
         rules.push(Rule {
             collection: LEDGER_ACCOUNT_COLLECTION.to_string(),
             instance_keys: ledger_accounts,
             verbs: vec![Verb::Initiate as i32, Verb::Transact as i32],
+            when: None,
+            types: std::collections::HashMap::new(),
         });
     }
     let role = Role {
@@ -182,6 +189,7 @@ pub(crate) async fn create_contact_rbac_role(
         description: String::new(),
         labels: std::collections::HashMap::new(),
         expires_at: None,
+        attributes: vec![],
     };
 
     let ops = vec![Operation::insert(role), Operation::insert(role_binding)];
@@ -242,6 +250,7 @@ pub(crate) async fn create_requiem_rbac_role(
         description: String::new(),
         labels: std::collections::HashMap::new(),
         expires_at: None,
+        attributes: vec![],
     };
 
     let ops = vec![Operation::insert(role), Operation::insert(role_binding)];
@@ -267,6 +276,8 @@ pub(crate) async fn add_accounts_to_role(
             collection: Collection::AccountMetadata.to_string(),
             instance_keys: vec![],
             verbs: vec![Verb::Read as i32],
+            when: None,
+            types: std::collections::HashMap::new(),
         })
         .clone();
     let mut ledger_account_rule = role
@@ -277,6 +288,8 @@ pub(crate) async fn add_accounts_to_role(
             collection: LEDGER_ACCOUNT_COLLECTION.to_string(),
             instance_keys: vec![],
             verbs: vec![Verb::Initiate as i32, Verb::Transact as i32],
+            when: None,
+            types: std::collections::HashMap::new(),
         })
         .clone();
     for ledger_account_id in ledger_accounts {

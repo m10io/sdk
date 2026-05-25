@@ -88,7 +88,7 @@ pub trait M10CoreClient {
         tx_id: TxId,
         accept: bool,
         context_id: Vec<u8>,
-    ) -> M10Result<TxId> {
+    ) -> M10Result<(TxId, bool)> {
         let req = self
             .signed_transaction(
                 sdk::CommitTransfer {
@@ -104,7 +104,7 @@ pub trait M10CoreClient {
             )
             .await?;
         let response = self.create_transaction(req.into()).await?;
-        Ok(response.tx_id)
+        Ok((response.tx_id, response.transfer_committed.is_some()))
     }
 
     async fn freeze_account(
@@ -178,6 +178,28 @@ pub trait M10CoreClient {
                 sdk::SetDisplayCode {
                     account_id: account_id.to_vec(),
                     display_code,
+                }
+                .into(),
+                context_id,
+            )
+            .await?;
+        let response = self.create_transaction(req.into()).await?;
+        Ok(response.tx_id)
+    }
+
+    async fn set_min_commits(
+        &self,
+        account_id: AccountId,
+        min_commits: u32,
+        commit_thresholds: Vec<sdk::CommitThreshold>,
+        context_id: Vec<u8>,
+    ) -> M10Result<TxId> {
+        let req = self
+            .signed_transaction(
+                sdk::SetMinCommits {
+                    account_id: account_id.to_vec(),
+                    min_commits,
+                    commit_thresholds,
                 }
                 .into(),
                 context_id,

@@ -38,11 +38,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if cfg!(feature = "dynamic2") {
         prost_config
             .type_attribute(
+                ".m10.sdk.model.AccountMetadata",
+                "#[derive(looking_glass_derive::Instance)]",
+            )
+            .type_attribute(
                 ".m10.sdk.RoleBinding",
                 "#[derive(looking_glass_derive::Instance)]",
             )
             .type_attribute(
                 ".m10.sdk.Expression",
+                "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
+            )
+            .type_attribute(
+                ".m10.sdk.Attribute",
+                "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
+            )
+            .type_attribute(
+                ".m10.sdk.AttributeValue",
                 "#[derive(looking_glass_derive::Instance, serde::Serialize, serde::Deserialize)]",
             )
             .type_attribute(".m10.sdk.Role", "#[derive(looking_glass_derive::Instance)]")

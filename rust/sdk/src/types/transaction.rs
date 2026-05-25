@@ -51,9 +51,8 @@ impl TryFrom<sdk::FinalizedTransaction> for Transaction {
             | Data::SetInstrument(_)
             | Data::SetBalanceLimit(_)
             | Data::SetDisplayCode(_)
-            | Data::SetIssuanceLimit(_) => {
-                Transaction::AccountUpdate(AccountUpdate::try_from(txn)?)
-            }
+            | Data::SetIssuanceLimit(_)
+            | Data::SetMinCommits(_) => Transaction::AccountUpdate(AccountUpdate::try_from(txn)?),
             Data::InvokeAction(_) => Transaction::Action(Action::try_from(txn)?),
             // TODO @sadroeck - fixme
             Data::DocumentOperations(_) => Transaction::DocumentOperations,

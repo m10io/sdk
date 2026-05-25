@@ -1,10 +1,14 @@
 use clap::Args;
-use m10_sdk::{prost::bytes::Bytes, sdk, DocumentUpdate, WithContext};
+use m10_sdk::{
+    prost::bytes::Bytes,
+    sdk::{self, rule::Ty},
+    DocumentUpdate, WithContext,
+};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::Path};
 use uuid::Uuid;
 
-use crate::utils::{parse_labels, validate_labels, validate_rules};
+use crate::utils::{parse_key_value, validate_labels, validate_rules};
 use crate::{collections::roles::RuleArgs, context::Context};
 
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
@@ -22,7 +26,14 @@ pub(crate) struct UpdateRoleArgs {
         short,
         long,
         required = true,
-        long_help = "IMPORTANT: When updating one or more rules for a role, ALL rules and their verbs must be entered, even those that don't change. Rules include --collections (-c), --verbs (-v) and optionally, --instances (-i). Default collections include ledger-accounts (aka \"account\"), account-metadata, roles and role-bindings. Available verbs include Read, Create, Update, Delete, Transact, Initiate, and Commit. Instances take the argument of account-metadata ID in uuid format. An option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*"
+        long_help = concat!("IMPORTANT: When updating one or more rules for a role, ALL rules and ",
+        "their verbs must be entered, even those that don't change. Rules include --collections ",
+        "(-c), --verbs (-v) and optionally, --instances (-i), expression (--when) and attributes ",
+        "(--types). Default collections include ledger-accounts (aka \"account\"), ",
+        "account-metadata, roles and role-bindings. Available verbs include Read, ",
+        "Create, Update, Delete, Transact, Initiate, and Commit. Instances ",
+        "take the argument of account-metadata ID in uuid format. An option key has one argument ",
+        "only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*")
     )]
     rule: Vec<RuleArgs>,
     /// Update description field
@@ -32,7 +43,7 @@ pub(crate) struct UpdateRoleArgs {
     #[arg(
         short = 'l',
         long,
-        value_parser = parse_labels,
+        value_parser = parse_key_value,
         long_help = "IMPORTANT: When updating one or more labels for a role, ALL labels and their values must be entered, even those that don't change.",
     )]
     labels: Option<Vec<(String, String)>>,
@@ -52,7 +63,7 @@ pub(crate) struct UpdateRoleMetadataArgs {
     #[arg(short = 'd', long)]
     description: Option<String>,
     /// Update labels
-    #[arg(short = 'l', long, value_parser = parse_labels)]
+    #[arg(short = 'l', long, value_parser = parse_key_value)]
     labels: Option<Vec<(String, String)>>,
 }
 
@@ -65,7 +76,12 @@ pub(crate) struct UpdateRoleRulesArgs {
         short,
         long,
         group = "rules-source",
-        long_help = "Rules include --collections (-c), --verbs (-v) and optionally, --instances (-i). Default collections include ledger-accounts (aka \"account\"), account-metadata, roles and role-bindings. Available verbs include Read, Create, Update, Delete, Transact, Initiate, Commit, Deny and Revoke. Instances take the argument of account-metadata ID in uuid format. An option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*"
+        long_help = concat!("Rules include --collections (-c), --verbs (-v) and optionally, ",
+        "--instances (-i), expression (--when) and attributes (--types). Default collections ",
+        "include ledger-accounts (aka \"account\"), account-metadata, roles and role-bindings. ",
+        "Available verbs include Read, Create, Update, Delete, Transact, Initiate, Commit, Deny ",
+        "and Revoke. Instances take the argument of account-metadata ID in uuid format. An ",
+        "option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*")
     )]
     rule: Vec<RuleArgs>,
     /// Provide rule definitions in a file (JSON or YAML)
@@ -295,35 +311,57 @@ impl UpdateRoleRulesArgs {
                     })
                     .collect::<Result<Vec<_>, _>>()?;
 
+                let types = if !rule.types.is_empty() {
+                    Some(rule
+                        .types
+                        .iter()
+                        .map(|(name, ty)| {
+                            Ok((
+                                name.clone(),
+                                Ty::try_from(*ty).map_err(|e| anyhow::anyhow!("failed to parse Ty: {e}"))?,
+                            ))
+                        })
+                        .collect::<anyhow::Result<Vec<(String, Ty)>>>()?)
+                } else {
+                    None
+                };
+
                 Ok(RuleArgs {
-                    instances,
                     collection: rule.collection.clone(),
                     verbs,
+                    when: rule.when.clone(),
+                    types,
+                    instances,
                 })
             })
             .collect()
     }
 
     fn create_yaml_with_comments(rules: &[RuleArgs]) -> anyhow::Result<String> {
-        let mut yaml = String::new();
-        yaml.push_str("# Role Rules Configuration\n");
-        yaml.push_str("# \n");
-        yaml.push_str("# Each rule defines permissions for a collection.\n");
-        yaml.push_str("# \n");
-        yaml.push_str("# Fields:\n");
-        yaml.push_str("#   collection: The collection name (e.g., 'roles', 'account-metadata')\n");
-        yaml.push_str("#   verbs: List of allowed operations (Read, Create, Update, Delete, Transact, Initiate, Commit, Deny, Revoke)\n");
-        yaml.push_str("#   instances: (Optional) List of specific UUIDs to restrict access to\n");
-        yaml.push_str("# \n");
-        yaml.push_str("# Example:\n");
-        yaml.push_str("# - collection: roles\n");
-        yaml.push_str("#   verbs:\n");
-        yaml.push_str("#     - Read\n");
-        yaml.push_str("#     - Update\n");
-        yaml.push_str("#   instances:\n");
-        yaml.push_str("#     - <ID>\n");
-        yaml.push_str("# \n");
-        yaml.push('\n');
+        let mut yaml = r#"# Role Rules Configuration
+#
+# Each rule defines permissions for a collection.
+#
+# Fields:
+#   collection: The collection name (e.g., 'roles', 'account-metadata')
+#   verbs: List of allowed operations (Read, Create, Update, Delete, Transact, Initiate, Commit, Deny, Revoke)
+#   instances: (Optional) List of specific UUIDs to restrict access to
+#   when: (Optional) Condition that must be met to gain access to resources
+#   types: (Optional) Type annotations of custom variables used in when-statement
+#
+# Example:
+# - collection: roles
+#   verbs:
+#     - Read
+#     - Update
+#   instances:
+#     - <ID>
+#   when: "transfer.amount < transfer_limit"
+#   types:
+#   - [transfer_limit, U64]
+#
+
+        "#.to_string();
 
         let rules_yaml = serde_yml::to_string(rules)?;
         yaml.push_str(&rules_yaml);

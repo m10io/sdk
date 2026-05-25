@@ -119,6 +119,14 @@ pub enum AccountUpdateType {
         account_id: AccountId,
         display_code: String,
     },
+    #[cfg_attr(
+        feature = "format",
+        display("SetMinCommits{{ account_id={account_id} min_commits={min_commits} }}")
+    )]
+    SetMinCommits {
+        account_id: AccountId,
+        min_commits: u32,
+    },
 }
 
 impl TryFrom<IndexedAccount> for Account {
@@ -173,6 +181,10 @@ impl TryFrom<(&sdk::transaction_data::Data, &[u8])> for AccountUpdateType {
             Data::SetDisplayCode(display_code) => Ok(AccountUpdateType::SetDisplayCode {
                 display_code: display_code.display_code.clone(),
                 account_id: AccountId::try_from_be_slice(&display_code.account_id)?,
+            }),
+            Data::SetMinCommits(smc) => Ok(AccountUpdateType::SetMinCommits {
+                account_id: AccountId::try_from_be_slice(&smc.account_id)?,
+                min_commits: smc.min_commits,
             }),
             Data::SetInstrument(instrument) => Ok(AccountUpdateType::SetInstrument {
                 account_id: AccountId::try_from_be_slice(&instrument.account_id)?,

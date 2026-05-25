@@ -1,6 +1,7 @@
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
-use m10_sdk::sdk;
+use anyhow::anyhow;
+use m10_sdk::sdk::{self, attribute::attribute_value::Value};
 use serde_with::{serde_as, DisplayFromStr};
 
 use super::PrettyId;
@@ -14,6 +15,43 @@ impl FromStr for Expression {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(serde_json::from_str(s)?))
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub(crate) struct Attribute(pub(crate) HashMap<String, AttributeValue>);
+
+impl FromStr for Attribute {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(serde_json::from_str(s)?))
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub(crate) enum AttributeValue {
+    Uint(u64),
+    Int(i64),
+    Float(f64),
+    Bool(bool),
+    String(String),
+}
+
+impl TryFrom<m10_sdk::ledger::attribute::AttributeValue> for AttributeValue {
+    type Error = anyhow::Error;
+
+    fn try_from(v: m10_sdk::ledger::attribute::AttributeValue) -> Result<Self, Self::Error> {
+        match v.value {
+            Some(Value::UintValue(n)) => Ok(AttributeValue::Uint(n)),
+            Some(Value::IntValue(n)) => Ok(AttributeValue::Int(n)),
+            Some(Value::FloatValue(n)) => Ok(AttributeValue::Float(n)),
+            Some(Value::BoolValue(n)) => Ok(AttributeValue::Bool(n)),
+            Some(Value::StringValue(n)) => Ok(AttributeValue::String(n)),
+            None => Err(anyhow!("attribute value was not provided")),
+        }
     }
 }
 
@@ -41,7 +79,9 @@ pub struct RoleBinding {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub expires_at: String,
     #[serde(default)]
-    pub labels: std::collections::HashMap<String, String>,
+    pub labels: HashMap<String, String>,
+    #[serde(default)]
+    pub attributes: HashMap<String, AttributeValue>,
 }
 
 fn format_timestamp_ms(timestamp_ms: u64) -> String {
@@ -76,6 +116,7 @@ impl TryFrom<sdk::RoleBinding> for RoleBinding {
             description,
             expires_at,
             labels,
+            attributes,
         } = other;
 
         Ok(RoleBinding {
@@ -95,6 +136,16 @@ impl TryFrom<sdk::RoleBinding> for RoleBinding {
                 .collect(),
             expires_at: expires_at.map(format_timestamp_ms).unwrap_or_default(),
             labels,
+            attributes: attributes
+                .into_iter()
+                .map(|attribute| {
+                    let value = attribute
+                        .value
+                        .ok_or_else(|| anyhow!("missing value for attribute '{}'", attribute.name))
+                        .and_then(AttributeValue::try_from)?;
+                    Ok((attribute.name, value))
+                })
+                .collect::<Result<HashMap<String, AttributeValue>, Self::Error>>()?,
         })
     }
 }
@@ -124,6 +175,17 @@ impl TryFrom<m10_sdk::RoleBinding> for RoleBinding {
                 .expires_at
                 .map(format_timestamp_ms)
                 .unwrap_or_default(),
+            attributes: other
+                .attributes
+                .into_iter()
+                .map(|attribute| {
+                    let value = attribute
+                        .value
+                        .ok_or_else(|| anyhow!("missing value for attribute '{}'", attribute.name))
+                        .and_then(AttributeValue::try_from)?;
+                    Ok((attribute.name, value))
+                })
+                .collect::<Result<HashMap<String, AttributeValue>, Self::Error>>()?,
         })
     }
 }

@@ -30,8 +30,8 @@ hyper-rustls = { version = "0.27.2" }
 hyper-util = { version = "0.1.7", features = ["client-legacy"] }
 libxid = { path = "../crates/libxid" }
 log = { version = "0.4", default-features = true }
-m10-sdk = "1.5.3"
-m10-protos = { version = "1.5.3", features = ["dynamic2"] }
+m10-sdk = "1.5.4"
+m10-protos = { version = "1.5.4", features = ["dynamic2"] }
 parse-display = { version = "0.5" }
 ron = "0.8"
 serde = { version = "1", features = ["derive"] }
@@ -39,6 +39,7 @@ serde_json = "1.0"
 serde_urlencoded = "0.7"
 serde_with = { version = "1.6.4", features = ["hex"] }
 serde_yml = "0.0.12"
+shlex = "1.3.0"
 csv = "1.2"
 tokio = { default-features = false, version = "1.25", features = ["full"] }
 tonic = { version = "0.12.1", features = ["tls", "tls-roots"] }
@@ -48,7 +49,7 @@ rustls = { version = "0.23.12", features = ["ring"] }
 rustls-native-certs = "0.8"
 rustls-pemfile = "2"
 edit = "0.1"
-url = "2.5.4"
+url = "2.5.8"
 
 [[bin]]
 name = "m10"

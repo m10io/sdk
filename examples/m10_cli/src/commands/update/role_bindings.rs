@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-use crate::collections::role_bindings::Expression;
-use crate::utils::{parse_labels, validate_labels};
+use crate::collections::role_bindings::{Attribute, Expression};
+use crate::utils::{parse_key_value, validate_labels};
 
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
 pub(crate) struct UpdateRoleBindingArgs {
@@ -33,10 +33,18 @@ pub(crate) struct UpdateRoleBindingArgs {
     #[arg(
         short = 'l',
         long,
-        value_parser = parse_labels,
+        value_parser = parse_key_value,
         long_help = "IMPORTANT: When updating one or more labels for a role, ALL labels and their values must be entered, even those that don't change.",
     )]
     pub labels: Option<Vec<(String, String)>>,
+    /// Update attributes
+    #[arg(
+        short,
+        long,
+        alias = "attributes",
+        long_help = "IMPORTANT: When updating one or more attributes for a role, ALL attributes and their values must be entered, even those that don't change."
+    )]
+    pub attributes: Option<Attribute>,
 }
 
 #[derive(Clone, Subcommand, Debug, Serialize, Deserialize)]
@@ -144,7 +152,8 @@ impl super::BuildFromArgs for UpdateRoleBindingArgs {
             || self.expressions.is_some()
             || self.description.is_some()
             || self.expires_at.is_some()
-            || self.labels.is_some();
+            || self.labels.is_some()
+            || self.attributes.is_some();
 
         if let Some(owner) = &self.owner {
             let owner_key = base64::decode(owner)?;
@@ -191,6 +200,17 @@ impl super::BuildFromArgs for UpdateRoleBindingArgs {
             let labels: std::collections::HashMap<String, String> = labels.into_iter().collect();
             validate_labels(&labels)?;
             builder.labels(labels);
+        }
+        if let Some(attributes) = self.attributes {
+            let attributes = attributes
+                .0
+                .into_iter()
+                .map(|(name, value)| sdk::Attribute {
+                    name,
+                    value: Some(value.into()),
+                })
+                .collect();
+            builder.attributes(attributes);
         }
         builder.merge_repeated(true);
         Ok(changed)

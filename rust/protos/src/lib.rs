@@ -202,6 +202,12 @@ pub mod sdk {
         }
     }
 
+    impl From<SetMinCommits> for Data {
+        fn from(request: SetMinCommits) -> Self {
+            Self::SetMinCommits(request)
+        }
+    }
+
     impl From<InvokeAction> for Data {
         fn from(request: InvokeAction) -> Self {
             Self::InvokeAction(request)
@@ -292,6 +298,7 @@ pub mod sdk {
                 transaction_error::Code::NotFound => "not found",
                 transaction_error::Code::AlreadyExists => "already exists",
                 transaction_error::Code::Unauthorized => "unauthorized",
+                transaction_error::Code::Internal => "internal error",
                 transaction_error::Code::BadRequest => "bad request",
                 transaction_error::Code::InvalidRequestType => "invalid request type",
                 transaction_error::Code::InvalidAccountId => "invalid account id",
@@ -320,6 +327,7 @@ pub mod sdk {
                 transaction_error::Code::LockNotFound => "lock not found",
                 transaction_error::Code::InvalidLockState => "invalid lock state",
                 transaction_error::Code::DuplicateLockId => "duplicate lock id",
+                transaction_error::Code::CommitAlreadyRecorded => "commit already recorded",
             }
         }
     }

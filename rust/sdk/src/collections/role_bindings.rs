@@ -1,6 +1,6 @@
 use super::*;
 use crate::document_id::DocumentId;
-use m10_protos::sdk::{Expression, RoleBinding};
+use m10_protos::sdk::{Attribute, Expression, RoleBinding};
 
 impl DocumentUpdate<RoleBinding> {
     pub fn owner(&mut self, owner: Bytes) -> &mut Self {
@@ -98,6 +98,15 @@ impl DocumentUpdate<RoleBinding> {
     pub fn labels(&mut self, labels: std::collections::HashMap<String, String>) -> &mut Self {
         self.document.labels.extend(labels);
         let path = "labels".to_string();
+        if !self.mask.paths.contains(&path) {
+            self.mask.paths.push(path);
+        }
+        self
+    }
+
+    pub fn attributes(&mut self, mut attributes: Vec<Attribute>) -> &mut Self {
+        self.document.attributes.append(&mut attributes);
+        let path = "attributes".to_string();
         if !self.mask.paths.contains(&path) {
             self.mask.paths.push(path);
         }

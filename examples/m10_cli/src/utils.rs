@@ -1,7 +1,9 @@
 use crate::collections::roles::{RuleArgs, Verb};
 use crate::collections::{LEDGER_ACCOUNTS, ROLES, ROLE_BINDINGS};
+use anyhow::bail;
 use anyhow::Context;
 use m10_sdk::account::{AccountId, Builder as AccountIdBuilder, LeafAccountIndex, RawAccountIndex};
+use m10_sdk::sdk::rule::Ty;
 use m10_sdk::{sdk::signature::Algorithm, Ed25519, Signer, P256};
 use std::fs;
 use std::io::Read;
@@ -158,7 +160,7 @@ pub fn secure_read_file<P: AsRef<Path>>(rel: P) -> anyhow::Result<Vec<u8>> {
     Ok(buf)
 }
 
-pub fn parse_labels(s: &str) -> Result<(String, String), String> {
+pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
     let mut parts = s.splitn(2, '=');
     let key = parts.next().ok_or("missing key")?.to_string();
     let val = parts.next().ok_or("missing value")?.to_string();
@@ -189,6 +191,22 @@ pub fn validate_labels(
     Ok(())
 }
 
+static RESERVED_WHEN_KEYWORDS: [&str; 2] = ["now", "transfer"];
+
+pub fn is_reserved_when_keyword(input: &str) -> bool {
+    let normalized = input.trim().to_lowercase();
+    RESERVED_WHEN_KEYWORDS.contains(&normalized.as_str())
+}
+
+fn validate_when_type_names(types: &[(String, Ty)]) -> anyhow::Result<()> {
+    for (name, _) in types {
+        if is_reserved_when_keyword(name) {
+            bail!("Reserved keyword '{name}' cannot be used as a when-statement type name");
+        }
+    }
+    Ok(())
+}
+
 pub fn validate_rules(rules: &[RuleArgs]) -> anyhow::Result<()> {
     let forbidden_verbs = [
         (Verb::Transact, "TRANSACT"),
@@ -207,6 +225,9 @@ pub fn validate_rules(rules: &[RuleArgs]) -> anyhow::Result<()> {
                 "Verbs cannot be empty for collection '{}'",
                 rule.collection
             ));
+        }
+        if let Some(types) = &rule.types {
+            validate_when_type_names(types)?;
         }
         let has_deny = rule.verbs.contains(&Verb::Deny);
         let has_other_verb = rule.verbs.iter().any(|&v| v != Verb::Deny);

@@ -31,7 +31,7 @@ impl From<TransferState> for sdk::transaction::commit_transfer::TransferState {
 
 impl UpdateTransferArgs {
     pub async fn do_update(&self, context: &Context) -> anyhow::Result<()> {
-        context
+        let (_, finalized) = context
             .ledger_client()
             .commit_transfer(
                 self.id,
@@ -43,7 +43,15 @@ impl UpdateTransferArgs {
             )
             .await?;
         match self.state {
-            TransferState::Accept => println!("Transfer {} has been accepted", self.id),
+            TransferState::Accept if finalized => {
+                println!("Transfer {} has been accepted", self.id)
+            }
+            TransferState::Accept => {
+                println!(
+                    "Commit recorded for transfer {} — transfer is still pending (more commits required)",
+                    self.id
+                )
+            }
             TransferState::Reject => println!("Transfer {} has been rejected", self.id),
         }
         Ok(())

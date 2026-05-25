@@ -178,6 +178,7 @@ impl AccountIdExt for (&sdk::transaction_data::Data, &sdk::TransactionResponse) 
                 set_issuance_limit.account_id.involves_account(id)
             }
             Data::SetDisplayCode(set_display_code) => set_display_code.involves_account(id),
+            Data::SetMinCommits(set_min_commits) => set_min_commits.account_id.involves_account(id),
             Data::CreateToken(create_token) => create_token.involves_account(id),
             Data::RedeemToken(redeem_token) => redeem_token.involves_account(id),
             Data::CreateLock(create_lock) => create_lock.involves_account(id),

@@ -1,4 +1,5 @@
 use clap::{ArgGroup, Args};
+use m10_protos::sdk;
 use m10_sdk::account::AccountId;
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +31,13 @@ pub(crate) struct UpdateLedgerAccountArgs {
     /// Unique display code for the instrument
     #[arg(long, alias = "dc")]
     display_code: Option<String>,
+    /// Minimum distinct ACCEPT commits required to finalize a pending transfer (0 = revert to default of 1)
+    #[arg(long, alias = "mc")]
+    min_commits: Option<u32>,
+    /// Amount-based commit threshold tiers as MIN_AMOUNT:MIN_COMMITS (e.g. 100000:2).
+    /// May be repeated. Replaces the account's tiers entirely; omit to clear all tiers.
+    #[arg(long, alias = "ct", value_parser = parse_commit_threshold)]
+    commit_thresholds: Vec<sdk::CommitThreshold>,
 }
 
 impl UpdateLedgerAccountArgs {
@@ -78,15 +86,51 @@ impl UpdateLedgerAccountArgs {
                 .await?;
         }
 
+        if self.min_commits.is_some() || !self.commit_thresholds.is_empty() {
+            client
+                .set_min_commits(
+                    self.id,
+                    self.min_commits.unwrap_or(0),
+                    self.commit_thresholds.clone(),
+                    context.context_id(),
+                )
+                .await?;
+        }
+
         if self.freeze.is_none()
             && self.holding_limit.is_none()
             && self.issuance_limit.is_none()
             && self.code.is_none()
             && self.display_code.is_none()
+            && self.min_commits.is_none()
+            && self.commit_thresholds.is_empty()
         {
             eprintln!("warning: no fields specified, nothing was updated");
         }
 
         Ok(())
     }
+}
+
+fn parse_commit_threshold(s: &str) -> anyhow::Result<sdk::CommitThreshold> {
+    let parts: Vec<&str> = s.split(':').map(str::trim).collect();
+    if parts.len() != 2 {
+        anyhow::bail!("invalid --commit-threshold {s:?}: expected '<MIN_AMOUNT>:<MIN_COMMITS>'");
+    }
+    let min_amount = parts[0].parse::<u64>().map_err(|err| {
+        anyhow::anyhow!(
+            "invalid min_amount {:?} in --commit-threshold {s:?}: {err}",
+            parts[0]
+        )
+    })?;
+    let min_commits = parts[1].parse::<u32>().map_err(|err| {
+        anyhow::anyhow!(
+            "invalid min_commits {:?} in --commit-threshold {s:?}: {err}",
+            parts[1]
+        )
+    })?;
+    Ok(sdk::CommitThreshold {
+        min_amount,
+        min_commits,
+    })
 }

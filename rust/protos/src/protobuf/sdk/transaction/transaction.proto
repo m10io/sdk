@@ -34,6 +34,7 @@ message TransactionData {
     SetBalanceLimit set_balance_limit = 24;
     SetIssuanceLimit set_issuance_limit = 25;
     SetDisplayCode set_display_code = 26;
+    SetMinCommits set_min_commits = 27;
     CreateToken create_token = 100;
     RedeemToken redeem_token = 101;
     CreateLock create_lock = 102;
@@ -71,6 +72,7 @@ message TransactionError {
     NOT_FOUND = 2;
     ALREADY_EXISTS = 3;
     UNAUTHORIZED = 4;
+    INTERNAL = 46;
 
     // Request is malformed
     BAD_REQUEST = 5;
@@ -116,6 +118,10 @@ message TransactionError {
     LOCK_NOT_FOUND = 43;
     INVALID_LOCK_STATE = 44;
     DUPLICATE_LOCK_ID = 45;
+    // next free is 47
+
+    // Multi-commit threshold status codes
+    COMMIT_ALREADY_RECORDED = 47;
   }
 }
 
@@ -194,8 +200,8 @@ message FinalizedTransfer {
   enum TransferState {
     ACCEPTED = 0;
     REJECTED = 1;
-    PENDING  = 2;
-    EXPIRED  = 3;
+    PENDING = 2;
+    EXPIRED = 3;
     // Sentinel value used only as a filter in requests; not stored on finalized transfers.
     TRANSFER_STATE_UNSPECIFIED = 4;
   }
@@ -217,6 +223,12 @@ message Instrument {
   string display_code = 4;
 }
 
+/// Amount-based commit threshold tier; applies when transfer amount >= min_amount.
+message CommitThreshold {
+  uint64 min_amount = 1;
+  uint32 min_commits = 2;
+}
+
 message CreateLedgerAccount {
   /// Parent account ID.
   bytes parent_id = 1;
@@ -230,6 +242,10 @@ message CreateLedgerAccount {
   uint64 balance_limit = 5;
   /// Maximum issued balance for issuance accounts. 0 = unlimited.
   uint64 issuance_limit = 6;
+  /// Minimum distinct ACCEPT commits to finalize a pending transfer from this account. 0 = 1 commit.
+  uint32 min_commits = 7;
+  /// Amount-based tiers; effective threshold is the highest applicable min_commits.
+  repeated CommitThreshold commit_thresholds = 8;
 }
 
 message SetFreezeState {
@@ -273,6 +289,15 @@ message SetDisplayCode {
   string display_code = 2;
 }
 
+message SetMinCommits {
+  /// Account ID to update.
+  bytes account_id = 1;
+  /// New baseline threshold. 0 = revert to default of 1.
+  uint32 min_commits = 2;
+  /// Replaces the account's commit_thresholds entirely. An empty list clears all tiers.
+  repeated CommitThreshold commit_thresholds = 3;
+}
+
 message GetAccountRequest {
   /// ID of the account to retrieve.
   bytes id = 1;
@@ -297,6 +322,10 @@ message IndexedAccount {
   uint64 available_balance = 9;
   /// Display Code of the account
   string display_code = 10;
+  /// Minimum distinct ACCEPT commits required to finalize a transfer. Always at least 1.
+  uint32 min_commits = 11;
+  /// Amount-based commit threshold tiers.
+  repeated CommitThreshold commit_thresholds = 12;
   message Issuance {
     /// Issued balance of the account.
     uint64 issued_balance = 1;
@@ -385,7 +414,6 @@ message CommitTransfer {
   TransferState new_state = 2;
 }
 
-
 message Signature {
   /// Public key used for the signature.
   bytes public_key = 2;
@@ -401,61 +429,61 @@ message Signature {
 }
 
 message CreateToken {
-    /// Address for the token.
-    bytes address = 1;
-    /// Account ID associated with the token.
-    bytes account_id = 2;
-    /// Value of the token.
-    uint64 value = 3;
+  /// Address for the token.
+  bytes address = 1;
+  /// Account ID associated with the token.
+  bytes account_id = 2;
+  /// Value of the token.
+  uint64 value = 3;
 }
 
 message OfflineToken {
-    message Data {
-        /// Token ID.
-        uint64 id = 1;
-        /// Token address.
-        bytes address = 2;
-        /// Account ID associated with the token.
-        bytes account_id = 3;
-        /// Token value.
-        uint64 value = 4;
-        /// Currency of the token.
-        string currency = 5;
-    }
-    /// Token data.
-    Data data = 1;
-    /// Signature for the token.
-    Signature signature = 2;
+  message Data {
+    /// Token ID.
+    uint64 id = 1;
+    /// Token address.
+    bytes address = 2;
+    /// Account ID associated with the token.
+    bytes account_id = 3;
+    /// Token value.
+    uint64 value = 4;
+    /// Currency of the token.
+    string currency = 5;
+  }
+  /// Token data.
+  Data data = 1;
+  /// Signature for the token.
+  Signature signature = 2;
 }
 
 message RedeemableToken {
-    message TokenInput {
-        /// Input value.
-        uint64 input = 1;
-        /// Value associated with the input.
-        uint64 value = 2;
-    }
-    message Data {
-        /// Token ID.
-        bytes id = 1;
-        /// Token address.
-        bytes address = 2;
-        /// List of token inputs.
-        repeated TokenInput inputs = 3;
-        /// Token currency.
-        string currency = 4;
-    }
-    /// Token data.
-    Data data = 1;
-    /// Signature for the token.
-    Signature signature = 2;
+  message TokenInput {
+    /// Input value.
+    uint64 input = 1;
+    /// Value associated with the input.
+    uint64 value = 2;
+  }
+  message Data {
+    /// Token ID.
+    bytes id = 1;
+    /// Token address.
+    bytes address = 2;
+    /// List of token inputs.
+    repeated TokenInput inputs = 3;
+    /// Token currency.
+    string currency = 4;
+  }
+  /// Token data.
+  Data data = 1;
+  /// Signature for the token.
+  Signature signature = 2;
 }
 
 message RedeemToken {
-    /// Redeemable token.
-    RedeemableToken token = 1;
-    /// Account ID for redemption.
-    bytes account_id = 2;
+  /// Redeemable token.
+  RedeemableToken token = 1;
+  /// Account ID for redemption.
+  bytes account_id = 2;
 }
 
 message CreateLock {
@@ -525,10 +553,11 @@ enum SettlementCycleStatus {
 
 message SettlementCycle {
   bytes cycle_id = 1;
-  SettlementCycleStatus status = 2;
-  uint64 cutoff_at = 3;
-  uint64 settled_at = 4;
-  uint64 closed_at = 5;
-  bytes created_by = 6;
-  bytes operator_metadata = 7;
+  bytes asset_id = 2;
+  SettlementCycleStatus status = 3;
+  uint64 cutoff_at = 4;
+  uint64 settled_at = 5;
+  uint64 closed_at = 6;
+  bytes created_by = 7;
+  bytes operator_metadata = 8;
 }

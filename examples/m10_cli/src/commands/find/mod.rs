@@ -3,7 +3,7 @@ use m10_sdk::{Format, PageBuilder, PrettyPrint, RoleBindingFilter, RoleFilter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::utils::parse_labels;
+use crate::utils::parse_key_value;
 use crate::{collections::roles::Role, context::Context};
 
 mod account_sets;
@@ -92,7 +92,7 @@ pub(crate) enum Find {
             long,
             conflicts_with_all = ["name", "description", "instance"],
             required_unless_present_any = ["name", "description", "instance"],
-            value_parser = parse_labels,
+            value_parser = parse_key_value,
         )]
         labels: Option<Vec<(String, String)>>,
         /// Set output format (one of 'json', 'yaml', 'raw')
@@ -132,7 +132,7 @@ pub(crate) enum Find {
             long,
             conflicts_with_all = ["name", "description", "subject"],
             required_unless_present_any = ["name", "description", "subject"],
-            value_parser = parse_labels,
+            value_parser = parse_key_value,
         )]
         labels: Option<Vec<(String, String)>>,
         /// Set output format (one of 'json', 'yaml', 'raw')

@@ -176,6 +176,8 @@ impl From<AccountBuilder> for sdk::CreateLedgerAccount {
             instrument: builder.instrument,
             balance_limit: builder.balance_limit,
             issuance_limit: builder.issuance_limit,
+            min_commits: 0,
+            commit_thresholds: vec![],
         }
     }
 }

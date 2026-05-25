@@ -2,13 +2,13 @@ use crate::collections::ResourceId;
 use crate::error::M10Error;
 use crate::types::PublicKey;
 use m10_protos::sdk;
-use m10_protos::sdk::Expression;
+use m10_protos::sdk::{Attribute, Expression};
 use serde::Serialize;
 
 #[cfg_attr(feature = "format", derive(parse_display::Display))]
 #[cfg_attr(
     feature = "format",
-    display("RoleBinding{{ id={id} owner={owner} name={name} role_id={role_id} is_universal={is_universal} created_at={created_at} updated_at={updated_at} created_by={created_by} description={description} expires_at={expires_at:?} labels={labels:?} }}")
+    display("RoleBinding{{ id={id} owner={owner} name={name} role_id={role_id} is_universal={is_universal} created_at={created_at} updated_at={updated_at} created_by={created_by} description={description} expires_at={expires_at:?} labels={labels:?} attributes={attributes:?} }}")
 )]
 #[derive(Clone, Debug, Serialize)]
 pub struct RoleBinding {
@@ -25,6 +25,7 @@ pub struct RoleBinding {
     pub description: String,
     pub labels: std::collections::HashMap<String, String>,
     pub expires_at: Option<u64>,
+    pub attributes: Vec<Attribute>,
 }
 
 impl TryFrom<sdk::RoleBinding> for RoleBinding {
@@ -45,6 +46,7 @@ impl TryFrom<sdk::RoleBinding> for RoleBinding {
             description: role_binding.description,
             labels: role_binding.labels,
             expires_at: role_binding.expires_at,
+            attributes: role_binding.attributes,
         })
     }
 }

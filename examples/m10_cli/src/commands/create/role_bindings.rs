@@ -4,8 +4,11 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use uuid::Uuid;
 
-use crate::collections::{role_bindings::Expression, PrettyId};
-use crate::utils::{parse_labels, validate_labels};
+use crate::collections::{
+    role_bindings::{Attribute, AttributeValue, Expression},
+    PrettyId,
+};
+use crate::utils::{parse_key_value, validate_labels};
 
 #[serde_as]
 #[derive(Clone, Args, Debug, Serialize, Deserialize)]
@@ -46,9 +49,28 @@ pub(crate) struct CreateRoleBindingArgs {
     #[serde(default)]
     expires_at: Option<String>,
     /// Set optional labels. (e.g. `-l label_1=value_1 -l label_2=value_2`)
-    #[arg(short = 'l', long, value_parser = parse_labels)]
+    #[arg(short = 'l', long, value_parser = parse_key_value)]
     #[serde(default)]
     pub labels: Option<Vec<(String, String)>>,
+    /// Set attributes (may be used in expressions)
+    #[arg(long, alias = "attributes")]
+    #[serde(default)]
+    pub attributes: Option<Attribute>,
+}
+
+impl From<AttributeValue> for sdk::attribute::AttributeValue {
+    fn from(v: AttributeValue) -> Self {
+        use sdk::attribute::attribute_value::Value;
+        sdk::attribute::AttributeValue {
+            value: Some(match v {
+                AttributeValue::Uint(n) => Value::UintValue(n),
+                AttributeValue::Int(n) => Value::IntValue(n),
+                AttributeValue::Float(f) => Value::FloatValue(f),
+                AttributeValue::Bool(b) => Value::BoolValue(b),
+                AttributeValue::String(s) => Value::StringValue(s),
+            }),
+        }
+    }
 }
 
 impl super::BuildFromArgs for CreateRoleBindingArgs {
@@ -74,6 +96,18 @@ impl super::BuildFromArgs for CreateRoleBindingArgs {
                 })
                 .collect()
         });
+
+        let attributes = self.attributes.map_or(vec![], |attrs| {
+            attrs
+                .0
+                .into_iter()
+                .map(|(name, value)| sdk::Attribute {
+                    name,
+                    value: Some(value.into()),
+                })
+                .collect()
+        });
+
         let description = self.description.unwrap_or_default();
         if description.len() > 100 {
             return Err(anyhow::anyhow!(
@@ -119,6 +153,7 @@ impl super::BuildFromArgs for CreateRoleBindingArgs {
             description,
             labels,
             expires_at,
+            attributes,
         })
     }
 }

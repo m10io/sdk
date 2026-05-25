@@ -1,8 +1,8 @@
-use std::{convert::TryFrom, str::FromStr};
+use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
 use bytes::Bytes;
 use clap::Parser;
-use m10_sdk::sdk;
+use m10_sdk::sdk::{self, rule::Ty};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use uuid::Uuid;
@@ -15,8 +15,20 @@ pub(crate) struct RuleArgs {
     pub(crate) collection: String,
     #[clap(short = 'v', long = "verbs")]
     pub(crate) verbs: Vec<Verb>,
+    #[clap(long = "when")]
+    pub(crate) when: Option<String>,
+    #[clap(long = "types", value_parser = parse_type_entry)]
+    pub(crate) types: Option<Vec<(String, Ty)>>,
     #[clap(short = 'i', long = "instances")]
     pub(crate) instances: Option<Vec<Uuid>>,
+}
+
+fn parse_type_entry(s: &str) -> Result<(String, Ty), anyhow::Error> {
+    let (k, v) = s
+        .split_once('=')
+        .ok_or_else(|| anyhow::anyhow!("expected key=value, got '{s}'"))?;
+    let ty = Ty::from_str_name(v).ok_or_else(|| anyhow::anyhow!("unknown type: '{v}'"))?;
+    Ok((k.to_string(), ty))
 }
 
 impl RuleArgs {
@@ -29,11 +41,22 @@ impl RuleArgs {
 
         let collection = self.collection.to_owned();
         let verbs = self.verbs.iter().map(|v| *v as i32).collect::<Vec<i32>>();
+        let when = self.when.clone();
+        let types = if let Some(types) = &self.types {
+            types
+                .iter()
+                .map(|(name, ty)| (name.clone(), *ty as i32))
+                .collect::<HashMap<String, i32>>()
+        } else {
+            HashMap::new()
+        };
 
         sdk::Rule {
             collection,
             instance_keys,
             verbs,
+            when,
+            types,
         }
     }
 }
@@ -42,7 +65,7 @@ impl FromStr for RuleArgs {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let args = s.split_ascii_whitespace();
+        let args = shlex::split(s).ok_or_else(|| anyhow::anyhow!("failed to parse rule args"))?;
         let rule = RuleArgs::try_parse_from(args)?;
         Ok(rule)
     }
@@ -105,7 +128,7 @@ impl FromStr for Verb {
 }
 
 #[derive(Serialize, Deserialize, parse_display::Display, Debug, Clone, Default)]
-#[display("Rule{{ collection={collection} instance_keys={instance_keys:?} verbs={verbs:?} }}")]
+#[display("Rule{{ collection={collection} instance_keys={instance_keys:?} verbs={verbs:?} when={when} types={types:?}}}")]
 pub struct Rule {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub collection: String,
@@ -113,6 +136,10 @@ pub struct Rule {
     pub instance_keys: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub verbs: Vec<String>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub when: String,
+    #[serde(default)]
+    pub types: HashMap<String, Ty>,
 }
 
 impl TryFrom<m10_sdk::ledger::Rule> for Rule {
@@ -123,6 +150,8 @@ impl TryFrom<m10_sdk::ledger::Rule> for Rule {
             collection,
             instance_keys,
             verbs,
+            when,
+            types,
         } = other;
 
         let converted_verbs = verbs
@@ -145,10 +174,24 @@ impl TryFrom<m10_sdk::ledger::Rule> for Rule {
             })
             .collect::<Vec<_>>();
 
+        let converted_when = when.unwrap_or_default();
+
+        let converted_types = types
+            .iter()
+            .map(|(name, ty)| {
+                Ok((
+                    name.clone(),
+                    Ty::try_from(*ty).map_err(|e| anyhow::anyhow!("unexpected Ty: {e}"))?,
+                ))
+            })
+            .collect::<Result<HashMap<String, Ty>, anyhow::Error>>()?;
+
         Ok(Rule {
             collection,
             instance_keys: converted_instance_keys,
             verbs: converted_verbs,
+            when: converted_when,
+            types: converted_types,
         })
     }
 }
@@ -172,7 +215,7 @@ pub struct Role {
     #[serde(default)]
     pub immutable: bool,
     #[serde(default)]
-    pub labels: std::collections::HashMap<String, String>,
+    pub labels: HashMap<String, String>,
 }
 
 fn format_timestamp(timestamp_us: u64) -> String {

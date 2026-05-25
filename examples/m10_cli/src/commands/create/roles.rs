@@ -1,5 +1,5 @@
 use crate::collections::roles::RuleArgs;
-use crate::utils::{parse_labels, validate_labels, validate_rules};
+use crate::utils::{parse_key_value, validate_labels, validate_rules};
 use clap::Args;
 use m10_sdk::{sdk, PublicKey};
 use serde::{Deserialize, Serialize};
@@ -36,7 +36,12 @@ pub(crate) struct CreateRoleArgs {
         short,
         long,
         required_unless_present = "editor",
-        long_help = "Rules include --collections (-c), --verbs (-v) and optionally, --instances (-i). Default collections include ledger-accounts (aka \"account\"), account-metadata, roles and role-bindings. Available verbs include Read, Create, Update, Delete, Transact, Initiate, Commit, Grant, Deny, and Revoke. Instances take the argument of account-metadata ID in uuid format. An option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*"
+        long_help = concat!("Rules include --collections (-c), --verbs (-v) and optionally, ",
+        "--instances (-i), expression (--when) and attributes (--types). Default collections ",
+        "include ledger-accounts (aka \"account\"), account-metadata, roles and role-bindings. ",
+        "Available verbs include Read, Create, Update, Delete, Transact, Initiate, Commit, Grant, ",
+        "Deny, and Revoke. Instances take the argument of account-metadata ID in uuid format. An ",
+        "option key has one argument only. E.g.  *-r 'rule -c roles -v Read -v Update -v Delete'*")
     )]
     rule: Vec<RuleArgs>,
     #[arg(short = 'd', long)]
@@ -48,56 +53,62 @@ pub(crate) struct CreateRoleArgs {
     #[serde(default)]
     immutable: bool,
     /// Set optional labels. (e.g. `-l label_1=value_1 -l label_2=value_2`)
-    #[arg(short = 'l', long, value_parser = parse_labels)]
+    #[arg(short = 'l', long, value_parser = parse_key_value)]
     #[serde(default)]
     pub labels: Option<Vec<(String, String)>>,
 }
 
 impl CreateRoleArgs {
     fn create_yaml_template() -> String {
-        let mut yaml = String::new();
-        yaml.push_str("# Role Configuration\n");
-        yaml.push_str("# \n");
-        yaml.push_str("# Metadata Fields (all optional if provided via CLI):\n");
-        yaml.push_str("#   name: Role name\n");
-        yaml.push_str("#   description: Role description (max 100 characters)\n");
-        yaml.push_str("#   owner: Owner's public key in base64 format\n");
-        yaml.push_str("# \n");
-        yaml.push_str("# Rules (required):\n");
-        yaml.push_str("#   Each rule defines permissions for a collection.\n");
-        yaml.push_str("#   Fields:\n");
-        yaml.push_str("#     collection: Collection name (e.g., 'roles', 'account-metadata', 'ledger-accounts')\n");
-        yaml.push_str("#     verbs: List of operations (Read, Create, Update, Delete, Transact, Initiate, Commit, Deny, Revoke)\n");
-        yaml.push_str("#       Note: Transact, Initiate, and Commit verbs only apply to 'ledger-accounts' (aka 'account')\n");
-        yaml.push_str("#     instances: (Optional) List of specific UUIDs to restrict access to\n");
-        yaml.push_str("# \n");
-        yaml.push_str("# Example:\n");
-        yaml.push_str("# name: example-role\n");
-        yaml.push_str("# description: A role for managing accounts\n");
-        yaml.push_str("# rules:\n");
-        yaml.push_str("#   - collection: account-metadata\n");
-        yaml.push_str("#     verbs:\n");
-        yaml.push_str("#       - Read\n");
-        yaml.push_str("#       - Update\n");
-        yaml.push_str("#     instances:\n");
-        yaml.push_str("#       - <ID>\n");
-        yaml.push_str("#   - collection: ledger-accounts\n");
-        yaml.push_str("#     verbs:\n");
-        yaml.push_str("#       - Read\n");
-        yaml.push_str("#       - Transact\n");
-        yaml.push_str("#     instances:\n");
-        yaml.push_str("#       - <ID>\n");
-        yaml.push_str("# \n");
-        yaml.push('\n');
-        yaml.push_str("# Uncomment and fill in metadata fields if not provided via CLI:\n");
-        yaml.push_str("# name: \"\"\n");
-        yaml.push_str("# description: \"\"\n");
-        yaml.push_str("# owner: \"\"\n");
-        yaml.push('\n');
-        yaml.push_str("rules:\n");
-        yaml.push_str("  - collection: \"\"\n");
-        yaml.push_str("    verbs: []\n");
-        yaml
+        r#"# Role Configuration
+#
+# Metadata Fields (all optional if provided via CLI):
+#   name: Role name
+#   description: Role description (max 100 characters)
+#   owner: Owner's public key in base64 format
+#
+# Rules (required):
+#   Each rule defines permissions for a collection.
+#   Fields:
+#     collection: Collection name (e.g., 'roles', 'account-metadata', 'ledger-accounts')
+#     verbs: List of operations (Read, Create, Update, Delete, Transact, Initiate, Commit, Deny, Revoke)
+#       Note: Transact, Initiate, and Commit verbs only apply to 'ledger-accounts' (aka 'account')
+#     when: (Optional) MQL expression that defines a condition under which a rule can be applied
+#     types: (Optional) type annotations of all custom defined variables used in when-statement
+#     instances: (Optional) List of specific UUIDs to restrict access to
+#
+# Example:
+# name: example-role
+# description: A role for managing accounts
+# rules:
+#   - collection: account-metadata
+#     verbs:
+#       - Read
+#       - Update
+#     instances:
+#       - <ID>
+#   - collection: ledger-accounts
+#     verbs:
+#       - Read
+#       - Transact
+#     when: ""
+#     types:
+#     - ["", ""]
+#     instances:
+#       - <ID>
+
+# Uncomment and fill in metadata fields if not provided via CLI:
+# name: ""
+# description: ""
+# owner: ""
+
+rules:
+  - collection: ""
+    verbs: []
+    when: ""
+    types:
+    - ["", ""]
+"#.to_string()
     }
 
     fn edit_role_interactively(&self) -> anyhow::Result<RoleTemplate> {
@@ -179,7 +190,10 @@ impl CreateRoleArgs {
 
         if !conflicts.is_empty() {
             return Err(anyhow::anyhow!(
-                "You can't specify role metadata in both the file and on the command line. Conflicting fields: {}",
+                concat!(
+                    "You can't specify role metadata in both the file and on the command line. ",
+                    "Conflicting fields: {}"
+                ),
                 conflicts.join(", ")
             ));
         }
